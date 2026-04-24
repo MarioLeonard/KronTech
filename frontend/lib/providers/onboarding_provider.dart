@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../models/onboarding_data.dart';
 import '../models/user_model.dart';
@@ -94,16 +96,22 @@ class OnboardingProvider extends ChangeNotifier {
 
   void updateFirstName(String value) {
     onboardingData = onboardingData.copyWith(
-      profileInfo: onboardingData.profileInfo.copyWith(firstName: value),
+      profileInfo: onboardingData.profileInfo.copyWith(
+        firstName: _capitalizeFirstLetter(value),
+      ),
     );
     notifyListeners();
+    unawaited(saveProgress());
   }
 
   void updateLastName(String value) {
     onboardingData = onboardingData.copyWith(
-      profileInfo: onboardingData.profileInfo.copyWith(lastName: value),
+      profileInfo: onboardingData.profileInfo.copyWith(
+        lastName: _capitalizeFirstLetter(value),
+      ),
     );
     notifyListeners();
+    unawaited(saveProgress());
   }
 
   void updateEmail(String value) {
@@ -111,6 +119,7 @@ class OnboardingProvider extends ChangeNotifier {
       profileInfo: onboardingData.profileInfo.copyWith(email: value),
     );
     notifyListeners();
+    unawaited(saveProgress());
   }
 
   void updateDateOfBirth(DateTime value) {
@@ -118,6 +127,7 @@ class OnboardingProvider extends ChangeNotifier {
       profileInfo: onboardingData.profileInfo.copyWith(dateOfBirth: value),
     );
     notifyListeners();
+    unawaited(saveProgress());
   }
 
   void updateGender(String value) {
@@ -125,6 +135,7 @@ class OnboardingProvider extends ChangeNotifier {
       profileInfo: onboardingData.profileInfo.copyWith(gender: value),
     );
     notifyListeners();
+    unawaited(saveProgress());
   }
 
   // --- Address Updaters ---
@@ -134,6 +145,7 @@ class OnboardingProvider extends ChangeNotifier {
       address: onboardingData.address.copyWith(country: value),
     );
     notifyListeners();
+    unawaited(saveProgress());
   }
 
   void updateCity(String value) {
@@ -141,6 +153,7 @@ class OnboardingProvider extends ChangeNotifier {
       address: onboardingData.address.copyWith(city: value),
     );
     notifyListeners();
+    unawaited(saveProgress());
   }
 
   void updateStreet(String value) {
@@ -148,6 +161,7 @@ class OnboardingProvider extends ChangeNotifier {
       address: onboardingData.address.copyWith(street: value),
     );
     notifyListeners();
+    unawaited(saveProgress());
   }
 
   void updateZipCode(String value) {
@@ -155,6 +169,7 @@ class OnboardingProvider extends ChangeNotifier {
       address: onboardingData.address.copyWith(zipCode: value),
     );
     notifyListeners();
+    unawaited(saveProgress());
   }
 
   // --- Preferences Updaters ---
@@ -172,6 +187,7 @@ class OnboardingProvider extends ChangeNotifier {
       ),
     );
     notifyListeners();
+    unawaited(saveProgress());
   }
 
   void toggleNotifications(bool value) {
@@ -181,6 +197,7 @@ class OnboardingProvider extends ChangeNotifier {
       ),
     );
     notifyListeners();
+    unawaited(saveProgress());
   }
 
   void togglePrivacyPolicy(bool value) {
@@ -190,5 +207,14 @@ class OnboardingProvider extends ChangeNotifier {
       ),
     );
     notifyListeners();
+    unawaited(saveProgress());
+  }
+
+  String _capitalizeFirstLetter(String value) {
+    final trimmed = value.trimLeft();
+    if (trimmed.isEmpty) {
+      return '';
+    }
+    return '${trimmed[0].toUpperCase()}${trimmed.substring(1)}';
   }
 }

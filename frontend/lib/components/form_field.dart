@@ -46,6 +46,18 @@ class _CustomFormFieldState extends State<CustomFormField> {
   }
 
   @override
+  void didUpdateWidget(covariant CustomFormField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final nextValue = widget.initialValue ?? '';
+    if (_controller.text != nextValue) {
+      _controller.value = TextEditingValue(
+        text: nextValue,
+        selection: TextSelection.collapsed(offset: nextValue.length),
+      );
+    }
+  }
+
+  @override
   void dispose() {
     _controller.dispose();
     super.dispose();
