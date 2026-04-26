@@ -1,1 +1,5 @@
 Django==4.2.30
+firebase-admin==6.1.0
+djangorestframework==3.14.0
+python-decouple==3.8
+PyJWT==2.8.0
