@@ -20,8 +20,32 @@ void main() {
     await tester.pump();
 
     expect(find.text('KronTech'), findsOneWidget);
-    expect(find.text('Sign in with Email'), findsOneWidget);
+    expect(find.text('Sign in with Email'), findsNothing);
+    expect(find.text('Password'), findsNothing);
+    expect(find.text('Create new account'), findsOneWidget);
     expect(find.text('Continue with Google'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextFormField).first, 'test@gmail.com');
+    await tester.pump();
+
+    expect(find.text('Password'), findsOneWidget);
+    expect(find.text('Sign in with Email'), findsNothing);
+
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Password'),
+      '123456',
+    );
+    await tester.pump();
+
+    expect(find.text('Sign in with Email'), findsOneWidget);
+    expect(find.text('Create new account'), findsOneWidget);
+
+    await tester.tap(find.text('Create new account'));
+    await tester.pump();
+
+    expect(find.text('Confirm password'), findsOneWidget);
+    expect(find.text('Create account'), findsOneWidget);
+    expect(find.text('Already have an account? Sign in'), findsOneWidget);
   });
 }
 
@@ -46,6 +70,7 @@ class _FakeAuthService implements AuthService {
   Future<AuthUser> signInWithEmailPassword({
     required String email,
     required String password,
+    required EmailPasswordAuthMode mode,
   }) {
     return Future<AuthUser>.value(
       const AuthUser(

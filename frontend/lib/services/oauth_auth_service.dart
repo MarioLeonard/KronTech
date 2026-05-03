@@ -63,12 +63,21 @@ class OAuthAuthService implements AuthService {
   Future<AuthUser> signInWithEmailPassword({
     required String email,
     required String password,
+    required EmailPasswordAuthMode mode,
   }) async {
     try {
-      final credential = await _auth.signInWithEmailAndPassword(
-        email: email.trim(),
-        password: password,
-      );
+      final normalizedEmail = email.trim();
+      final credential = switch (mode) {
+        EmailPasswordAuthMode.signIn => await _auth.signInWithEmailAndPassword(
+          email: normalizedEmail,
+          password: password,
+        ),
+        EmailPasswordAuthMode.createAccount =>
+          await _auth.createUserWithEmailAndPassword(
+            email: normalizedEmail,
+            password: password,
+          ),
+      };
       final user = credential.user;
 
       if (user == null) {
@@ -154,9 +163,12 @@ class OAuthAuthService implements AuthService {
       case 'user-disabled':
         return 'Contul acesta a fost dezactivat.';
       case 'user-not-found':
+        return 'Nu exista un cont pentru acest email. Creeaza un cont nou.';
       case 'wrong-password':
       case 'invalid-credential':
         return 'Email sau parola incorecta.';
+      case 'email-already-in-use':
+        return 'Exista deja un cont pentru acest email.';
       case 'too-many-requests':
         return 'Prea multe incercari. Incearca din nou mai tarziu.';
       default:

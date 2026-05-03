@@ -43,6 +43,7 @@ class AuthProvider extends ChangeNotifier {
   Future<void> signInWithEmailPassword({
     required String email,
     required String password,
+    required EmailPasswordAuthMode mode,
   }) {
     final normalizedEmail = email.trim();
 
@@ -58,6 +59,7 @@ class AuthProvider extends ChangeNotifier {
       () => _authService.signInWithEmailPassword(
         email: normalizedEmail,
         password: password,
+        mode: mode,
       ),
     );
   }

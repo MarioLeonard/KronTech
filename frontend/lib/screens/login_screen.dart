@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:frontend/components/social_auth_button.dart';
 import 'package:frontend/models/auth_user.dart';
 import 'package:frontend/providers/auth_provider.dart';
+import 'package:frontend/services/auth_service.dart';
 import 'package:provider/provider.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -15,25 +16,75 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   final _emailRegex = RegExp(r'^[\w.\-+]+@([\w\-]+\.)+[A-Za-z]{2,}$');
+
   bool _hidePassword = true;
+  bool _hideConfirmPassword = true;
+  bool _isCreatingAccount = false;
+
+  bool get _hasValidEmail {
+    return _emailRegex.hasMatch(_emailController.text.trim());
+  }
+
+  bool get _hasValidPassword {
+    return _passwordController.text.length >= 6;
+  }
+
+  bool get _hasValidConfirmPassword {
+    return !_isCreatingAccount ||
+        _confirmPasswordController.text == _passwordController.text;
+  }
+
+  bool get _canSubmitEmailPassword {
+    return _hasValidEmail && _hasValidPassword && _hasValidConfirmPassword;
+  }
+
+  EmailPasswordAuthMode get _emailPasswordMode {
+    return _isCreatingAccount
+        ? EmailPasswordAuthMode.createAccount
+        : EmailPasswordAuthMode.signIn;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController.addListener(_handleEmailChanged);
+    _passwordController.addListener(_refreshFormState);
+    _confirmPasswordController.addListener(_refreshFormState);
+  }
 
   @override
   void dispose() {
+    _emailController.removeListener(_handleEmailChanged);
+    _passwordController.removeListener(_refreshFormState);
+    _confirmPasswordController.removeListener(_refreshFormState);
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
+  }
+
+  void _handleEmailChanged() {
+    _passwordController.clear();
+    _confirmPasswordController.clear();
+    setState(() {});
+  }
+
+  void _refreshFormState() {
+    setState(() {});
   }
 
   Future<void> _submitEmailPassword(AuthProvider authProvider) async {
     final isValid = _formKey.currentState?.validate() ?? false;
-    if (!isValid) {
+    if (!isValid || !_canSubmitEmailPassword) {
       return;
     }
 
     await authProvider.signInWithEmailPassword(
       email: _emailController.text,
       password: _passwordController.text,
+      mode: _emailPasswordMode,
     );
   }
 
@@ -43,6 +94,8 @@ class _LoginScreenState extends State<LoginScreen> {
     final theme = Theme.of(context);
     final isLoading = authProvider.isLoading;
     final activeProvider = authProvider.activeProvider;
+    final showPasswordField = _hasValidEmail;
+    final showEmailAction = _hasValidPassword;
 
     return Scaffold(
       body: SafeArea(
@@ -100,68 +153,140 @@ class _LoginScreenState extends State<LoginScreen> {
                             return null;
                           },
                         ),
-                        const SizedBox(height: 12),
-                        TextFormField(
-                          controller: _passwordController,
-                          textInputAction: TextInputAction.done,
-                          obscureText: _hidePassword,
-                          autofillHints: const [AutofillHints.password],
-                          enabled: !isLoading,
-                          onFieldSubmitted: (_) {
-                            _submitEmailPassword(authProvider);
-                          },
-                          decoration: InputDecoration(
-                            labelText: 'Password',
-                            border: const OutlineInputBorder(),
-                            suffixIcon: IconButton(
-                              onPressed: isLoading
-                                  ? null
-                                  : () {
-                                      setState(() {
-                                        _hidePassword = !_hidePassword;
-                                      });
-                                    },
-                              icon: Icon(
-                                _hidePassword
-                                    ? Icons.visibility
-                                    : Icons.visibility_off,
+                        if (showPasswordField) ...[
+                          const SizedBox(height: 12),
+                          TextFormField(
+                            controller: _passwordController,
+                            textInputAction: _isCreatingAccount
+                                ? TextInputAction.next
+                                : TextInputAction.done,
+                            obscureText: _hidePassword,
+                            autofillHints: const [AutofillHints.password],
+                            enabled: !isLoading,
+                            onFieldSubmitted: (_) {
+                              if (!_isCreatingAccount) {
+                                _submitEmailPassword(authProvider);
+                              }
+                            },
+                            decoration: InputDecoration(
+                              labelText: 'Password',
+                              border: const OutlineInputBorder(),
+                              suffixIcon: IconButton(
+                                onPressed: isLoading
+                                    ? null
+                                    : () {
+                                        setState(() {
+                                          _hidePassword = !_hidePassword;
+                                        });
+                                      },
+                                icon: Icon(
+                                  _hidePassword
+                                      ? Icons.visibility
+                                      : Icons.visibility_off,
+                                ),
+                                tooltip: _hidePassword
+                                    ? 'Show password'
+                                    : 'Hide password',
                               ),
-                              tooltip: _hidePassword
-                                  ? 'Show password'
-                                  : 'Hide password',
+                            ),
+                            validator: (value) {
+                              final password = value ?? '';
+                              if (password.isEmpty) {
+                                return 'Parola este obligatorie.';
+                              }
+                              if (password.length < 6) {
+                                return 'Parola trebuie sa aiba minim 6 caractere.';
+                              }
+                              return null;
+                            },
+                          ),
+                        ],
+                        if (_isCreatingAccount && _hasValidPassword) ...[
+                          const SizedBox(height: 12),
+                          TextFormField(
+                            controller: _confirmPasswordController,
+                            textInputAction: TextInputAction.done,
+                            obscureText: _hideConfirmPassword,
+                            autofillHints: const [AutofillHints.newPassword],
+                            enabled: !isLoading,
+                            onFieldSubmitted: (_) {
+                              _submitEmailPassword(authProvider);
+                            },
+                            decoration: InputDecoration(
+                              labelText: 'Confirm password',
+                              border: const OutlineInputBorder(),
+                              suffixIcon: IconButton(
+                                onPressed: isLoading
+                                    ? null
+                                    : () {
+                                        setState(() {
+                                          _hideConfirmPassword =
+                                              !_hideConfirmPassword;
+                                        });
+                                      },
+                                icon: Icon(
+                                  _hideConfirmPassword
+                                      ? Icons.visibility
+                                      : Icons.visibility_off,
+                                ),
+                                tooltip: _hideConfirmPassword
+                                    ? 'Show password'
+                                    : 'Hide password',
+                              ),
+                            ),
+                            validator: (value) {
+                              if (!_isCreatingAccount) {
+                                return null;
+                              }
+                              if (value != _passwordController.text) {
+                                return 'Parolele nu coincid.';
+                              }
+                              return null;
+                            },
+                          ),
+                        ],
+                        if (showEmailAction) ...[
+                          const SizedBox(height: 14),
+                          SizedBox(
+                            height: 52,
+                            child: FilledButton(
+                              onPressed: isLoading || !_canSubmitEmailPassword
+                                  ? null
+                                  : () => _submitEmailPassword(authProvider),
+                              child:
+                                  isLoading &&
+                                      activeProvider ==
+                                          AuthProviderType.emailPassword
+                                  ? const SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : Text(
+                                      _isCreatingAccount
+                                          ? 'Create account'
+                                          : 'Sign in with Email',
+                                    ),
                             ),
                           ),
-                          validator: (value) {
-                            final password = value ?? '';
-                            if (password.isEmpty) {
-                              return 'Parola este obligatorie.';
-                            }
-                            if (password.length < 6) {
-                              return 'Parola trebuie sa aiba minim 6 caractere.';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 14),
-                        SizedBox(
-                          height: 52,
-                          child: FilledButton(
-                            onPressed: isLoading
-                                ? null
-                                : () => _submitEmailPassword(authProvider),
-                            child:
-                                isLoading &&
-                                    activeProvider ==
-                                        AuthProviderType.emailPassword
-                                ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : const Text('Sign in with Email'),
+                        ],
+                        const SizedBox(height: 8),
+                        TextButton(
+                          onPressed: isLoading
+                              ? null
+                              : () {
+                                  setState(() {
+                                    _isCreatingAccount = !_isCreatingAccount;
+                                    _confirmPasswordController.clear();
+                                  });
+                                },
+                          child: Text(
+                            _isCreatingAccount
+                                ? 'Already have an account? Sign in'
+                                : 'Create new account',
                           ),
                         ),
                       ],
