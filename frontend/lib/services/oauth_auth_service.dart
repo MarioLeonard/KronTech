@@ -16,7 +16,7 @@ class OAuthAuthService implements AuthService {
 
   @override
   Stream<AuthUser?> authStateChanges() {
-    return _auth.authStateChanges().map(_toNullableAuthUser);
+    return _auth.authStateChanges().asyncMap(_toNullableAuthUser);
   }
 
   @override
@@ -43,7 +43,42 @@ class OAuthAuthService implements AuthService {
         );
       }
 
-      return _toAuthUser(user);
+      return _toAuthUser(user, provider: AuthProviderType.google);
+    } on AuthException {
+      rethrow;
+    } on firebase_auth.FirebaseAuthException catch (error) {
+      throw AuthException(
+        code: error.code,
+        message: _toFirebaseReadableMessage(error),
+      );
+    } catch (_) {
+      throw const AuthException(
+        code: 'unexpected',
+        message: 'Nu am putut finaliza autentificarea. Incearca din nou.',
+      );
+    }
+  }
+
+  @override
+  Future<AuthUser> signInWithEmailPassword({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      final credential = await _auth.signInWithEmailAndPassword(
+        email: email.trim(),
+        password: password,
+      );
+      final user = credential.user;
+
+      if (user == null) {
+        throw const AuthException(
+          code: 'missing_user',
+          message: 'Firebase nu a returnat un utilizator valid.',
+        );
+      }
+
+      return _toAuthUser(user, provider: AuthProviderType.emailPassword);
     } on AuthException {
       rethrow;
     } on firebase_auth.FirebaseAuthException catch (error) {
@@ -64,21 +99,42 @@ class OAuthAuthService implements AuthService {
     return _auth.signOut();
   }
 
-  AuthUser _toAuthUser(firebase_auth.User user) {
+  Future<AuthUser> _toAuthUser(
+    firebase_auth.User user, {
+    required AuthProviderType provider,
+  }) async {
+    final idToken = await user.getIdToken();
+    if (idToken == null || idToken.isEmpty) {
+      throw const AuthException(
+        code: 'missing_token',
+        message: 'Firebase nu a furnizat un token valid.',
+      );
+    }
+
     return AuthUser(
       id: user.uid,
+      idToken: idToken,
       email: user.email,
       displayName: user.displayName,
-      provider: AuthProviderType.google,
+      provider: provider,
     );
   }
 
-  AuthUser? _toNullableAuthUser(firebase_auth.User? user) {
+  Future<AuthUser?> _toNullableAuthUser(firebase_auth.User? user) async {
     if (user == null) {
       return null;
     }
 
-    return _toAuthUser(user);
+    return _toAuthUser(user, provider: _readProvider(user));
+  }
+
+  AuthProviderType _readProvider(firebase_auth.User user) {
+    final providerIds = user.providerData.map((info) => info.providerId);
+    if (providerIds.contains('password')) {
+      return AuthProviderType.emailPassword;
+    }
+
+    return AuthProviderType.google;
   }
 
   String _toFirebaseReadableMessage(firebase_auth.FirebaseAuthException error) {
@@ -93,9 +149,19 @@ class OAuthAuthService implements AuthService {
         return 'Conexiunea la internet a esuat. Verifica reteaua si incearca din nou.';
       case 'unauthorized-domain':
         return 'Domeniul aplicatiei nu este autorizat in Firebase Authentication.';
+      case 'invalid-email':
+        return 'Email-ul nu este valid.';
+      case 'user-disabled':
+        return 'Contul acesta a fost dezactivat.';
+      case 'user-not-found':
+      case 'wrong-password':
+      case 'invalid-credential':
+        return 'Email sau parola incorecta.';
+      case 'too-many-requests':
+        return 'Prea multe incercari. Incearca din nou mai tarziu.';
       default:
         return error.message ??
-            'Autentificarea Firebase cu Google a esuat. Incearca din nou.';
+            'Autentificarea Firebase a esuat. Incearca din nou.';
     }
   }
 }

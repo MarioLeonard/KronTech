@@ -4,14 +4,45 @@ import 'package:frontend/models/auth_user.dart';
 import 'package:frontend/providers/auth_provider.dart';
 import 'package:provider/provider.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _emailRegex = RegExp(r'^[\w.\-+]+@([\w\-]+\.)+[A-Za-z]{2,}$');
+  bool _hidePassword = true;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submitEmailPassword(AuthProvider authProvider) async {
+    final isValid = _formKey.currentState?.validate() ?? false;
+    if (!isValid) {
+      return;
+    }
+
+    await authProvider.signInWithEmailPassword(
+      email: _emailController.text,
+      password: _passwordController.text,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
     final theme = Theme.of(context);
     final isLoading = authProvider.isLoading;
+    final activeProvider = authProvider.activeProvider;
 
     return Scaffold(
       body: SafeArea(
@@ -30,7 +61,7 @@ class LoginScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'Sign in with your Google account',
+                    'Sign in to continue',
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodyLarge,
                   ),
@@ -42,13 +73,121 @@ class LoginScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 16),
                   ],
+                  Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        TextFormField(
+                          controller: _emailController,
+                          keyboardType: TextInputType.emailAddress,
+                          textInputAction: TextInputAction.next,
+                          autofillHints: const [AutofillHints.email],
+                          enabled: !isLoading,
+                          decoration: const InputDecoration(
+                            labelText: 'Email',
+                            hintText: 'you@example.com',
+                            border: OutlineInputBorder(),
+                          ),
+                          validator: (value) {
+                            final email = value?.trim() ?? '';
+                            if (email.isEmpty) {
+                              return 'Email-ul este obligatoriu.';
+                            }
+                            if (!_emailRegex.hasMatch(email)) {
+                              return 'Introdu un email valid.';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: _passwordController,
+                          textInputAction: TextInputAction.done,
+                          obscureText: _hidePassword,
+                          autofillHints: const [AutofillHints.password],
+                          enabled: !isLoading,
+                          onFieldSubmitted: (_) {
+                            _submitEmailPassword(authProvider);
+                          },
+                          decoration: InputDecoration(
+                            labelText: 'Password',
+                            border: const OutlineInputBorder(),
+                            suffixIcon: IconButton(
+                              onPressed: isLoading
+                                  ? null
+                                  : () {
+                                      setState(() {
+                                        _hidePassword = !_hidePassword;
+                                      });
+                                    },
+                              icon: Icon(
+                                _hidePassword
+                                    ? Icons.visibility
+                                    : Icons.visibility_off,
+                              ),
+                              tooltip: _hidePassword
+                                  ? 'Show password'
+                                  : 'Hide password',
+                            ),
+                          ),
+                          validator: (value) {
+                            final password = value ?? '';
+                            if (password.isEmpty) {
+                              return 'Parola este obligatorie.';
+                            }
+                            if (password.length < 6) {
+                              return 'Parola trebuie sa aiba minim 6 caractere.';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 14),
+                        SizedBox(
+                          height: 52,
+                          child: FilledButton(
+                            onPressed: isLoading
+                                ? null
+                                : () => _submitEmailPassword(authProvider),
+                            child:
+                                isLoading &&
+                                    activeProvider ==
+                                        AuthProviderType.emailPassword
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Text('Sign in with Email'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      const Expanded(child: Divider()),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Text(
+                          'or continue with',
+                          style: theme.textTheme.bodySmall,
+                        ),
+                      ),
+                      const Expanded(child: Divider()),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
                   SocialAuthButton(
                     label: 'Continue with Google',
                     icon: Icons.g_mobiledata,
                     onPressed: isLoading ? null : authProvider.signInWithGoogle,
                     isLoading:
-                        isLoading &&
-                        authProvider.activeProvider == AuthProviderType.google,
+                        isLoading && activeProvider == AuthProviderType.google,
                     backgroundColor: const Color(0xFF1F3A5F),
                     foregroundColor: Colors.white,
                   ),

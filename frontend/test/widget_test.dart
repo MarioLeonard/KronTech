@@ -20,6 +20,7 @@ void main() {
     await tester.pump();
 
     expect(find.text('KronTech'), findsOneWidget);
+    expect(find.text('Sign in with Email'), findsOneWidget);
     expect(find.text('Continue with Google'), findsOneWidget);
   });
 }
@@ -33,7 +34,25 @@ class _FakeAuthService implements AuthService {
   @override
   Future<AuthUser> continueWithGoogle() {
     return Future<AuthUser>.value(
-      const AuthUser(id: 'test-user', provider: AuthProviderType.google),
+      const AuthUser(
+        id: 'test-user',
+        idToken: 'test-id-token',
+        provider: AuthProviderType.google,
+      ),
+    );
+  }
+
+  @override
+  Future<AuthUser> signInWithEmailPassword({
+    required String email,
+    required String password,
+  }) {
+    return Future<AuthUser>.value(
+      const AuthUser(
+        id: 'test-user',
+        idToken: 'test-id-token',
+        provider: AuthProviderType.emailPassword,
+      ),
     );
   }
 

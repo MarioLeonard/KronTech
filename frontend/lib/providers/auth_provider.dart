@@ -40,6 +40,28 @@ class AuthProvider extends ChangeNotifier {
     return _runSignIn(AuthProviderType.google, _authService.continueWithGoogle);
   }
 
+  Future<void> signInWithEmailPassword({
+    required String email,
+    required String password,
+  }) {
+    final normalizedEmail = email.trim();
+
+    if (normalizedEmail.isEmpty || password.isEmpty) {
+      _status = AuthStatus.error;
+      _errorMessage = 'Completeaza email-ul si parola.';
+      notifyListeners();
+      return Future<void>.value();
+    }
+
+    return _runSignIn(
+      AuthProviderType.emailPassword,
+      () => _authService.signInWithEmailPassword(
+        email: normalizedEmail,
+        password: password,
+      ),
+    );
+  }
+
   Future<void> _runSignIn(
     AuthProviderType provider,
     Future<AuthUser> Function() signInAction,
