@@ -149,10 +149,10 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _validateEmail(String? value) {
     final email = value?.trim() ?? '';
     if (email.isEmpty) {
-      return 'Email-ul este obligatoriu.';
+      return 'Email is required.';
     }
     if (!_emailRegex.hasMatch(email)) {
-      return 'Introdu un email valid.';
+      return 'Enter a valid email address.';
     }
     return null;
   }
@@ -160,10 +160,10 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _validatePassword(String? value) {
     final password = value ?? '';
     if (password.isEmpty) {
-      return 'Parola este obligatorie.';
+      return 'Password is required.';
     }
     if (password.length < 6) {
-      return 'Parola trebuie sa aiba minim 6 caractere.';
+      return 'Password must be at least 6 characters.';
     }
     return null;
   }
@@ -173,7 +173,7 @@ class _LoginScreenState extends State<LoginScreen> {
       return null;
     }
     if (value != _passwordController.text) {
-      return 'Parolele nu coincid.';
+      return 'Passwords do not match.';
     }
     return null;
   }
@@ -277,13 +277,6 @@ class _AuthPanel extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 26),
-            if (authProvider.errorMessage != null) ...[
-              _ErrorBanner(
-                message: authProvider.errorMessage!,
-                onDismiss: authProvider.clearError,
-              ),
-              const SizedBox(height: 16),
-            ],
             Form(
               key: formKey,
               child: Column(
@@ -525,46 +518,6 @@ class _LogoMark extends StatelessWidget {
           Icons.hub_outlined,
           color: colorScheme.onSecondary,
           size: 26,
-        ),
-      ),
-    );
-  }
-}
-
-class _ErrorBanner extends StatelessWidget {
-  const _ErrorBanner({required this.message, required this.onDismiss});
-
-  final String message;
-  final VoidCallback onDismiss;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: colorScheme.errorContainer,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: colorScheme.error),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        child: Row(
-          children: [
-            Icon(Icons.error_outline, color: colorScheme.onErrorContainer),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                message,
-                style: TextStyle(color: colorScheme.onErrorContainer),
-              ),
-            ),
-            IconButton(
-              onPressed: onDismiss,
-              icon: const Icon(Icons.close),
-              tooltip: 'Dismiss error',
-            ),
-          ],
         ),
       ),
     );

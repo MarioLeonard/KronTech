@@ -1,4 +1,5 @@
 from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 import json
 
 from common.authentication import firebase_required
@@ -10,6 +11,7 @@ def health_check(request):
     return JsonResponse({"status": "ok"})
 
 
+@csrf_exempt
 @firebase_required
 def signup(request):
     """
@@ -69,6 +71,7 @@ def signup(request):
         )
 
 
+@csrf_exempt
 @firebase_required
 def profile(request):
     """

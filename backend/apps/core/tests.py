@@ -1,4 +1,4 @@
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 import json
 from unittest.mock import patch, MagicMock
@@ -114,6 +114,22 @@ class ProfileSignupTests(TestCase):
 class SignupEndpointTests(TestCase):
     """Test signup endpoint that creates users in Firestore."""
 
+    @override_settings(CORS_ALLOWED_ORIGINS=["http://localhost:5000"])
+    def test_signup_preflight_allows_local_frontend(self):
+        response = self.client.options(
+            reverse("core:signup"),
+            HTTP_ORIGIN="http://localhost:5000",
+            HTTP_ACCESS_CONTROL_REQUEST_METHOD="POST",
+            HTTP_ACCESS_CONTROL_REQUEST_HEADERS="Authorization",
+        )
+
+        self.assertEqual(response.status_code, 204)
+        self.assertEqual(
+            response["Access-Control-Allow-Origin"],
+            "http://localhost:5000",
+        )
+        self.assertIn("Authorization", response["Access-Control-Allow-Headers"])
+
     def test_profile_endpoint_exists(self):
         """Test that profile endpoint exists and requires auth."""
         response = self.client.get(reverse("core:profile"))
@@ -143,7 +159,8 @@ class FirestoreDatabaseTests(TestCase):
         """Test FirestoreService initializes correctly."""
         from common.firebase.database import FirestoreService
         
-        # Create instance
-        service = FirestoreService()
+        FirestoreService._db = None
+        with patch("common.firebase.database.firebase_admin._apps", {"app": object()}):
+            service = FirestoreService()
         
         self.assertIsNotNone(service)

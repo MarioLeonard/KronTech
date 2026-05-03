@@ -1,10 +1,11 @@
 """Firebase Auth integration placeholders."""
 
 import logging
+from threading import Lock
 from typing import Optional
 
 import firebase_admin
-from firebase_admin import auth, credentials
+from firebase_admin import auth, credentials, exceptions as firebase_exceptions
 from django.conf import settings
 
 from .exceptions import (
@@ -23,6 +24,7 @@ class FirebaseAuthService:
 
     _instance = None
     _initialized = False
+    _init_lock = Lock()
 
     def __new__(cls):
         """Implement singleton pattern."""
@@ -31,10 +33,20 @@ class FirebaseAuthService:
         return cls._instance
 
     def __init__(self):
-        """Initialize Firebase Admin SDK."""
-        if not self._initialized:
-            self._initialize_firebase()
-            self.__class__._initialized = True
+        """Create the service; Firebase Admin is initialized on first use."""
+        pass
+
+    @classmethod
+    def _ensure_initialized(cls):
+        """Initialize Firebase Admin SDK lazily."""
+        with cls._init_lock:
+            if firebase_admin._apps:
+                cls._initialized = True
+                return
+
+            if not cls._initialized:
+                cls._initialize_firebase()
+                cls._initialized = True
 
     @staticmethod
     def _initialize_firebase():
@@ -87,6 +99,8 @@ class FirebaseAuthService:
             raise InvalidTokenError("No token provided")
 
         try:
+            FirebaseAuthService._ensure_initialized()
+
             # Remove 'Bearer ' prefix if present
             if token.startswith("Bearer "):
                 token = token[7:]
@@ -109,16 +123,16 @@ class FirebaseAuthService:
             )
             return user_info
 
-        except auth.ExpiredSignatureError as e:
+        except auth.ExpiredIdTokenError as e:
             logger.warning(f"Expired token verification failed: {e}")
             raise TokenExpiredError(f"Token has expired: {e}")
+        except auth.RevokedIdTokenError as e:
+            logger.warning(f"Revoked token verification failed: {e}")
+            raise InvalidTokenError(f"Token has been revoked: {e}")
         except auth.InvalidIdTokenError as e:
             logger.warning(f"Invalid token verification failed: {e}")
             raise InvalidTokenError(f"Invalid or malformed token: {e}")
-        except auth.InvalidSignatureError as e:
-            logger.warning(f"Invalid signature verification failed: {e}")
-            raise InvalidTokenError(f"Invalid token signature: {e}")
-        except auth.FirebaseError as e:
+        except firebase_exceptions.FirebaseError as e:
             logger.error(f"Firebase authentication error: {e}")
             raise FirebaseAuthenticationError(
                 f"Firebase authentication failed: {e}"
@@ -141,6 +155,8 @@ class FirebaseAuthService:
             User record dict or None if not found
         """
         try:
+            FirebaseAuthService._ensure_initialized()
+
             user_record = auth.get_user(uid)
             return {
                 "uid": user_record.uid,

@@ -1,11 +1,13 @@
 import os
 from pathlib import Path
 
+from decouple import config
+
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
-SECRET_KEY = os.getenv(
+SECRET_KEY = config(
     "DJANGO_SECRET_KEY",
-    "django-insecure-dev-key-change-me",
+    default="django-insecure-dev-key-change-me",
 )
 DEBUG = False
 ALLOWED_HOSTS = []
@@ -26,12 +28,14 @@ INSTALLED_APPS = [
 
 # Firebase Configuration
 # Path to Firebase service account key JSON file
-FIREBASE_CREDENTIALS_PATH = os.getenv(
+FIREBASE_CREDENTIALS_PATH = config(
     "FIREBASE_CREDENTIALS_PATH",
-    BASE_DIR / "firebase-key.json",  
+    default=str(BASE_DIR / "firebase-key.json"),
 )
+FIRESTORE_DATABASE_ID = config("FIRESTORE_DATABASE_ID", default="(default)")
 
 MIDDLEWARE = [
+    'common.cors.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -112,6 +116,12 @@ STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+CORS_ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in config("CORS_ALLOWED_ORIGINS", default="").split(",")
+    if origin.strip()
+]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
