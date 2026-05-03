@@ -5,6 +5,7 @@ import '../../components/buttons.dart';
 import 'profile_info_screen.dart';
 import 'address_screen.dart';
 import 'preferences_screen.dart';
+import 'completion_screen.dart';
 
 class MainOnboardingScreen extends StatefulWidget {
   const MainOnboardingScreen({super.key});
@@ -59,46 +60,64 @@ class _MainOnboardingScreenState extends State<MainOnboardingScreen> {
   void _handleFinish() async {
     final provider = context.read<OnboardingProvider>();
 
+    // Check if user is authenticated
+    if (!provider.isUserAuthenticated) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please sign in with Firebase Auth first.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     if (provider.validateCurrentStep(_currentPage)) {
       await provider.saveProgress();
 
-      final userModel = provider.compileFinalUser();
-      await provider.clearProgress();
+      // Complete onboarding and sync to Firestore
+      final userModel = await provider.completeOnboardingAndSync();
 
       if (!mounted) return;
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => AlertDialog(
-          title: const Text('Onboarding Completed!'),
-          content: SingleChildScrollView(
-            child: Text(
-              'Final User Model Generated:\n\n'
-              'Name: ${userModel.fullName}\n'
-              'Age: ${userModel.age}\n'
-              'Email: ${userModel.email}\n'
-              'Address: ${userModel.completeAddress}\n'
-              'Interests: ${userModel.interests.join(", ")}\n'
-              'ID: ${userModel.id}',
-            ),
-          ),
-          actions: [
-            PrimaryButton(
-              text: 'Finish',
-              onPressed: () {
+
+      if (userModel != null) {
+        // Navigate to completion screen
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => OnboardingCompletionScreen(
+              user: userModel,
+              onContinue: () {
+                // Navigate to home screen or next page
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Welcome to the app!')),
                 );
               },
             ),
-          ],
-        ),
-      );
+          ),
+        );
+      } else {
+        // Show error if sync failed
+        final errorMsg =
+            provider.firestoreSyncError ?? 'Unknown error occurred';
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Error'),
+            content: Text(errorMsg),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        );
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please accept the Privacy Policy to finish.'),
+          content: Text('Please complete all required fields.'),
           backgroundColor: Colors.red,
         ),
       );

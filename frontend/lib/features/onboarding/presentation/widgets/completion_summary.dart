@@ -31,37 +31,29 @@ class CompletionSummary extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Center(
-          child: TweenAnimationBuilder<double>(
-            tween: Tween<double>(begin: 0.9, end: 1),
-            duration: const Duration(milliseconds: 900),
-            curve: Curves.elasticOut,
-            builder: (context, value, child) {
-              return Transform.scale(scale: value, child: child);
-            },
-            child: Container(
-              width: 90,
-              height: 90,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: LinearGradient(
-                  colors: [
-                    theme.colorScheme.secondary,
-                    theme.colorScheme.primary,
-                  ],
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: theme.colorScheme.primary.withValues(alpha: 0.28),
-                    blurRadius: 30,
-                    offset: const Offset(0, 18),
-                  ),
+          child: Container(
+            width: 90,
+            height: 90,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [
+                  theme.colorScheme.secondary,
+                  theme.colorScheme.primary,
                 ],
               ),
-              child: const Icon(
-                Icons.check_rounded,
-                size: 42,
-                color: Colors.white,
-              ),
+              boxShadow: [
+                BoxShadow(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.28),
+                  blurRadius: 30,
+                  offset: const Offset(0, 18),
+                ),
+              ],
+            ),
+            child: const Icon(
+              Icons.check_rounded,
+              size: 42,
+              color: Colors.white,
             ),
           ),
         ),

@@ -61,83 +61,22 @@ class MainOnboardingScreen extends StatelessWidget {
             },
           ),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 520),
-                switchInCurve: Curves.easeOutCubic,
-                switchOutCurve: Curves.easeInCubic,
-                transitionBuilder: (child, animation) {
-                  final curved = CurvedAnimation(
-                    parent: animation,
-                    curve: Curves.easeOutCubic,
-                  );
-                  return FadeTransition(
-                    opacity: curved,
-                    child: SlideTransition(
-                      position: Tween<Offset>(
-                        begin: const Offset(0, 0.08),
-                        end: Offset.zero,
-                      ).animate(curved),
-                      child: ScaleTransition(
-                        scale: Tween<double>(
-                          begin: 0.985,
-                          end: 1,
-                        ).animate(curved),
-                        child: child,
-                      ),
-                    ),
-                  );
-                },
-                child: _StepHero(key: ValueKey(step.type), step: step),
-              ),
+              _StepHero(step: step),
               const SizedBox(height: 24),
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 520),
-                reverseDuration: const Duration(milliseconds: 260),
-                switchInCurve: Curves.easeOutQuart,
-                switchOutCurve: Curves.easeInCubic,
-                transitionBuilder: (child, animation) {
-                  final fade = CurvedAnimation(
-                    parent: animation,
-                    curve: Curves.easeOutQuart,
-                  );
-                  final slide = Tween<Offset>(
-                    begin: const Offset(0.06, 0.02),
-                    end: Offset.zero,
-                  ).animate(fade);
-                  return FadeTransition(
-                    opacity: fade,
-                    child: SlideTransition(
-                      position: slide,
-                      child: ScaleTransition(
-                        scale: Tween<double>(begin: 0.98, end: 1).animate(fade),
-                        child: child,
-                      ),
-                    ),
-                  );
-                },
-                child: KeyedSubtree(
-                  key: ValueKey(step.type),
-                  child: _StepBody(provider: provider),
+              _StepBody(provider: provider),
+              if (provider.inlineError != null) ...[
+                const SizedBox(height: 16),
+                Text(
+                  provider.inlineError!,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.error,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-              ),
-              AnimatedSize(
-                duration: const Duration(milliseconds: 240),
-                child: provider.inlineError == null
-                    ? const SizedBox(height: 0)
-                    : Padding(
-                        padding: const EdgeInsets.only(top: 18),
-                        child: Text(
-                          provider.inlineError!,
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(
-                                color: Theme.of(context).colorScheme.error,
-                                fontWeight: FontWeight.w700,
-                              ),
-                        ),
-                      ),
-              ),
+              ],
             ],
           ),
         );
@@ -147,7 +86,7 @@ class MainOnboardingScreen extends StatelessWidget {
 }
 
 class _StepHero extends StatelessWidget {
-  const _StepHero({super.key, required this.step});
+  const _StepHero({required this.step});
 
   final OnboardingStepDefinition step;
 
@@ -199,7 +138,7 @@ class _StepBody extends StatelessWidget {
           label: 'First name',
           value: provider.onboardingData.profileInfo.firstName,
           hintText: 'Type your first name',
-          errorText: step == provider.currentStep.type ? error : null,
+          errorText: error,
           prefixIcon: const Icon(Icons.person_outline_rounded),
           onChanged: (value) => provider.updateFirstName(value),
         );

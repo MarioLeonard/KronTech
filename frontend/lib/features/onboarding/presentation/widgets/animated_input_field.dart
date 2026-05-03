@@ -36,7 +36,7 @@ class _AnimatedInputFieldState extends State<AnimatedInputField> {
   void initState() {
     super.initState();
     _controller = TextEditingController(text: widget.value);
-    _focusNode = FocusNode()..addListener(_handleFocusChange);
+    _focusNode = FocusNode();
   }
 
   @override
@@ -53,91 +53,73 @@ class _AnimatedInputFieldState extends State<AnimatedInputField> {
   @override
   void dispose() {
     _controller.dispose();
-    _focusNode
-      ..removeListener(_handleFocusChange)
-      ..dispose();
+    _focusNode.dispose();
     super.dispose();
-  }
-
-  void _handleFocusChange() {
-    setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final hasError = widget.errorText != null;
-    final isFocused = _focusNode.hasFocus;
-    final hasValue = _controller.text.trim().isNotEmpty;
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        AnimatedDefaultTextStyle(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOutCubic,
-          style:
-              theme.textTheme.titleMedium?.copyWith(
-                fontSize: 15,
-                color: isFocused
-                    ? theme.colorScheme.secondary
-                    : theme.colorScheme.onSurface,
-              ) ??
-              const TextStyle(),
-          child: Text(widget.label),
-        ),
-        const SizedBox(height: 14),
-        AnimatedContainer(
-          duration: const Duration(milliseconds: 260),
-          curve: Curves.easeOutCubic,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(28),
-            boxShadow: [
-              BoxShadow(
-                color: hasError
-                    ? theme.colorScheme.error.withValues(alpha: 0.12)
-                    : theme.colorScheme.primary.withValues(
-                        alpha: isFocused ? 0.18 : 0.0,
-                      ),
-                blurRadius: isFocused ? 30 : 18,
-                offset: Offset(0, isFocused ? 14 : 8),
-              ),
-            ],
+        Text(
+          widget.label,
+          style: theme.textTheme.titleMedium?.copyWith(
+            color: theme.colorScheme.onSurface,
           ),
-          child: TextField(
-            controller: _controller,
-            focusNode: _focusNode,
-            autofocus: widget.autofocus,
-            keyboardType: widget.keyboardType,
-            textInputAction: widget.textInputAction,
-            onChanged: widget.onChanged,
-            style: theme.textTheme.bodyLarge,
-            decoration: InputDecoration(
-              hintText: widget.hintText,
-              prefixIcon: widget.prefixIcon,
-              suffixIcon: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 220),
-                switchInCurve: Curves.easeOutBack,
-                switchOutCurve: Curves.easeInCubic,
-                transitionBuilder: (child, animation) {
-                  final curved = CurvedAnimation(
-                    parent: animation,
-                    curve: Curves.easeOutCubic,
-                  );
-                  return FadeTransition(
-                    opacity: curved,
-                    child: ScaleTransition(scale: curved, child: child),
-                  );
-                },
-                child: hasValue && !hasError
-                    ? Icon(
-                        Icons.check_circle_rounded,
-                        key: const ValueKey('valid-input'),
-                        color: theme.colorScheme.secondary,
-                      )
-                    : const SizedBox.shrink(key: ValueKey('empty-input')),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _controller,
+          focusNode: _focusNode,
+          autofocus: widget.autofocus,
+          keyboardType: widget.keyboardType ?? TextInputType.text,
+          textInputAction: widget.textInputAction,
+          onChanged: widget.onChanged,
+          style: theme.textTheme.bodyLarge,
+          decoration: InputDecoration(
+            hintText: widget.hintText,
+            prefixIcon: widget.prefixIcon,
+            suffixIcon: (_controller.text.trim().isNotEmpty && !hasError)
+                ? Icon(
+                    Icons.check_circle_rounded,
+                    color: theme.colorScheme.secondary,
+                  )
+                : null,
+            errorText: widget.errorText,
+            filled: true,
+            fillColor: theme.colorScheme.surface,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                color: hasError
+                    ? theme.colorScheme.error
+                    : theme.colorScheme.outline,
               ),
-              errorText: widget.errorText,
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                color: theme.colorScheme.primary,
+                width: 2,
+              ),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: theme.colorScheme.error, width: 2),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: theme.colorScheme.error, width: 2),
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 14,
             ),
           ),
         ),

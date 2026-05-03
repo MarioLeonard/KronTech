@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 
 class OnboardingShell extends StatelessWidget {
@@ -19,119 +17,86 @@ class OnboardingShell extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Scaffold(
-      body: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              theme.scaffoldBackgroundColor,
-              const Color(0xFF0B1220),
-              const Color(0xFF060910),
-            ],
+      backgroundColor: theme.scaffoldBackgroundColor,
+      body: Stack(
+        children: [
+          const Positioned(
+            top: -140,
+            left: -80,
+            child: _AmbientGlow(
+              size: 280,
+              colors: [Color(0x557C9BFF), Color(0x1157D7A6)],
+            ),
           ),
-        ),
-        child: Stack(
-          children: [
-            const Positioned(
-              top: -140,
-              left: -80,
-              child: _AmbientGlow(
-                size: 280,
-                colors: [Color(0x557C9BFF), Color(0x1157D7A6)],
-              ),
+          const Positioned(
+            bottom: -160,
+            right: -40,
+            child: _AmbientGlow(
+              size: 320,
+              colors: [Color(0x338EE3FF), Color(0x117C9BFF)],
             ),
-            const Positioned(
-              bottom: -160,
-              right: -40,
-              child: _AmbientGlow(
-                size: 320,
-                colors: [Color(0x338EE3FF), Color(0x117C9BFF)],
-              ),
-            ),
-            SafeArea(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final horizontalPadding = constraints.maxWidth > 900
-                      ? 56.0
-                      : 24.0;
-                  final cardWidth = constraints.maxWidth > 900 ? 760.0 : 680.0;
+          ),
+          SafeArea(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final horizontalPadding = constraints.maxWidth > 900
+                    ? 56.0
+                    : 24.0;
+                final cardWidth = constraints.maxWidth > 900 ? 760.0 : 680.0;
 
-                  return Center(
-                    child: SingleChildScrollView(
-                      padding: EdgeInsets.fromLTRB(
-                        horizontalPadding,
-                        24,
-                        horizontalPadding,
-                        24,
-                      ),
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(maxWidth: cardWidth),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            header,
-                            const SizedBox(height: 24),
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(36),
-                              child: BackdropFilter(
-                                filter: ImageFilter.blur(
-                                  sigmaX: 18,
-                                  sigmaY: 18,
-                                ),
-                                child: DecoratedBox(
-                                  decoration: BoxDecoration(
-                                    color: theme.colorScheme.surface.withValues(
-                                      alpha: 0.88,
-                                    ),
-                                    borderRadius: BorderRadius.circular(36),
-                                    border: Border.all(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.06,
-                                      ),
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withValues(
-                                          alpha: 0.28,
-                                        ),
-                                        blurRadius: 36,
-                                        offset: const Offset(0, 22),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Padding(
-                                    padding: const EdgeInsets.fromLTRB(
-                                      24,
-                                      28,
-                                      24,
-                                      24,
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.stretch,
-                                      children: [
-                                        child,
-                                        const SizedBox(height: 28),
-                                        footer,
-                                      ],
-                                    ),
-                                  ),
-                                ),
+                return Center(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.fromLTRB(
+                      horizontalPadding,
+                      24,
+                      horizontalPadding,
+                      24,
+                    ),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: cardWidth),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          header,
+                          const SizedBox(height: 24),
+                          DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.surface.withValues(
+                                alpha: 0.92,
+                              ),
+                              borderRadius: BorderRadius.circular(24),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.08),
                               ),
                             ),
-                          ],
-                        ),
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(
+                                24,
+                                28,
+                                24,
+                                24,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  child,
+                                  const SizedBox(height: 28),
+                                  footer,
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  );
-                },
-              ),
+                  ),
+                );
+              },
             ),
-          ],
-        ),
+          ),
+        ],
       ),
-    );
+    ); // <-- Fixed: Properly closed the Scaffold here.
   }
 }
 

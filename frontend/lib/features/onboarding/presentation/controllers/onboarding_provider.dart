@@ -128,6 +128,7 @@ class OnboardingProvider extends ChangeNotifier {
       final user = UserModel.fromOnboardingData(_onboardingData);
       await _storage.saveCompletedUser(user);
       debugPrint('Hive onboarding payload:\n${_storage.prettyPrintAll()}');
+
       return user;
     } catch (error) {
       debugPrint('Failed to finalize onboarding: $error');

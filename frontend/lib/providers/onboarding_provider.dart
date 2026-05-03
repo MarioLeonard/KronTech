@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../models/onboarding_data.dart';
 import '../models/user_model.dart';
 import '../utils/hive_service.dart';
+import '../services/firebase_service.dart';
 
 /// Provider managing the state, validation, and persistence of the onboarding flow
 class OnboardingProvider extends ChangeNotifier {
@@ -17,6 +18,12 @@ class OnboardingProvider extends ChangeNotifier {
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
+
+  // Firebase service instance
+  final FirebaseService _firebaseService = FirebaseService();
+
+  String? _firestoreSyncError;
+  String? get firestoreSyncError => _firestoreSyncError;
 
   /// Load data from Hive when the app starts
   Future<void> loadSavedData() async {
@@ -217,4 +224,43 @@ class OnboardingProvider extends ChangeNotifier {
     }
     return '${trimmed[0].toUpperCase()}${trimmed.substring(1)}';
   }
+
+  /// Complete onboarding and sync data to Firestore
+  Future<UserModel?> completeOnboardingAndSync() async {
+    try {
+      _isLoading = true;
+      _firestoreSyncError = null;
+      notifyListeners();
+
+      // Compile final user model
+      final finalUser = compileFinalUser();
+
+      // Save to Firestore
+      final success = await _firebaseService.saveUserToFirestore(finalUser);
+
+      if (success) {
+        // Clear local draft after successful sync
+        await clearProgress();
+        return finalUser;
+      } else {
+        _firestoreSyncError = 'Failed to save user data to Firestore';
+        notifyListeners();
+        return null;
+      }
+    } catch (e) {
+      _firestoreSyncError = 'Error: ${e.toString()}';
+      debugPrint('Firestore sync error: $e');
+      notifyListeners();
+      return null;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Get current Firebase user
+  bool get isUserAuthenticated => _firebaseService.getCurrentUser() != null;
+
+  /// Get Firebase user email
+  String? get currentUserEmail => _firebaseService.getCurrentUser()?.email;
 }

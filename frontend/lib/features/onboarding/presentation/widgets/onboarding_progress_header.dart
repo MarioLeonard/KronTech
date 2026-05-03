@@ -45,29 +45,18 @@ class OnboardingProgressHeader extends StatelessWidget {
           child: Container(
             height: 10,
             color: theme.colorScheme.surface.withValues(alpha: 0.95),
-            child: TweenAnimationBuilder<double>(
-              tween: Tween<double>(begin: 0, end: progress),
-              duration: const Duration(milliseconds: 600),
-              curve: Curves.easeOutCubic,
-              builder: (context, value, _) {
-                return Stack(
-                  children: [
-                    FractionallySizedBox(
-                      widthFactor: value,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              theme.colorScheme.primary,
-                              theme.colorScheme.secondary,
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                );
-              },
+            child: FractionallySizedBox(
+              widthFactor: progress,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      theme.colorScheme.primary,
+                      theme.colorScheme.secondary,
+                    ],
+                  ),
+                ),
+              ),
             ),
           ),
         ),
