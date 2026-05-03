@@ -102,19 +102,24 @@ class _StepHero extends StatelessWidget {
           height: 56,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            gradient: LinearGradient(
-              colors: [
-                theme.colorScheme.primary.withValues(alpha: 0.9),
-                theme.colorScheme.secondary.withValues(alpha: 0.9),
-              ],
-            ),
+            color: theme.colorScheme.secondary,
           ),
-          child: Icon(step.icon, color: Colors.white),
+          child: Icon(step.icon, color: theme.colorScheme.onSecondary),
         ),
         const SizedBox(height: 18),
-        Text(step.title, style: theme.textTheme.headlineMedium),
+        Text(
+          step.title,
+          style: theme.textTheme.headlineMedium?.copyWith(
+            fontWeight: FontWeight.w800,
+          ),
+        ),
         const SizedBox(height: 10),
-        Text(step.subtitle, style: theme.textTheme.bodyLarge),
+        Text(
+          step.subtitle,
+          style: theme.textTheme.bodyLarge?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
       ],
     );
   }
@@ -127,6 +132,7 @@ class _StepBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final step = provider.currentStep.type;
     final error = provider.inlineError;
 
@@ -218,7 +224,9 @@ class _StepBody extends StatelessWidget {
           children: [
             Text(
               'Pick as many as you like',
-              style: Theme.of(context).textTheme.titleMedium,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
             ),
             const SizedBox(height: 16),
             InterestChips(
@@ -263,56 +271,62 @@ class _WelcomeBody extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(28),
-            color: theme.colorScheme.primary.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(12),
+            color: theme.colorScheme.primary.withValues(alpha: 0.1),
             border: Border.all(
-              color: theme.colorScheme.secondary.withValues(alpha: 0.3),
+              color: theme.colorScheme.primary.withValues(alpha: 0.2),
             ),
           ),
           child: Row(
             children: [
-              Icon(Icons.hive_outlined, color: theme.colorScheme.secondary),
+              Icon(Icons.auto_awesome_outlined, color: theme.colorScheme.primary),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Progress is autosaved locally in Hive after each change, so you can return without losing your place.',
-                  style: theme.textTheme.bodyLarge,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 18),
-        Container(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(28),
-            color: theme.colorScheme.surface.withValues(alpha: 0.72),
-            border: Border.all(color: theme.dividerColor),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('What to expect', style: theme.textTheme.titleMedium),
-              const SizedBox(height: 12),
-              Text(
-                'You will move through identity, address, preferences, and a final review screen with clear progress feedback at the top.',
-                style: theme.textTheme.bodyLarge,
-              ),
-              if (provider.onboardingData.profileInfo.firstName.isNotEmpty ||
-                  provider.currentStepIndex > 0) ...[
-                const SizedBox(height: 14),
-                Text(
-                  'Existing local draft detected. You can continue from where you left off.',
+                  'Progress is autosaved locally after each change, so you can return without losing your place.',
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.secondary,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-              ],
+              ),
             ],
           ),
         ),
+        const SizedBox(height: 24),
+        Text(
+          'What to expect',
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'You will move through identity, address, preferences, and a final review screen with clear progress feedback at the top.',
+          style: theme.textTheme.bodyLarge,
+        ),
+        if (provider.onboardingData.profileInfo.firstName.isNotEmpty ||
+            provider.currentStepIndex > 0) ...[
+          const SizedBox(height: 18),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: theme.colorScheme.secondary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: theme.colorScheme.secondary.withValues(alpha: 0.2),
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Text(
+                'Existing local draft detected. You can continue from where you left off.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.secondary,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }

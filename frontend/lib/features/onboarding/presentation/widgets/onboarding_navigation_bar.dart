@@ -26,8 +26,11 @@ class OnboardingNavigationBar extends StatelessWidget {
       children: [
         if (showSecondary)
           Expanded(
-            child: ElevatedButton(
+            child: TextButton(
               onPressed: onSecondaryPressed!,
+              style: TextButton.styleFrom(
+                textStyle: const TextStyle(fontWeight: FontWeight.w700),
+              ),
               child: Text(secondaryLabel!),
             ),
           ),
@@ -35,15 +38,30 @@ class OnboardingNavigationBar extends StatelessWidget {
         if (showPrimary)
           Expanded(
             flex: showSecondary ? 2 : 1,
-            child: ElevatedButton(
-              onPressed: isBusy ? null : onPrimaryPressed,
-              child: isBusy
-                  ? const SizedBox(
-                      height: 22,
-                      width: 22,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Text(primaryLabel),
+            child: SizedBox(
+              height: 52,
+              child: FilledButton(
+                onPressed: isBusy ? null : onPrimaryPressed,
+                style: FilledButton.styleFrom(
+                  textStyle: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: isBusy
+                    ? const SizedBox(
+                        height: 22,
+                        width: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Text(primaryLabel),
+              ),
             ),
           ),
       ],

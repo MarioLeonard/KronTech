@@ -1,9 +1,10 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:frontend/features/onboarding/presentation/controllers/onboarding_provider.dart';
+import 'package:frontend/features/onboarding/presentation/screens/main_onboarding_screen.dart';
 import 'package:frontend/firebase_options.dart';
 import 'package:frontend/providers/auth_provider.dart';
 import 'package:frontend/screens/home_screen.dart';
-import 'package:frontend/screens/login_screen.dart';
 import 'package:frontend/services/oauth_auth_service.dart';
 import 'package:frontend/theme/app_theme.dart';
 import 'package:provider/provider.dart';
@@ -19,8 +20,15 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => AuthProvider(authService: OAuthAuthService()),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (_) => AuthProvider(authService: OAuthAuthService()),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => OnboardingProvider()..load(),
+        ),
+      ],
       child: MaterialApp(
         title: 'KronTech',
         debugShowCheckedModeBanner: false,
@@ -83,7 +91,7 @@ class _AuthEntryPointState extends State<AuthEntryPoint> {
           return HomeScreen(user: authProvider.user!);
         }
 
-        return const LoginScreen();
+        return const MainOnboardingScreen();
       },
     );
   }
