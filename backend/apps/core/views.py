@@ -1,4 +1,5 @@
 from django.http import JsonResponse
+import json
 
 from common.authentication import firebase_required
 from common.services.profile_service import ProfileService
@@ -7,6 +8,65 @@ from common.services.profile_service import ProfileService
 def health_check(request):
     """Health check endpoint - no authentication required."""
     return JsonResponse({"status": "ok"})
+
+
+@firebase_required
+def signup(request):
+    """
+    Signup endpoint that creates a user profile in Firestore.
+
+    Requires Firebase ID token in Authorization header after Firebase Auth signup.
+
+    Header format:
+        Authorization: Bearer <firebase-id-token>
+
+    Request body (optional):
+        {
+            "display_name": "John Doe",
+            "photo_url": "https://...",
+            "bio": "User bio",
+            "location": "City, Country"
+        }
+
+    Returns:
+        JSON with newly created user profile
+
+    Raises:
+        400: If token validation fails
+        500: If profile creation fails
+    """
+    if request.method != "POST":
+        return JsonResponse(
+            {"error": "Method not allowed. Use POST."},
+            status=405,
+        )
+
+    try:
+        auth_user = request.auth_user
+        
+        # Get or create profile from Firebase auth data
+        user_profile = ProfileService.get_or_create_profile(auth_user)
+
+        # Update with additional data if provided
+        try:
+            body = json.loads(request.body)
+            if body:
+                user_profile.update(body)
+        except json.JSONDecodeError:
+            pass  # No additional data provided
+
+        return JsonResponse(
+            {
+                "message": "User registered successfully!",
+                "profile": user_profile.to_dict(),
+            },
+            status=201,
+        )
+    except Exception as e:
+        return JsonResponse(
+            {"error": f"Registration failed: {str(e)}"},
+            status=500,
+        )
 
 
 @firebase_required
@@ -21,7 +81,7 @@ def profile(request):
 
     Methods:
         GET: Retrieve user profile
-        POST: Create or update user profile
+        PUT/PATCH: Update user profile
 
     Returns:
         JSON with user profile information from Firestore
@@ -45,9 +105,7 @@ def profile(request):
                 status=500,
             )
 
-    elif request.method == "POST":
-        import json
-
+    elif request.method in ["POST", "PUT", "PATCH"]:
         try:
             body = json.loads(request.body)
             uid = auth_user.get("uid")
