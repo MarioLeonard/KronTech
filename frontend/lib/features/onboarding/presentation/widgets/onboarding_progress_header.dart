@@ -25,16 +25,16 @@ class OnboardingProgressHeader extends StatelessWidget {
             Text(
               'Step ${currentStep + 1} of $totalSteps',
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.secondary.withValues(alpha: 0.9),
-                fontWeight: FontWeight.w700,
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.w800,
               ),
             ),
             const Spacer(),
             Text(
               '${(progress * 100).round()}%',
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.75),
-                fontWeight: FontWeight.w700,
+                color: theme.colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w800,
               ),
             ),
           ],
@@ -44,17 +44,12 @@ class OnboardingProgressHeader extends StatelessWidget {
           borderRadius: BorderRadius.circular(999),
           child: Container(
             height: 10,
-            color: theme.colorScheme.surface.withValues(alpha: 0.95),
+            color: theme.colorScheme.surfaceContainerHighest,
             child: FractionallySizedBox(
               widthFactor: progress,
               child: DecoratedBox(
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      theme.colorScheme.primary,
-                      theme.colorScheme.secondary,
-                    ],
-                  ),
+                  color: theme.colorScheme.secondary,
                 ),
               ),
             ),
@@ -63,8 +58,8 @@ class OnboardingProgressHeader extends StatelessWidget {
         const SizedBox(height: 18),
         Text(
           title,
-          style: theme.textTheme.titleMedium?.copyWith(
-            color: theme.colorScheme.onSurface.withValues(alpha: 0.9),
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w800,
           ),
         ),
       ],

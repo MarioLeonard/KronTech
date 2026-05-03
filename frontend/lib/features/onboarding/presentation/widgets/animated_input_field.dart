@@ -69,6 +69,7 @@ class _AnimatedInputFieldState extends State<AnimatedInputField> {
         Text(
           widget.label,
           style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w800,
             color: theme.colorScheme.onSurface,
           ),
         ),
@@ -92,29 +93,29 @@ class _AnimatedInputFieldState extends State<AnimatedInputField> {
                 : null,
             errorText: widget.errorText,
             filled: true,
-            fillColor: theme.colorScheme.surface,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            fillColor: theme.inputDecorationTheme.fillColor,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide(
                 color: hasError
                     ? theme.colorScheme.error
-                    : theme.colorScheme.outline,
+                    : theme.colorScheme.outlineVariant,
               ),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide(
                 color: theme.colorScheme.primary,
                 width: 2,
               ),
             ),
             errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide(color: theme.colorScheme.error, width: 2),
             ),
             focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide(color: theme.colorScheme.error, width: 2),
             ),
             contentPadding: const EdgeInsets.symmetric(
