@@ -24,6 +24,13 @@ INSTALLED_APPS = [
     'apps.tourism',
 ]
 
+# Firebase Configuration
+# Path to Firebase service account key JSON file
+FIREBASE_CREDENTIALS_PATH = os.getenv(
+    "FIREBASE_CREDENTIALS_PATH",
+    BASE_DIR / "firebase-key.json",  
+)
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -32,6 +39,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'common.authentication.FirebaseAuthenticationMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
