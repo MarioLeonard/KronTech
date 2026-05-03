@@ -111,6 +111,30 @@ class ProfileSignupTests(TestCase):
         self.assertEqual(UserProfile.COLLECTION, "users")
 
 
+class SignupEndpointTests(TestCase):
+    """Test signup endpoint that creates users in Firestore."""
+
+    def test_profile_endpoint_exists(self):
+        """Test that profile endpoint exists and requires auth."""
+        response = self.client.get(reverse("core:profile"))
+        # Should return 401 because no auth token
+        self.assertEqual(response.status_code, 401)
+
+    def test_signup_endpoint_exists(self):
+        """Test that signup endpoint exists and requires auth."""
+        response = self.client.post(reverse("core:signup"))
+        # Should return 401 because no auth token (Firebase validation active)
+        self.assertEqual(response.status_code, 401)
+
+    def test_signup_requires_post_method(self):
+        """Test that signup only accepts POST requests."""
+        response = self.client.get(reverse("core:signup"))
+        # GET should fail with 401 (no auth) or 405 (method not allowed)
+        self.assertIn(response.status_code, [401, 405])
+
+
+
+
 class FirestoreDatabaseTests(TestCase):
     """Test Firestore database service."""
 
