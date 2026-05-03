@@ -3,12 +3,18 @@ import 'package:flutter/foundation.dart';
 import 'package:frontend/models/auth_exception.dart';
 import 'package:frontend/models/auth_user.dart';
 import 'package:frontend/services/auth_service.dart';
+import 'package:frontend/services/backend_api_service.dart';
 
 class OAuthAuthService implements AuthService {
-  OAuthAuthService({firebase_auth.FirebaseAuth? firebaseAuth})
-    : _firebaseAuth = firebaseAuth;
+  OAuthAuthService({
+    firebase_auth.FirebaseAuth? firebaseAuth,
+    BackendApiService? backendApiService,
+  }) : _firebaseAuth = firebaseAuth,
+       _backendApiService = backendApiService ?? BackendApiService();
 
   firebase_auth.FirebaseAuth? _firebaseAuth;
+  final BackendApiService _backendApiService;
+  AuthUser? _lastSyncedUser;
 
   firebase_auth.FirebaseAuth get _auth {
     return _firebaseAuth ??= firebase_auth.FirebaseAuth.instance;
@@ -24,7 +30,7 @@ class OAuthAuthService implements AuthService {
     if (!kIsWeb) {
       throw const AuthException(
         code: 'unsupported_platform',
-        message: 'Google login este configurat momentan pentru web.',
+        message: 'Google login is currently configured for web only.',
       );
     }
 
@@ -39,11 +45,11 @@ class OAuthAuthService implements AuthService {
       if (user == null) {
         throw const AuthException(
           code: 'missing_user',
-          message: 'Firebase nu a returnat un utilizator valid.',
+          message: 'Firebase did not return a valid user.',
         );
       }
 
-      return _toAuthUser(user, provider: AuthProviderType.google);
+      return _completeSignIn(user, provider: AuthProviderType.google);
     } on AuthException {
       rethrow;
     } on firebase_auth.FirebaseAuthException catch (error) {
@@ -54,7 +60,7 @@ class OAuthAuthService implements AuthService {
     } catch (_) {
       throw const AuthException(
         code: 'unexpected',
-        message: 'Nu am putut finaliza autentificarea. Incearca din nou.',
+        message: 'Could not complete authentication. Please try again.',
       );
     }
   }
@@ -83,11 +89,11 @@ class OAuthAuthService implements AuthService {
       if (user == null) {
         throw const AuthException(
           code: 'missing_user',
-          message: 'Firebase nu a returnat un utilizator valid.',
+          message: 'Firebase did not return a valid user.',
         );
       }
 
-      return _toAuthUser(user, provider: AuthProviderType.emailPassword);
+      return _completeSignIn(user, provider: AuthProviderType.emailPassword);
     } on AuthException {
       rethrow;
     } on firebase_auth.FirebaseAuthException catch (error) {
@@ -98,7 +104,7 @@ class OAuthAuthService implements AuthService {
     } catch (_) {
       throw const AuthException(
         code: 'unexpected',
-        message: 'Nu am putut finaliza autentificarea. Incearca din nou.',
+        message: 'Could not complete authentication. Please try again.',
       );
     }
   }
@@ -106,6 +112,18 @@ class OAuthAuthService implements AuthService {
   @override
   Future<void> signOut() {
     return _auth.signOut();
+  }
+
+  Future<AuthUser> _completeSignIn(
+    firebase_auth.User user, {
+    required AuthProviderType provider,
+  }) async {
+    try {
+      return await _toAuthUser(user, provider: provider);
+    } on AuthException {
+      await _auth.signOut();
+      rethrow;
+    }
   }
 
   Future<AuthUser> _toAuthUser(
@@ -116,17 +134,29 @@ class OAuthAuthService implements AuthService {
     if (idToken == null || idToken.isEmpty) {
       throw const AuthException(
         code: 'missing_token',
-        message: 'Firebase nu a furnizat un token valid.',
+        message: 'Firebase did not provide a valid token.',
       );
     }
 
-    return AuthUser(
+    final cachedUser = _lastSyncedUser;
+    if (cachedUser != null &&
+        cachedUser.id == user.uid &&
+        cachedUser.idToken == idToken) {
+      return cachedUser;
+    }
+
+    final profile = await _backendApiService.syncAuthenticatedUser(idToken);
+
+    final authUser = AuthUser(
       id: user.uid,
       idToken: idToken,
-      email: user.email,
-      displayName: user.displayName,
+      email: profile.email ?? user.email,
+      displayName: profile.displayName ?? user.displayName,
+      profile: profile,
       provider: provider,
     );
+    _lastSyncedUser = authUser;
+    return authUser;
   }
 
   Future<AuthUser?> _toNullableAuthUser(firebase_auth.User? user) async {
@@ -134,7 +164,7 @@ class OAuthAuthService implements AuthService {
       return null;
     }
 
-    return _toAuthUser(user, provider: _readProvider(user));
+    return _completeSignIn(user, provider: _readProvider(user));
   }
 
   AuthProviderType _readProvider(firebase_auth.User user) {
@@ -151,29 +181,29 @@ class OAuthAuthService implements AuthService {
       case 'popup-closed-by-user':
       case 'web-context-cancelled':
       case 'cancelled-popup-request':
-        return 'Autentificarea cu Google a fost anulata.';
+        return 'Google sign-in was cancelled.';
       case 'account-exists-with-different-credential':
-        return 'Exista deja un cont cu acest email folosind alta metoda de autentificare.';
+        return 'An account already exists for this email using a different sign-in method.';
       case 'network-request-failed':
-        return 'Conexiunea la internet a esuat. Verifica reteaua si incearca din nou.';
+        return 'The internet connection failed. Check your network and try again.';
       case 'unauthorized-domain':
-        return 'Domeniul aplicatiei nu este autorizat in Firebase Authentication.';
+        return 'This application domain is not authorized in Firebase Authentication.';
       case 'invalid-email':
-        return 'Email-ul nu este valid.';
+        return 'The email address is not valid.';
       case 'user-disabled':
-        return 'Contul acesta a fost dezactivat.';
+        return 'This account has been disabled.';
       case 'user-not-found':
-        return 'Nu exista un cont pentru acest email. Creeaza un cont nou.';
+        return 'No account exists for this email. Create a new account.';
       case 'wrong-password':
       case 'invalid-credential':
-        return 'Email sau parola incorecta.';
+        return 'Incorrect email or password.';
       case 'email-already-in-use':
-        return 'Exista deja un cont pentru acest email.';
+        return 'An account already exists for this email.';
       case 'too-many-requests':
-        return 'Prea multe incercari. Incearca din nou mai tarziu.';
+        return 'Too many attempts. Please try again later.';
       default:
         return error.message ??
-            'Autentificarea Firebase a esuat. Incearca din nou.';
+            'Firebase authentication failed. Please try again.';
     }
   }
 }

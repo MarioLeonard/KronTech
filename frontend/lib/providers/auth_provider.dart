@@ -10,13 +10,29 @@ enum AuthStatus { idle, loading, authenticated, error }
 class AuthProvider extends ChangeNotifier {
   AuthProvider({required AuthService authService})
     : _authService = authService {
-    _authSubscription = _authService.authStateChanges().listen((user) {
-      _user = user;
-      _status = user == null ? AuthStatus.idle : AuthStatus.authenticated;
-      _errorMessage = null;
-      _activeProvider = null;
-      notifyListeners();
-    });
+    _authSubscription = _authService.authStateChanges().listen(
+      (user) {
+        _user = user;
+        if (user == null) {
+          if (_status != AuthStatus.error) {
+            _status = AuthStatus.idle;
+            _errorMessage = null;
+          }
+        } else {
+          _status = AuthStatus.authenticated;
+          _errorMessage = null;
+        }
+        _activeProvider = null;
+        notifyListeners();
+      },
+      onError: (_) {
+        _user = null;
+        _status = AuthStatus.error;
+        _errorMessage = 'Could not sync the session with the backend.';
+        _activeProvider = null;
+        notifyListeners();
+      },
+    );
   }
 
   final AuthService _authService;
@@ -49,7 +65,7 @@ class AuthProvider extends ChangeNotifier {
 
     if (normalizedEmail.isEmpty || password.isEmpty) {
       _status = AuthStatus.error;
-      _errorMessage = 'Completeaza email-ul si parola.';
+      _errorMessage = 'Enter your email and password.';
       notifyListeners();
       return Future<void>.value();
     }
@@ -86,7 +102,7 @@ class AuthProvider extends ChangeNotifier {
       _errorMessage = error.message;
     } catch (_) {
       _status = AuthStatus.error;
-      _errorMessage = 'A aparut o eroare neasteptata. Incearca din nou.';
+      _errorMessage = 'An unexpected error occurred. Please try again.';
     } finally {
       _activeProvider = null;
       notifyListeners();

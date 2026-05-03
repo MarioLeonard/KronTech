@@ -5,6 +5,9 @@ from typing import Any, Dict, List, Optional
 
 import firebase_admin
 from firebase_admin import firestore
+from django.conf import settings
+from google.cloud import firestore as cloud_firestore
+from google.oauth2 import service_account
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +35,20 @@ class FirestoreService:
         try:
             if not firebase_admin._apps:
                 raise Exception("Firebase Admin SDK not initialized")
-            FirestoreService._db = firestore.client()
+            database_id = getattr(settings, "FIRESTORE_DATABASE_ID", "(default)")
+            if database_id == "(default)":
+                FirestoreService._db = firestore.client()
+            else:
+                credentials = (
+                    service_account.Credentials.from_service_account_file(
+                        settings.FIREBASE_CREDENTIALS_PATH
+                    )
+                )
+                FirestoreService._db = cloud_firestore.Client(
+                    project=credentials.project_id,
+                    credentials=credentials,
+                    database=database_id,
+                )
             logger.info("Firestore client initialized successfully")
         except Exception as e:
             logger.error(f"Failed to initialize Firestore: {e}")
