@@ -1,4 +1,4 @@
-enum AuthProviderType { google, apple, emailPassword }
+enum AuthProviderType { google }
 
 class AuthUser {
   const AuthUser({

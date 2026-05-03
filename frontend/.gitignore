@@ -7,6 +7,7 @@
 .atom/
 .build/
 .buildlog/
+.cache/
 .history
 .svn/
 .swiftpm/
@@ -32,6 +33,22 @@ migrate_working_dir/
 .pub/
 /build/
 /coverage/
+
+# Node/npm related
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Local environment/config files
+.env
+.env.*
+!.env.example
+
+# Test and tool output
+*.lcov
+coverage/
 
 # Symbolication related
 app.*.symbols

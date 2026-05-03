@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:frontend/models/auth_exception.dart';
 import 'package:frontend/models/auth_user.dart';
@@ -6,9 +8,19 @@ import 'package:frontend/services/auth_service.dart';
 enum AuthStatus { idle, loading, authenticated, error }
 
 class AuthProvider extends ChangeNotifier {
-  AuthProvider({required AuthService authService}) : _authService = authService;
+  AuthProvider({required AuthService authService})
+    : _authService = authService {
+    _authSubscription = _authService.authStateChanges().listen((user) {
+      _user = user;
+      _status = user == null ? AuthStatus.idle : AuthStatus.authenticated;
+      _errorMessage = null;
+      _activeProvider = null;
+      notifyListeners();
+    });
+  }
 
   final AuthService _authService;
+  late final StreamSubscription<AuthUser?> _authSubscription;
 
   AuthStatus _status = AuthStatus.idle;
   AuthUser? _user;
@@ -26,31 +38,6 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> signInWithGoogle() {
     return _runSignIn(AuthProviderType.google, _authService.continueWithGoogle);
-  }
-
-  Future<void> signInWithApple() {
-    return _runSignIn(AuthProviderType.apple, _authService.continueWithApple);
-  }
-
-  Future<void> signInWithEmailPassword({
-    required String email,
-    required String password,
-  }) {
-    final normalizedEmail = email.trim();
-    if (normalizedEmail.isEmpty || password.isEmpty) {
-      _status = AuthStatus.error;
-      _errorMessage = 'Completeaza email-ul si parola.';
-      notifyListeners();
-      return Future<void>.value();
-    }
-
-    return _runSignIn(
-      AuthProviderType.emailPassword,
-      () => _authService.continueWithEmailPassword(
-        email: normalizedEmail,
-        password: password,
-      ),
-    );
   }
 
   Future<void> _runSignIn(
@@ -94,11 +81,13 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void signOut() {
-    _user = null;
-    _errorMessage = null;
-    _activeProvider = null;
-    _status = AuthStatus.idle;
-    notifyListeners();
+  Future<void> signOut() async {
+    await _authService.signOut();
+  }
+
+  @override
+  void dispose() {
+    _authSubscription.cancel();
+    super.dispose();
   }
 }

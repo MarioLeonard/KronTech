@@ -17,7 +17,9 @@ class HomeScreen extends StatelessWidget {
         title: const Text('KronTech'),
         actions: [
           TextButton(
-            onPressed: () => context.read<AuthProvider>().signOut(),
+            onPressed: () {
+              context.read<AuthProvider>().signOut();
+            },
             child: const Text('Sign out'),
           ),
         ],
@@ -29,10 +31,7 @@ class HomeScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Text(
-                'Welcome!',
-                style: theme.textTheme.headlineMedium,
-              ),
+              Text('Welcome!', style: theme.textTheme.headlineMedium),
               const SizedBox(height: 12),
               Text(
                 user.displayName ?? user.email ?? 'Authenticated user',
