@@ -38,6 +38,35 @@ class OnboardingProvider extends ChangeNotifier {
   bool get canGoBack => _currentStepIndex > 0;
   bool get isLastStep => _currentStepIndex == steps.length - 1;
   double get progress => (_currentStepIndex + 1) / steps.length;
+  bool get shouldShowPrimaryAction {
+    switch (currentStep.type) {
+      case OnboardingStepType.welcome:
+      case OnboardingStepType.dateOfBirth:
+      case OnboardingStepType.notifications:
+      case OnboardingStepType.completion:
+        return true;
+      case OnboardingStepType.firstName:
+        return _onboardingData.profileInfo.firstName.trim().isNotEmpty;
+      case OnboardingStepType.lastName:
+        return _onboardingData.profileInfo.lastName.trim().isNotEmpty;
+      case OnboardingStepType.email:
+        return _onboardingData.profileInfo.email.trim().isNotEmpty;
+      case OnboardingStepType.gender:
+        return _onboardingData.profileInfo.gender.trim().isNotEmpty;
+      case OnboardingStepType.country:
+        return _onboardingData.address.country.trim().isNotEmpty;
+      case OnboardingStepType.city:
+        return _onboardingData.address.city.trim().isNotEmpty;
+      case OnboardingStepType.street:
+        return _onboardingData.address.street.trim().isNotEmpty;
+      case OnboardingStepType.zipCode:
+        return _onboardingData.address.zipCode.trim().isNotEmpty;
+      case OnboardingStepType.interests:
+        return _onboardingData.preferences.interests.isNotEmpty;
+      case OnboardingStepType.privacy:
+        return _onboardingData.preferences.acceptPrivacyPolicy;
+    }
+  }
 
   Future<void> load() async {
     _isLoading = true;

@@ -68,17 +68,27 @@ class _AnimatedInputFieldState extends State<AnimatedInputField> {
     final theme = Theme.of(context);
     final hasError = widget.errorText != null;
     final isFocused = _focusNode.hasFocus;
+    final hasValue = _controller.text.trim().isNotEmpty;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          widget.label,
-          style: theme.textTheme.titleMedium?.copyWith(fontSize: 15),
+        AnimatedDefaultTextStyle(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
+          style:
+              theme.textTheme.titleMedium?.copyWith(
+                fontSize: 15,
+                color: isFocused
+                    ? theme.colorScheme.secondary
+                    : theme.colorScheme.onSurface,
+              ) ??
+              const TextStyle(),
+          child: Text(widget.label),
         ),
         const SizedBox(height: 14),
         AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
+          duration: const Duration(milliseconds: 260),
           curve: Curves.easeOutCubic,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(28),
@@ -89,8 +99,8 @@ class _AnimatedInputFieldState extends State<AnimatedInputField> {
                     : theme.colorScheme.primary.withValues(
                         alpha: isFocused ? 0.18 : 0.0,
                       ),
-                blurRadius: 24,
-                offset: const Offset(0, 10),
+                blurRadius: isFocused ? 30 : 18,
+                offset: Offset(0, isFocused ? 14 : 8),
               ),
             ],
           ),
@@ -105,6 +115,28 @@ class _AnimatedInputFieldState extends State<AnimatedInputField> {
             decoration: InputDecoration(
               hintText: widget.hintText,
               prefixIcon: widget.prefixIcon,
+              suffixIcon: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 220),
+                switchInCurve: Curves.easeOutBack,
+                switchOutCurve: Curves.easeInCubic,
+                transitionBuilder: (child, animation) {
+                  final curved = CurvedAnimation(
+                    parent: animation,
+                    curve: Curves.easeOutCubic,
+                  );
+                  return FadeTransition(
+                    opacity: curved,
+                    child: ScaleTransition(scale: curved, child: child),
+                  );
+                },
+                child: hasValue && !hasError
+                    ? Icon(
+                        Icons.check_circle_rounded,
+                        key: const ValueKey('valid-input'),
+                        color: theme.colorScheme.secondary,
+                      )
+                    : const SizedBox.shrink(key: ValueKey('empty-input')),
+              ),
               errorText: widget.errorText,
             ),
           ),

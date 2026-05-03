@@ -4,6 +4,7 @@ class OnboardingNavigationBar extends StatelessWidget {
   const OnboardingNavigationBar({
     super.key,
     required this.primaryLabel,
+    required this.showPrimary,
     required this.onPrimaryPressed,
     required this.secondaryLabel,
     required this.onSecondaryPressed,
@@ -11,6 +12,7 @@ class OnboardingNavigationBar extends StatelessWidget {
   });
 
   final String primaryLabel;
+  final bool showPrimary;
   final VoidCallback onPrimaryPressed;
   final String? secondaryLabel;
   final VoidCallback? onSecondaryPressed;
@@ -18,33 +20,67 @@ class OnboardingNavigationBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        if (secondaryLabel != null && onSecondaryPressed != null)
-          Expanded(
-            child: _AnimatedActionButton(
-              onPressed: onSecondaryPressed!,
-              filled: false,
-              child: Text(secondaryLabel!),
+    final showSecondary = secondaryLabel != null && onSecondaryPressed != null;
+
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOutCubic,
+      alignment: Alignment.center,
+      child: Row(
+        children: [
+          if (showSecondary)
+            Expanded(
+              child: _AnimatedActionButton(
+                onPressed: onSecondaryPressed!,
+                filled: false,
+                child: Text(secondaryLabel!),
+              ),
             ),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 260),
+            switchInCurve: Curves.easeOutBack,
+            switchOutCurve: Curves.easeInCubic,
+            transitionBuilder: (child, animation) {
+              final curved = CurvedAnimation(
+                parent: animation,
+                curve: Curves.easeOutCubic,
+              );
+              return FadeTransition(
+                opacity: curved,
+                child: SizeTransition(
+                  axis: Axis.horizontal,
+                  sizeFactor: curved,
+                  child: SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0.08, 0),
+                      end: Offset.zero,
+                    ).animate(curved),
+                    child: child,
+                  ),
+                ),
+              );
+            },
+            child: showPrimary && showSecondary
+                ? const SizedBox(key: ValueKey('primary-gap'), width: 14)
+                : const SizedBox.shrink(key: ValueKey('no-primary-gap')),
           ),
-        if (secondaryLabel != null && onSecondaryPressed != null)
-          const SizedBox(width: 14),
-        Expanded(
-          flex: 2,
-          child: _AnimatedActionButton(
-            onPressed: isBusy ? null : onPrimaryPressed,
-            filled: true,
-            child: isBusy
-                ? const SizedBox(
-                    height: 22,
-                    width: 22,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Text(primaryLabel),
-          ),
-        ),
-      ],
+          if (showPrimary)
+            Expanded(
+              flex: showSecondary ? 2 : 1,
+              child: _AnimatedActionButton(
+                onPressed: isBusy ? null : onPrimaryPressed,
+                filled: true,
+                child: isBusy
+                    ? const SizedBox(
+                        height: 22,
+                        width: 22,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Text(primaryLabel),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

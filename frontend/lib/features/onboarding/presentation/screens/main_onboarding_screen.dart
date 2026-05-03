@@ -36,6 +36,7 @@ class MainOnboardingScreen extends StatelessWidget {
           ),
           footer: OnboardingNavigationBar(
             primaryLabel: step.primaryLabel,
+            showPrimary: provider.shouldShowPrimaryAction,
             secondaryLabel: step.secondaryLabel,
             isBusy: provider.isCompleting,
             onSecondaryPressed: provider.canGoBack
@@ -62,24 +63,58 @@ class MainOnboardingScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _StepHero(step: step),
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 520),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
+                transitionBuilder: (child, animation) {
+                  final curved = CurvedAnimation(
+                    parent: animation,
+                    curve: Curves.easeOutCubic,
+                  );
+                  return FadeTransition(
+                    opacity: curved,
+                    child: SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(0, 0.08),
+                        end: Offset.zero,
+                      ).animate(curved),
+                      child: ScaleTransition(
+                        scale: Tween<double>(
+                          begin: 0.985,
+                          end: 1,
+                        ).animate(curved),
+                        child: child,
+                      ),
+                    ),
+                  );
+                },
+                child: _StepHero(key: ValueKey(step.type), step: step),
+              ),
               const SizedBox(height: 24),
               AnimatedSwitcher(
-                duration: const Duration(milliseconds: 450),
-                switchInCurve: Curves.easeOutCubic,
+                duration: const Duration(milliseconds: 520),
+                reverseDuration: const Duration(milliseconds: 260),
+                switchInCurve: Curves.easeOutQuart,
                 switchOutCurve: Curves.easeInCubic,
                 transitionBuilder: (child, animation) {
                   final fade = CurvedAnimation(
                     parent: animation,
-                    curve: Curves.easeOutCubic,
+                    curve: Curves.easeOutQuart,
                   );
                   final slide = Tween<Offset>(
-                    begin: const Offset(0.08, 0),
+                    begin: const Offset(0.06, 0.02),
                     end: Offset.zero,
                   ).animate(fade);
                   return FadeTransition(
                     opacity: fade,
-                    child: SlideTransition(position: slide, child: child),
+                    child: SlideTransition(
+                      position: slide,
+                      child: ScaleTransition(
+                        scale: Tween<double>(begin: 0.98, end: 1).animate(fade),
+                        child: child,
+                      ),
+                    ),
                   );
                 },
                 child: KeyedSubtree(
@@ -112,7 +147,7 @@ class MainOnboardingScreen extends StatelessWidget {
 }
 
 class _StepHero extends StatelessWidget {
-  const _StepHero({required this.step});
+  const _StepHero({super.key, required this.step});
 
   final OnboardingStepDefinition step;
 
