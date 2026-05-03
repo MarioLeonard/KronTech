@@ -1,30 +1,44 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:frontend/main.dart';
+import 'package:frontend/models/auth_user.dart';
+import 'package:frontend/providers/auth_provider.dart';
+import 'package:frontend/screens/login_screen.dart';
+import 'package:frontend/services/auth_service.dart';
+import 'package:provider/provider.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('shows login entry point for unauthenticated users', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      ChangeNotifierProvider(
+        create: (_) => AuthProvider(authService: _FakeAuthService()),
+        child: const MaterialApp(home: LoginScreen()),
+      ),
+    );
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
     await tester.pump();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.text('KronTech'), findsOneWidget);
+    expect(find.text('Continue with Google'), findsOneWidget);
   });
+}
+
+class _FakeAuthService implements AuthService {
+  @override
+  Stream<AuthUser?> authStateChanges() {
+    return Stream<AuthUser?>.value(null);
+  }
+
+  @override
+  Future<AuthUser> continueWithGoogle() {
+    return Future<AuthUser>.value(
+      const AuthUser(id: 'test-user', provider: AuthProviderType.google),
+    );
+  }
+
+  @override
+  Future<void> signOut() {
+    return Future<void>.value();
+  }
 }
