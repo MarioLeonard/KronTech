@@ -9,14 +9,16 @@ class SocialAuthButton extends StatelessWidget {
     required this.foregroundColor,
     super.key,
     this.isLoading = false,
+    this.borderColor,
   });
 
   final String label;
-  final IconData icon;
+  final Widget icon;
   final VoidCallback? onPressed;
   final bool isLoading;
   final Color backgroundColor;
   final Color foregroundColor;
+  final Color? borderColor;
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +36,7 @@ class SocialAuthButton extends StatelessWidget {
                   color: foregroundColor,
                 ),
               )
-            : Icon(icon),
+            : icon,
         label: Text(label),
         style: FilledButton.styleFrom(
           backgroundColor: backgroundColor,
@@ -42,6 +44,9 @@ class SocialAuthButton extends StatelessWidget {
           textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
+            side: borderColor == null
+                ? BorderSide.none
+                : BorderSide(color: borderColor!),
           ),
         ),
       ),

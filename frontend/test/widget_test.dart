@@ -23,7 +23,7 @@ void main() {
     expect(find.text('Sign in with Email'), findsNothing);
     expect(find.text('Password'), findsNothing);
     expect(find.text('Create new account'), findsOneWidget);
-    expect(find.text('Continue with Google'), findsOneWidget);
+    expect(find.text('Sign in with Google'), findsOneWidget);
 
     await tester.enterText(find.byType(TextFormField).first, 'test@gmail.com');
     await tester.pump();

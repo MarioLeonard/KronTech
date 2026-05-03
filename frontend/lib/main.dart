@@ -5,6 +5,7 @@ import 'package:frontend/providers/auth_provider.dart';
 import 'package:frontend/screens/home_screen.dart';
 import 'package:frontend/screens/login_screen.dart';
 import 'package:frontend/services/oauth_auth_service.dart';
+import 'package:frontend/theme/app_theme.dart';
 import 'package:provider/provider.dart';
 
 Future<void> main() async {
@@ -23,9 +24,9 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         title: 'KronTech',
         debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF006D77)),
-        ),
+        theme: AppTheme.light,
+        darkTheme: AppTheme.dark,
+        themeMode: ThemeMode.dark,
         home: const AuthEntryPoint(),
       ),
     );

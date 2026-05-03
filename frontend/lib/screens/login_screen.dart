@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:frontend/components/social_auth_button.dart';
 import 'package:frontend/models/auth_user.dart';
 import 'package:frontend/providers/auth_provider.dart';
@@ -91,241 +92,439 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
-    final theme = Theme.of(context);
     final isLoading = authProvider.isLoading;
-    final activeProvider = authProvider.activeProvider;
-    final showPasswordField = _hasValidEmail;
-    final showEmailAction = _hasValidPassword;
+    final theme = Theme.of(context);
 
     return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    'KronTech',
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.headlineMedium,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Sign in to continue',
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.bodyLarge,
-                  ),
-                  const SizedBox(height: 28),
-                  if (authProvider.errorMessage != null) ...[
-                    _ErrorBanner(
-                      message: authProvider.errorMessage!,
-                      onDismiss: authProvider.clearError,
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-                  Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        TextFormField(
-                          controller: _emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          textInputAction: TextInputAction.next,
-                          autofillHints: const [AutofillHints.email],
-                          enabled: !isLoading,
-                          decoration: const InputDecoration(
-                            labelText: 'Email',
-                            hintText: 'you@example.com',
-                            border: OutlineInputBorder(),
-                          ),
-                          validator: (value) {
-                            final email = value?.trim() ?? '';
-                            if (email.isEmpty) {
-                              return 'Email-ul este obligatoriu.';
-                            }
-                            if (!_emailRegex.hasMatch(email)) {
-                              return 'Introdu un email valid.';
-                            }
-                            return null;
-                          },
-                        ),
-                        if (showPasswordField) ...[
-                          const SizedBox(height: 12),
-                          TextFormField(
-                            controller: _passwordController,
-                            textInputAction: _isCreatingAccount
-                                ? TextInputAction.next
-                                : TextInputAction.done,
-                            obscureText: _hidePassword,
-                            autofillHints: const [AutofillHints.password],
-                            enabled: !isLoading,
-                            onFieldSubmitted: (_) {
-                              if (!_isCreatingAccount) {
-                                _submitEmailPassword(authProvider);
-                              }
-                            },
-                            decoration: InputDecoration(
-                              labelText: 'Password',
-                              border: const OutlineInputBorder(),
-                              suffixIcon: IconButton(
-                                onPressed: isLoading
-                                    ? null
-                                    : () {
-                                        setState(() {
-                                          _hidePassword = !_hidePassword;
-                                        });
-                                      },
-                                icon: Icon(
-                                  _hidePassword
-                                      ? Icons.visibility
-                                      : Icons.visibility_off,
-                                ),
-                                tooltip: _hidePassword
-                                    ? 'Show password'
-                                    : 'Hide password',
-                              ),
-                            ),
-                            validator: (value) {
-                              final password = value ?? '';
-                              if (password.isEmpty) {
-                                return 'Parola este obligatorie.';
-                              }
-                              if (password.length < 6) {
-                                return 'Parola trebuie sa aiba minim 6 caractere.';
-                              }
-                              return null;
-                            },
-                          ),
-                        ],
-                        if (_isCreatingAccount && _hasValidPassword) ...[
-                          const SizedBox(height: 12),
-                          TextFormField(
-                            controller: _confirmPasswordController,
-                            textInputAction: TextInputAction.done,
-                            obscureText: _hideConfirmPassword,
-                            autofillHints: const [AutofillHints.newPassword],
-                            enabled: !isLoading,
-                            onFieldSubmitted: (_) {
-                              _submitEmailPassword(authProvider);
-                            },
-                            decoration: InputDecoration(
-                              labelText: 'Confirm password',
-                              border: const OutlineInputBorder(),
-                              suffixIcon: IconButton(
-                                onPressed: isLoading
-                                    ? null
-                                    : () {
-                                        setState(() {
-                                          _hideConfirmPassword =
-                                              !_hideConfirmPassword;
-                                        });
-                                      },
-                                icon: Icon(
-                                  _hideConfirmPassword
-                                      ? Icons.visibility
-                                      : Icons.visibility_off,
-                                ),
-                                tooltip: _hideConfirmPassword
-                                    ? 'Show password'
-                                    : 'Hide password',
-                              ),
-                            ),
-                            validator: (value) {
-                              if (!_isCreatingAccount) {
-                                return null;
-                              }
-                              if (value != _passwordController.text) {
-                                return 'Parolele nu coincid.';
-                              }
-                              return null;
-                            },
-                          ),
-                        ],
-                        if (showEmailAction) ...[
-                          const SizedBox(height: 14),
-                          SizedBox(
-                            height: 52,
-                            child: FilledButton(
-                              onPressed: isLoading || !_canSubmitEmailPassword
-                                  ? null
-                                  : () => _submitEmailPassword(authProvider),
-                              child:
-                                  isLoading &&
-                                      activeProvider ==
-                                          AuthProviderType.emailPassword
-                                  ? const SizedBox(
-                                      width: 18,
-                                      height: 18,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: Colors.white,
-                                      ),
-                                    )
-                                  : Text(
-                                      _isCreatingAccount
-                                          ? 'Create account'
-                                          : 'Sign in with Email',
-                                    ),
-                            ),
-                          ),
-                        ],
-                        const SizedBox(height: 8),
-                        TextButton(
-                          onPressed: isLoading
-                              ? null
-                              : () {
-                                  setState(() {
-                                    _isCreatingAccount = !_isCreatingAccount;
-                                    _confirmPasswordController.clear();
-                                  });
-                                },
-                          child: Text(
-                            _isCreatingAccount
-                                ? 'Already have an account? Sign in'
-                                : 'Create new account',
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  Row(
-                    children: [
-                      const Expanded(child: Divider()),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: Text(
-                          'or continue with',
-                          style: theme.textTheme.bodySmall,
-                        ),
-                      ),
-                      const Expanded(child: Divider()),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  SocialAuthButton(
-                    label: 'Continue with Google',
-                    icon: Icons.g_mobiledata,
-                    onPressed: isLoading ? null : authProvider.signInWithGoogle,
-                    isLoading:
-                        isLoading && activeProvider == AuthProviderType.google,
-                    backgroundColor: const Color(0xFF1F3A5F),
-                    foregroundColor: Colors.white,
-                  ),
-                  const SizedBox(height: 16),
-                  if (isLoading)
-                    const LinearProgressIndicator(
-                      minHeight: 4,
-                      borderRadius: BorderRadius.all(Radius.circular(100)),
-                    ),
-                ],
+              constraints: const BoxConstraints(maxWidth: 430),
+              child: _AuthPanel(
+                authProvider: authProvider,
+                formKey: _formKey,
+                emailController: _emailController,
+                passwordController: _passwordController,
+                confirmPasswordController: _confirmPasswordController,
+                isLoading: isLoading,
+                isCreatingAccount: _isCreatingAccount,
+                hidePassword: _hidePassword,
+                hideConfirmPassword: _hideConfirmPassword,
+                hasValidEmail: _hasValidEmail,
+                hasValidPassword: _hasValidPassword,
+                canSubmitEmailPassword: _canSubmitEmailPassword,
+                onSubmitEmailPassword: () => _submitEmailPassword(authProvider),
+                onTogglePasswordVisibility: () {
+                  setState(() {
+                    _hidePassword = !_hidePassword;
+                  });
+                },
+                onToggleConfirmPasswordVisibility: () {
+                  setState(() {
+                    _hideConfirmPassword = !_hideConfirmPassword;
+                  });
+                },
+                onToggleCreateAccount: _toggleCreateAccount,
+                emailValidator: _validateEmail,
+                passwordValidator: _validatePassword,
+                confirmPasswordValidator: _validateConfirmPassword,
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  void _toggleCreateAccount() {
+    setState(() {
+      _isCreatingAccount = !_isCreatingAccount;
+      _confirmPasswordController.clear();
+    });
+  }
+
+  String? _validateEmail(String? value) {
+    final email = value?.trim() ?? '';
+    if (email.isEmpty) {
+      return 'Email-ul este obligatoriu.';
+    }
+    if (!_emailRegex.hasMatch(email)) {
+      return 'Introdu un email valid.';
+    }
+    return null;
+  }
+
+  String? _validatePassword(String? value) {
+    final password = value ?? '';
+    if (password.isEmpty) {
+      return 'Parola este obligatorie.';
+    }
+    if (password.length < 6) {
+      return 'Parola trebuie sa aiba minim 6 caractere.';
+    }
+    return null;
+  }
+
+  String? _validateConfirmPassword(String? value) {
+    if (!_isCreatingAccount) {
+      return null;
+    }
+    if (value != _passwordController.text) {
+      return 'Parolele nu coincid.';
+    }
+    return null;
+  }
+}
+
+class _AuthPanel extends StatelessWidget {
+  const _AuthPanel({
+    required this.authProvider,
+    required this.formKey,
+    required this.emailController,
+    required this.passwordController,
+    required this.confirmPasswordController,
+    required this.isLoading,
+    required this.isCreatingAccount,
+    required this.hidePassword,
+    required this.hideConfirmPassword,
+    required this.hasValidEmail,
+    required this.hasValidPassword,
+    required this.canSubmitEmailPassword,
+    required this.onSubmitEmailPassword,
+    required this.onTogglePasswordVisibility,
+    required this.onToggleConfirmPasswordVisibility,
+    required this.onToggleCreateAccount,
+    required this.emailValidator,
+    required this.passwordValidator,
+    required this.confirmPasswordValidator,
+  });
+
+  final AuthProvider authProvider;
+  final GlobalKey<FormState> formKey;
+  final TextEditingController emailController;
+  final TextEditingController passwordController;
+  final TextEditingController confirmPasswordController;
+  final bool isLoading;
+  final bool isCreatingAccount;
+  final bool hidePassword;
+  final bool hideConfirmPassword;
+  final bool hasValidEmail;
+  final bool hasValidPassword;
+  final bool canSubmitEmailPassword;
+  final VoidCallback onSubmitEmailPassword;
+  final VoidCallback onTogglePasswordVisibility;
+  final VoidCallback onToggleConfirmPasswordVisibility;
+  final VoidCallback onToggleCreateAccount;
+  final FormFieldValidator<String> emailValidator;
+  final FormFieldValidator<String> passwordValidator;
+  final FormFieldValidator<String> confirmPasswordValidator;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final activeProvider = authProvider.activeProvider;
+    final colorScheme = theme.colorScheme;
+    final cardColor = theme.cardTheme.color ?? colorScheme.surface;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: colorScheme.outlineVariant),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.18),
+            blurRadius: 34,
+            offset: Offset(0, 18),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(28),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                const _LogoMark(),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'KronTech',
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        isCreatingAccount
+                            ? 'Create your account'
+                            : 'Welcome back',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 26),
+            if (authProvider.errorMessage != null) ...[
+              _ErrorBanner(
+                message: authProvider.errorMessage!,
+                onDismiss: authProvider.clearError,
+              ),
+              const SizedBox(height: 16),
+            ],
+            Form(
+              key: formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextFormField(
+                    controller: emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.next,
+                    autofillHints: const [AutofillHints.email],
+                    enabled: !isLoading,
+                    decoration: _inputDecoration(
+                      label: 'Email',
+                      hint: 'you@example.com',
+                      icon: Icons.alternate_email,
+                    ),
+                    validator: emailValidator,
+                  ),
+                  if (hasValidEmail) ...[
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: passwordController,
+                      textInputAction: isCreatingAccount
+                          ? TextInputAction.next
+                          : TextInputAction.done,
+                      obscureText: hidePassword,
+                      autofillHints: const [AutofillHints.password],
+                      enabled: !isLoading,
+                      onFieldSubmitted: (_) {
+                        if (!isCreatingAccount) {
+                          onSubmitEmailPassword();
+                        }
+                      },
+                      decoration: _inputDecoration(
+                        label: 'Password',
+                        hint: 'Minimum 6 characters',
+                        icon: Icons.lock_outline,
+                        suffixIcon: IconButton(
+                          onPressed: isLoading
+                              ? null
+                              : onTogglePasswordVisibility,
+                          icon: Icon(
+                            hidePassword
+                                ? Icons.visibility_outlined
+                                : Icons.visibility_off_outlined,
+                          ),
+                          tooltip: hidePassword
+                              ? 'Show password'
+                              : 'Hide password',
+                        ),
+                      ),
+                      validator: passwordValidator,
+                    ),
+                  ],
+                  if (isCreatingAccount && hasValidPassword) ...[
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: confirmPasswordController,
+                      textInputAction: TextInputAction.done,
+                      obscureText: hideConfirmPassword,
+                      autofillHints: const [AutofillHints.newPassword],
+                      enabled: !isLoading,
+                      onFieldSubmitted: (_) => onSubmitEmailPassword(),
+                      decoration: _inputDecoration(
+                        label: 'Confirm password',
+                        hint: 'Repeat your password',
+                        icon: Icons.verified_user_outlined,
+                        suffixIcon: IconButton(
+                          onPressed: isLoading
+                              ? null
+                              : onToggleConfirmPasswordVisibility,
+                          icon: Icon(
+                            hideConfirmPassword
+                                ? Icons.visibility_outlined
+                                : Icons.visibility_off_outlined,
+                          ),
+                          tooltip: hideConfirmPassword
+                              ? 'Show password'
+                              : 'Hide password',
+                        ),
+                      ),
+                      validator: confirmPasswordValidator,
+                    ),
+                  ],
+                  if (hasValidPassword) ...[
+                    const SizedBox(height: 16),
+                    if (isCreatingAccount)
+                      Align(
+                        child: TextButton(
+                          onPressed: isLoading || !canSubmitEmailPassword
+                              ? null
+                              : onSubmitEmailPassword,
+                          style: TextButton.styleFrom(
+                            foregroundColor: colorScheme.primary,
+                            minimumSize: Size.zero,
+                            padding: EdgeInsets.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            overlayColor: Colors.transparent,
+                            splashFactory: NoSplash.splashFactory,
+                            textStyle: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          child: const Text('Create account'),
+                        ),
+                      )
+                    else
+                      SizedBox(
+                        height: 52,
+                        child: FilledButton.icon(
+                          onPressed: isLoading || !canSubmitEmailPassword
+                              ? null
+                              : onSubmitEmailPassword,
+                          icon:
+                              isLoading &&
+                                  activeProvider ==
+                                      AuthProviderType.emailPassword
+                              ? const SizedBox.square(
+                                  dimension: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Icon(Icons.login),
+                          label: const Text('Sign in with Email'),
+                          style: FilledButton.styleFrom(
+                            textStyle: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                  const SizedBox(height: 10),
+                  Align(
+                    child: TextButton(
+                      onPressed: isLoading ? null : onToggleCreateAccount,
+                      style: TextButton.styleFrom(
+                        foregroundColor: colorScheme.primary,
+                        minimumSize: Size.zero,
+                        padding: EdgeInsets.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        overlayColor: Colors.transparent,
+                        splashFactory: NoSplash.splashFactory,
+                        textStyle: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      child: Text(
+                        isCreatingAccount
+                            ? 'Already have an account? Sign in'
+                            : 'Create new account',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(child: Divider(color: colorScheme.outlineVariant)),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Text(
+                    'or',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                Expanded(child: Divider(color: colorScheme.outlineVariant)),
+              ],
+            ),
+            const SizedBox(height: 14),
+            SocialAuthButton(
+              label: 'Sign in with Google',
+              icon: SvgPicture.asset(
+                'assets/icons/google.svg',
+                width: 22,
+                height: 22,
+              ),
+              onPressed: isLoading ? null : authProvider.signInWithGoogle,
+              isLoading: isLoading && activeProvider == AuthProviderType.google,
+              backgroundColor: Colors.white,
+              foregroundColor: const Color(0xFF1F2937),
+              borderColor: colorScheme.outlineVariant,
+            ),
+            if (isLoading) ...[
+              const SizedBox(height: 18),
+              LinearProgressIndicator(
+                minHeight: 4,
+                borderRadius: const BorderRadius.all(Radius.circular(100)),
+                color: colorScheme.tertiary,
+                backgroundColor: colorScheme.surfaceContainerHighest,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  InputDecoration _inputDecoration({
+    required String label,
+    required String hint,
+    required IconData icon,
+    Widget? suffixIcon,
+  }) {
+    return InputDecoration(
+      labelText: label,
+      hintText: hint,
+      prefixIcon: Icon(icon),
+      suffixIcon: suffixIcon,
+    );
+  }
+}
+
+class _LogoMark extends StatelessWidget {
+  const _LogoMark();
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorScheme.secondary,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: SizedBox.square(
+        dimension: 48,
+        child: Icon(
+          Icons.hub_outlined,
+          color: colorScheme.onSecondary,
+          size: 26,
         ),
       ),
     );
@@ -340,22 +539,24 @@ class _ErrorBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: const Color(0xFFFFEBEE),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE57373)),
+        color: colorScheme.errorContainer,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: colorScheme.error),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: Row(
           children: [
-            const Icon(Icons.error_outline, color: Color(0xFFC62828)),
+            Icon(Icons.error_outline, color: colorScheme.onErrorContainer),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
                 message,
-                style: const TextStyle(color: Color(0xFFB71C1C)),
+                style: TextStyle(color: colorScheme.onErrorContainer),
               ),
             ),
             IconButton(
