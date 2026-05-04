@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:flutter/foundation.dart';
 import 'package:frontend/models/auth_exception.dart';
 import 'package:frontend/models/auth_user.dart';
+import 'package:frontend/models/user_profile.dart';
 import 'package:frontend/services/auth_service.dart';
 import 'package:frontend/services/backend_api_service.dart';
 
@@ -145,14 +146,32 @@ class OAuthAuthService implements AuthService {
       return cachedUser;
     }
 
-    final profile = await _backendApiService.syncAuthenticatedUser(idToken);
+    // Try to sync with backend, but don't fail if it's unavailable
+    UserProfile? userProfile;
+    String? displayName = user.displayName;
+
+    try {
+      final profile = await _backendApiService.syncAuthenticatedUser(idToken);
+      userProfile = UserProfile(
+        displayName: profile.displayName,
+        photoUrl: null,
+      );
+      displayName = profile.displayName ?? user.displayName;
+    } catch (e) {
+      // Backend sync failed - create profile from Firebase data instead
+      debugPrint('Backend sync failed (continuing without it): $e');
+      userProfile = UserProfile(
+        displayName: user.displayName,
+        photoUrl: user.photoURL,
+      );
+    }
 
     final authUser = AuthUser(
       id: user.uid,
       idToken: idToken,
-      email: profile.email ?? user.email,
-      displayName: profile.displayName ?? user.displayName,
-      profile: profile,
+      email: user.email,
+      displayName: displayName,
+      profile: userProfile,
       provider: provider,
     );
     _lastSyncedUser = authUser;
