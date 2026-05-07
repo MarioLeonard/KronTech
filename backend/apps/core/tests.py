@@ -114,6 +114,16 @@ class ProfileSignupTests(TestCase):
 class SignupEndpointTests(TestCase):
     """Test signup endpoint that creates users in Firestore."""
 
+    def setUp(self):
+        self.auth_user = {
+            "uid": "test-user-123",
+            "email": "testuser@example.com",
+            "email_verified": True,
+            "display_name": "Test User",
+            "photo_url": "https://example.com/photo.jpg",
+            "custom_claims": {},
+        }
+
     @override_settings(CORS_ALLOWED_ORIGINS=["http://localhost:5000"])
     def test_signup_preflight_allows_local_frontend(self):
         response = self.client.options(
@@ -147,6 +157,105 @@ class SignupEndpointTests(TestCase):
         response = self.client.get(reverse("core:signup"))
         # GET should fail with 401 (no auth) or 405 (method not allowed)
         self.assertIn(response.status_code, [401, 405])
+
+    @patch("common.authentication.firebase_auth.verify_token")
+    @patch("apps.core.views.ProfileService.get_or_create_profile")
+    def test_signup_ignores_client_profile_fields(
+        self,
+        mock_get_or_create_profile,
+        mock_verify_token,
+    ):
+        """Signup must not allow clients to set protected profile fields."""
+        mock_verify_token.return_value = self.auth_user
+        mock_profile = MagicMock()
+        mock_profile.to_dict.return_value = {
+            "uid": "test-user-123",
+            "email": "testuser@example.com",
+            "hasCompletedOnboarding": False,
+        }
+        mock_get_or_create_profile.return_value = mock_profile
+
+        response = self.client.post(
+            reverse("core:signup"),
+            data=json.dumps({"hasCompletedOnboarding": True}),
+            content_type="application/json",
+            HTTP_AUTHORIZATION="Bearer valid-token",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        mock_profile.update.assert_not_called()
+
+    @patch("common.authentication.firebase_auth.verify_token")
+    def test_profile_endpoint_rejects_client_writes(self, mock_verify_token):
+        """Profile writes must go through dedicated backend flows."""
+        mock_verify_token.return_value = self.auth_user
+
+        response = self.client.post(
+            reverse("core:profile"),
+            data=json.dumps({"hasCompletedOnboarding": True}),
+            content_type="application/json",
+            HTTP_AUTHORIZATION="Bearer valid-token",
+        )
+
+        self.assertEqual(response.status_code, 405)
+
+
+class OnboardingServiceTests(TestCase):
+    """Test onboarding validation and Firestore write orchestration."""
+
+    def setUp(self):
+        self.auth_user = {
+            "uid": "test-user-123",
+            "email": "testuser@example.com",
+            "email_verified": True,
+            "display_name": "Test User",
+            "photo_url": "https://example.com/photo.jpg",
+            "custom_claims": {},
+        }
+        self.payload = {
+            "firstName": "Test",
+            "lastName": "User",
+            "email": "testuser@example.com",
+            "dateOfBirth": "2000-01-01",
+            "gender": "Other",
+            "country": "Romania",
+            "city": "Bucharest",
+            "street": "Main Street 1",
+            "acceptPrivacyPolicy": True,
+        }
+
+    @patch("common.services.onboarding_service.ProfileService.get_or_create_profile")
+    def test_complete_onboarding_updates_authenticated_user_profile(
+        self,
+        mock_get_or_create_profile,
+    ):
+        from common.services.onboarding_service import OnboardingService
+
+        mock_profile = MagicMock()
+        mock_get_or_create_profile.return_value = mock_profile
+
+        profile = OnboardingService.complete_onboarding(
+            self.auth_user,
+            self.payload,
+        )
+
+        self.assertEqual(profile, mock_profile)
+        mock_get_or_create_profile.assert_called_once_with(self.auth_user)
+        written_data = mock_profile.update.call_args.args[0]
+        self.assertEqual(written_data["uid"], "test-user-123")
+        self.assertTrue(written_data["hasCompletedOnboarding"])
+        self.assertEqual(written_data["email"], "testuser@example.com")
+
+    def test_complete_onboarding_rejects_mismatched_email(self):
+        from common.services.onboarding_service import (
+            OnboardingService,
+            OnboardingValidationError,
+        )
+
+        payload = {**self.payload, "email": "other@example.com"}
+
+        with self.assertRaises(OnboardingValidationError):
+            OnboardingService.complete_onboarding(self.auth_user, payload)
 
 
 

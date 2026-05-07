@@ -1,16 +1,20 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:frontend/features/onboarding/presentation/controllers/onboarding_provider.dart';
+import 'package:frontend/features/onboarding/presentation/screens/main_onboarding_screen.dart';
 import 'package:frontend/firebase_options.dart';
 import 'package:frontend/providers/auth_provider.dart';
 import 'package:frontend/screens/home_screen.dart';
 import 'package:frontend/screens/login_screen.dart';
 import 'package:frontend/services/oauth_auth_service.dart';
 import 'package:frontend/theme/app_theme.dart';
+import 'package:frontend/utils/hive_service.dart';
 import 'package:provider/provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await HiveService.init();
   runApp(const MyApp());
 }
 
@@ -19,8 +23,13 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => AuthProvider(authService: OAuthAuthService()),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (_) => AuthProvider(authService: OAuthAuthService()),
+        ),
+        ChangeNotifierProvider(create: (_) => OnboardingProvider()..load()),
+      ],
       child: MaterialApp(
         title: 'KronTech',
         debugShowCheckedModeBanner: false,
@@ -79,8 +88,13 @@ class _AuthEntryPointState extends State<AuthEntryPoint> {
       builder: (context, authProvider, child) {
         _showAuthErrorIfNeeded(authProvider.errorMessage);
 
-        if (authProvider.isAuthenticated && authProvider.user != null) {
-          return HomeScreen(user: authProvider.user!);
+        final user = authProvider.user;
+        if (authProvider.isAuthenticated && user != null) {
+          if (user.hasCompletedOnboarding) {
+            return HomeScreen(user: user);
+          }
+
+          return const MainOnboardingScreen();
         }
 
         return const LoginScreen();

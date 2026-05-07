@@ -18,4 +18,26 @@ class AuthUser {
   final String? displayName;
   final UserProfile? profile;
   final AuthProviderType provider;
+
+  bool get hasCompletedOnboarding {
+    return profile?.hasCompletedOnboarding ?? false;
+  }
+
+  AuthUser copyWith({
+    String? id,
+    String? idToken,
+    String? email,
+    String? displayName,
+    UserProfile? profile,
+    AuthProviderType? provider,
+  }) {
+    return AuthUser(
+      id: id ?? this.id,
+      idToken: idToken ?? this.idToken,
+      email: email ?? this.email,
+      displayName: displayName ?? this.displayName,
+      profile: profile ?? this.profile,
+      provider: provider ?? this.provider,
+    );
+  }
 }

@@ -3,6 +3,10 @@ from django.views.decorators.csrf import csrf_exempt
 import json
 
 from common.authentication import firebase_required
+from common.services.onboarding_service import (
+    OnboardingService,
+    OnboardingValidationError,
+)
 from common.services.profile_service import ProfileService
 
 
@@ -45,17 +49,7 @@ def signup(request):
 
     try:
         auth_user = request.auth_user
-        
-        # Get or create profile from Firebase auth data
         user_profile = ProfileService.get_or_create_profile(auth_user)
-
-        # Update with additional data if provided
-        try:
-            body = json.loads(request.body)
-            if body:
-                user_profile.update(body)
-        except json.JSONDecodeError:
-            pass  # No additional data provided
 
         return JsonResponse(
             {
@@ -84,7 +78,6 @@ def profile(request):
 
     Methods:
         GET: Retrieve user profile
-        PUT/PATCH: Update user profile
 
     Returns:
         JSON with user profile information from Firestore
@@ -108,33 +101,54 @@ def profile(request):
                 status=500,
             )
 
-    elif request.method in ["POST", "PUT", "PATCH"]:
-        try:
-            body = json.loads(request.body)
-            uid = auth_user.get("uid")
+    return JsonResponse(
+        {"error": "Method not allowed. Use GET."},
+        status=405,
+    )
 
-            # Update profile in Firestore
-            user_profile = ProfileService.update_profile(uid, body)
 
-            return JsonResponse(
-                {
-                    "message": "Profile updated successfully!",
-                    "profile": user_profile.to_dict(),
-                }
-            )
-        except json.JSONDecodeError:
-            return JsonResponse(
-                {"error": "Invalid JSON in request body"},
-                status=400,
-            )
-        except Exception as e:
-            return JsonResponse(
-                {"error": f"Failed to update profile: {str(e)}"},
-                status=500,
-            )
+@csrf_exempt
+@firebase_required
+def complete_onboarding(request):
+    """
+    Complete onboarding for the authenticated Firebase user.
 
-    else:
+    Only the backend writes onboarding profile fields to Firestore. The client
+    must provide a valid Firebase ID token in the Authorization header.
+    """
+    if request.method != "POST":
         return JsonResponse(
-            {"error": "Method not allowed"},
+            {"error": "Method not allowed. Use POST."},
             status=405,
+        )
+
+    try:
+        body = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse(
+            {"error": "Invalid JSON in request body"},
+            status=400,
+        )
+
+    try:
+        user_profile = OnboardingService.complete_onboarding(
+            request.auth_user,
+            body,
+        )
+        return JsonResponse(
+            {
+                "message": "Onboarding completed successfully!",
+                "profile": user_profile.to_dict(),
+            },
+            status=200,
+        )
+    except OnboardingValidationError as error:
+        return JsonResponse(
+            {"error": "Validation failed", "message": str(error)},
+            status=400,
+        )
+    except Exception as error:
+        return JsonResponse(
+            {"error": f"Failed to complete onboarding: {str(error)}"},
+            status=500,
         )

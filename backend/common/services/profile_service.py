@@ -33,6 +33,8 @@ class ProfileService:
         profile = UserProfile.get_by_uid(uid)
 
         if profile:
+            if "hasCompletedOnboarding" not in profile.data:
+                profile.update({"hasCompletedOnboarding": False})
             logger.info(f"Retrieved existing profile for user {uid}")
             return profile
 
