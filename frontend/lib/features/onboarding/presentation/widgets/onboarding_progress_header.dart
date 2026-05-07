@@ -5,64 +5,35 @@ class OnboardingProgressHeader extends StatelessWidget {
     super.key,
     required this.currentStep,
     required this.totalSteps,
-    required this.title,
   });
 
   final int currentStep;
   final int totalSteps;
-  final String title;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final progress = (currentStep + 1) / totalSteps;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(
-              'Step ${currentStep + 1} of $totalSteps',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.primary,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const Spacer(),
-            Text(
-              '${(progress * 100).round()}%',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(999),
-          child: Container(
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(999),
+      child: TweenAnimationBuilder<double>(
+        tween: Tween<double>(end: progress),
+        duration: const Duration(milliseconds: 520),
+        curve: Curves.easeOutCubic,
+        builder: (context, value, _) {
+          return Container(
             height: 10,
-            color: theme.colorScheme.surfaceContainerHighest,
+            color: Colors.white.withValues(alpha: 0.18),
             child: FractionallySizedBox(
-              widthFactor: progress,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.secondary,
-                ),
+              alignment: Alignment.centerLeft,
+              widthFactor: value,
+              child: const DecoratedBox(
+                decoration: BoxDecoration(color: Colors.white),
               ),
             ),
-          ),
-        ),
-        const SizedBox(height: 18),
-        Text(
-          title,
-          style: theme.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-      ],
+          );
+        },
+      ),
     );
   }
 }

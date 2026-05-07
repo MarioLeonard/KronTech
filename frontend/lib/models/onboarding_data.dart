@@ -1,10 +1,13 @@
 // Models for storing onboarding data collected at each step
 
 class ProfileInfoData {
+  static final DateTime defaultDateOfBirth = DateTime(2007);
+
   final String firstName;
   final String lastName;
   final String email;
   final DateTime dateOfBirth;
+  final bool hasSelectedDateOfBirth;
   final String gender; // male, female, other
 
   ProfileInfoData({
@@ -12,6 +15,7 @@ class ProfileInfoData {
     required this.lastName,
     required this.email,
     required this.dateOfBirth,
+    required this.hasSelectedDateOfBirth,
     required this.gender,
   });
 
@@ -22,6 +26,7 @@ class ProfileInfoData {
       'lastName': lastName,
       'email': email,
       'dateOfBirth': dateOfBirth.toIso8601String(),
+      'hasSelectedDateOfBirth': hasSelectedDateOfBirth,
       'gender': gender,
     };
   }
@@ -33,8 +38,9 @@ class ProfileInfoData {
       lastName: map['lastName'] ?? '',
       email: map['email'] ?? '',
       dateOfBirth: DateTime.parse(
-        map['dateOfBirth'] ?? DateTime.now().toIso8601String(),
+        map['dateOfBirth'] ?? defaultDateOfBirth.toIso8601String(),
       ),
+      hasSelectedDateOfBirth: map['hasSelectedDateOfBirth'] ?? false,
       gender: map['gender'] ?? '',
     );
   }
@@ -45,7 +51,8 @@ class ProfileInfoData {
       firstName: '',
       lastName: '',
       email: '',
-      dateOfBirth: DateTime.now(),
+      dateOfBirth: defaultDateOfBirth,
+      hasSelectedDateOfBirth: false,
       gender: '',
     );
   }
@@ -56,6 +63,7 @@ class ProfileInfoData {
     String? lastName,
     String? email,
     DateTime? dateOfBirth,
+    bool? hasSelectedDateOfBirth,
     String? gender,
   }) {
     return ProfileInfoData(
@@ -63,6 +71,8 @@ class ProfileInfoData {
       lastName: lastName ?? this.lastName,
       email: email ?? this.email,
       dateOfBirth: dateOfBirth ?? this.dateOfBirth,
+      hasSelectedDateOfBirth:
+          hasSelectedDateOfBirth ?? this.hasSelectedDateOfBirth,
       gender: gender ?? this.gender,
     );
   }
@@ -124,10 +134,7 @@ class AddressData {
   }
 
   bool get isValid =>
-      country.isNotEmpty &&
-      city.isNotEmpty &&
-      street.isNotEmpty &&
-      zipCode.isNotEmpty;
+      country.isNotEmpty && city.isNotEmpty && street.isNotEmpty;
 }
 
 class PreferencesData {

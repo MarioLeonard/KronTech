@@ -116,18 +116,18 @@ class _CustomFormFieldState extends State<CustomFormField> {
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide(
-                color: _errorText != null ? Colors.red : Colors.grey.shade300,
+                color: _errorText != null ? Colors.red : Colors.white,
               ),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide(
-                color: _errorText != null ? Colors.red : Colors.grey.shade300,
+                color: _errorText != null ? Colors.red : Colors.white,
               ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Colors.blue, width: 2),
+              borderSide: const BorderSide(color: Colors.white, width: 2),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),

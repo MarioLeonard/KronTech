@@ -3,14 +3,12 @@ import 'package:flutter/material.dart';
 class SelectionCardGroup extends StatelessWidget {
   const SelectionCardGroup({
     super.key,
-    required this.label,
     required this.options,
     required this.selected,
     required this.onSelected,
     this.errorText,
   });
 
-  final String label;
   final List<String> options;
   final String selected;
   final ValueChanged<String> onSelected;
@@ -23,8 +21,6 @@ class SelectionCardGroup extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: theme.textTheme.titleMedium),
-        const SizedBox(height: 16),
         Column(
           children: options.map((option) {
             final isSelected = option == selected;
@@ -45,11 +41,7 @@ class SelectionCardGroup extends StatelessWidget {
                         ? theme.colorScheme.primary.withValues(alpha: 0.18)
                         : theme.colorScheme.surface.withValues(alpha: 0.7),
                     borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: isSelected
-                          ? theme.colorScheme.secondary
-                          : theme.dividerColor,
-                    ),
+                    border: Border.all(color: Colors.white),
                   ),
                   child: Row(
                     children: [
@@ -67,7 +59,7 @@ class SelectionCardGroup extends StatelessWidget {
                             ? Icon(
                                 Icons.check_circle_rounded,
                                 key: ValueKey(option),
-                                color: theme.colorScheme.secondary,
+                                color: Colors.white,
                               )
                             : Icon(
                                 Icons.circle_outlined,
@@ -137,11 +129,7 @@ class InterestChips extends StatelessWidget {
               color: selected
                   ? theme.colorScheme.secondary.withValues(alpha: 0.18)
                   : theme.colorScheme.surface.withValues(alpha: 0.8),
-              border: Border.all(
-                color: selected
-                    ? theme.colorScheme.secondary
-                    : theme.dividerColor,
-              ),
+              border: Border.all(color: Colors.white),
             ),
             child: Text(
               option,

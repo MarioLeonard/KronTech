@@ -52,33 +52,12 @@ class _CustomDatePickerState extends State<CustomDatePicker> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text.rich(
-          TextSpan(
-            children: [
-              TextSpan(
-                text: widget.label,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
-              ),
-              if (widget.required)
-                TextSpan(
-                  text: ' *',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.red,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 8),
         GestureDetector(
           onTap: () => _selectDate(context),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade300),
+              border: Border.all(color: Colors.white),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(

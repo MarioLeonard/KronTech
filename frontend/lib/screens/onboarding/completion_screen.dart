@@ -71,7 +71,7 @@ class OnboardingCompletionScreen extends StatelessWidget {
                       const Divider(height: 24),
                       _InfoRow('Age', '${user.age} years old'),
                       const Divider(height: 24),
-                      _InfoRow('Gender', user.gender),
+                      _InfoRow('Gen', user.gender),
                       const Divider(height: 24),
                       _InfoRow('Location', user.completeAddress),
                       const Divider(height: 24),

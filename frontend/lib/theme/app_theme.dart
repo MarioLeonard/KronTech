@@ -63,6 +63,9 @@ class AppTheme {
         secondaryLabelStyle: const TextStyle(color: Colors.white),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
+      checkboxTheme: CheckboxThemeData(
+        checkColor: WidgetStateProperty.all(Colors.white),
+      ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: Colors.white,
         indicatorColor: _chip,
@@ -75,8 +78,8 @@ class AppTheme {
       ),
       inputDecorationTheme: _inputDecorationTheme(
         fillColor: Colors.white,
-        borderColor: const Color(0xFFD9E2EC),
-        focusedColor: _primaryBlue,
+        borderColor: Colors.white,
+        focusedColor: Colors.white,
         labelColor: const Color(0xFF475467),
         hintColor: const Color(0xFF98A2B3),
         iconColor: _primaryBlue,
@@ -136,6 +139,9 @@ class AppTheme {
         secondaryLabelStyle: const TextStyle(color: Colors.white),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
+      checkboxTheme: CheckboxThemeData(
+        checkColor: WidgetStateProperty.all(Colors.white),
+      ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: _darkCard,
         indicatorColor: _primaryBlue,
@@ -148,8 +154,8 @@ class AppTheme {
       ),
       inputDecorationTheme: _inputDecorationTheme(
         fillColor: const Color(0xFF064A9E),
-        borderColor: const Color(0xFF0077B6),
-        focusedColor: _chip,
+        borderColor: Colors.white,
+        focusedColor: Colors.white,
         labelColor: _darkText,
         hintColor: const Color(0xFF9BDCEB),
         iconColor: _chip,

@@ -12,16 +12,6 @@ class OnboardingProvider extends ChangeNotifier {
 
   final OnboardingStorage _storage;
   final List<OnboardingStepDefinition> steps = OnboardingStepDefinition.all;
-  final List<String> suggestedInterests = const [
-    'Technology',
-    'Design',
-    'Travel',
-    'Business',
-    'Wellness',
-    'Culture',
-    'Photography',
-    'Sports',
-  ];
 
   OnboardingData _onboardingData = OnboardingData.empty();
   int _currentStepIndex = 0;
@@ -40,9 +30,6 @@ class OnboardingProvider extends ChangeNotifier {
   double get progress => (_currentStepIndex + 1) / steps.length;
   bool get shouldShowPrimaryAction {
     switch (currentStep.type) {
-      case OnboardingStepType.welcome:
-      case OnboardingStepType.dateOfBirth:
-      case OnboardingStepType.notifications:
       case OnboardingStepType.completion:
         return true;
       case OnboardingStepType.firstName:
@@ -50,7 +37,10 @@ class OnboardingProvider extends ChangeNotifier {
       case OnboardingStepType.lastName:
         return _onboardingData.profileInfo.lastName.trim().isNotEmpty;
       case OnboardingStepType.email:
-        return _onboardingData.profileInfo.email.trim().isNotEmpty;
+        return OnboardingValidators.email(_onboardingData.profileInfo.email) ==
+            null;
+      case OnboardingStepType.dateOfBirth:
+        return _onboardingData.profileInfo.hasSelectedDateOfBirth;
       case OnboardingStepType.gender:
         return _onboardingData.profileInfo.gender.trim().isNotEmpty;
       case OnboardingStepType.country:
@@ -59,10 +49,6 @@ class OnboardingProvider extends ChangeNotifier {
         return _onboardingData.address.city.trim().isNotEmpty;
       case OnboardingStepType.street:
         return _onboardingData.address.street.trim().isNotEmpty;
-      case OnboardingStepType.zipCode:
-        return _onboardingData.address.zipCode.trim().isNotEmpty;
-      case OnboardingStepType.interests:
-        return _onboardingData.preferences.interests.isNotEmpty;
       case OnboardingStepType.privacy:
         return _onboardingData.preferences.acceptPrivacyPolicy;
     }
@@ -74,8 +60,11 @@ class OnboardingProvider extends ChangeNotifier {
 
     try {
       final draft = await _storage.loadDraft();
+      final flowVersion = _storage.loadFlowVersion();
+      final savedStep = _storage.loadCurrentStep();
       _onboardingData = draft ?? OnboardingData.empty();
-      _currentStepIndex = _storage.loadCurrentStep().clamp(0, steps.length - 1);
+      _currentStepIndex = _normalizeSavedStep(savedStep, flowVersion);
+      await _storage.saveCurrentStep(_currentStepIndex);
     } catch (error) {
       debugPrint('Failed to load onboarding state: $error');
     } finally {
@@ -143,7 +132,6 @@ class OnboardingProvider extends ChangeNotifier {
 
   String? validateCurrentStep() {
     switch (currentStep.type) {
-      case OnboardingStepType.welcome:
       case OnboardingStepType.completion:
         return null;
       case OnboardingStepType.firstName:
@@ -161,7 +149,9 @@ class OnboardingProvider extends ChangeNotifier {
       case OnboardingStepType.email:
         return OnboardingValidators.email(_onboardingData.profileInfo.email);
       case OnboardingStepType.dateOfBirth:
-        return null;
+        return _onboardingData.profileInfo.hasSelectedDateOfBirth
+            ? null
+            : 'Please select your date of birth.';
       case OnboardingStepType.gender:
         return OnboardingValidators.selection(
           _onboardingData.profileInfo.gender,
@@ -183,12 +173,6 @@ class OnboardingProvider extends ChangeNotifier {
           fieldLabel: 'Street address',
           minLength: 5,
         );
-      case OnboardingStepType.zipCode:
-        return OnboardingValidators.zipCode(_onboardingData.address.zipCode);
-      case OnboardingStepType.interests:
-        return null;
-      case OnboardingStepType.notifications:
-        return null;
       case OnboardingStepType.privacy:
         return OnboardingValidators.privacyAccepted(
           _onboardingData.preferences.acceptPrivacyPolicy,
@@ -214,13 +198,18 @@ class OnboardingProvider extends ChangeNotifier {
 
   Future<void> updateEmail(String value) => _updateData(
     _onboardingData.copyWith(
-      profileInfo: _onboardingData.profileInfo.copyWith(email: value.trim()),
+      profileInfo: _onboardingData.profileInfo.copyWith(
+        email: value.trim().toLowerCase(),
+      ),
     ),
   );
 
   Future<void> updateDateOfBirth(DateTime value) => _updateData(
     _onboardingData.copyWith(
-      profileInfo: _onboardingData.profileInfo.copyWith(dateOfBirth: value),
+      profileInfo: _onboardingData.profileInfo.copyWith(
+        dateOfBirth: value,
+        hasSelectedDateOfBirth: true,
+      ),
     ),
   );
 
@@ -232,7 +221,24 @@ class OnboardingProvider extends ChangeNotifier {
 
   Future<void> updateCountry(String value) => _updateData(
     _onboardingData.copyWith(
-      address: _onboardingData.address.copyWith(country: value.trim()),
+      address: _onboardingData.address.copyWith(
+        country: value.trim(),
+        city: '',
+      ),
+    ),
+  );
+
+  Future<void> updateLocationAddress({
+    required String country,
+    required String city,
+    required String street,
+  }) => _updateData(
+    _onboardingData.copyWith(
+      address: _onboardingData.address.copyWith(
+        country: country.trim(),
+        city: city.trim(),
+        street: street.trim(),
+      ),
     ),
   );
 
@@ -245,35 +251,6 @@ class OnboardingProvider extends ChangeNotifier {
   Future<void> updateStreet(String value) => _updateData(
     _onboardingData.copyWith(
       address: _onboardingData.address.copyWith(street: value.trim()),
-    ),
-  );
-
-  Future<void> updateZipCode(String value) => _updateData(
-    _onboardingData.copyWith(
-      address: _onboardingData.address.copyWith(zipCode: value.trim()),
-    ),
-  );
-
-  Future<void> toggleInterest(String value) async {
-    final current = List<String>.from(_onboardingData.preferences.interests);
-    if (current.contains(value)) {
-      current.remove(value);
-    } else {
-      current.add(value);
-    }
-
-    await _updateData(
-      _onboardingData.copyWith(
-        preferences: _onboardingData.preferences.copyWith(interests: current),
-      ),
-    );
-  }
-
-  Future<void> setNotifications(bool value) => _updateData(
-    _onboardingData.copyWith(
-      preferences: _onboardingData.preferences.copyWith(
-        enableNotifications: value,
-      ),
     ),
   );
 
@@ -304,21 +281,10 @@ class OnboardingProvider extends ChangeNotifier {
         return _onboardingData.address.city;
       case OnboardingStepType.street:
         return _onboardingData.address.street;
-      case OnboardingStepType.zipCode:
-        return _onboardingData.address.zipCode;
-      case OnboardingStepType.interests:
-        return _onboardingData.preferences.interests.isEmpty
-            ? 'No interests selected'
-            : _onboardingData.preferences.interests.join(', ');
-      case OnboardingStepType.notifications:
-        return _onboardingData.preferences.enableNotifications
-            ? 'Enabled'
-            : 'Muted';
       case OnboardingStepType.privacy:
         return _onboardingData.preferences.acceptPrivacyPolicy
             ? 'Accepted'
             : 'Pending';
-      case OnboardingStepType.welcome:
       case OnboardingStepType.completion:
         return '';
     }
@@ -342,5 +308,12 @@ class OnboardingProvider extends ChangeNotifier {
       return '';
     }
     return '${trimmed[0].toUpperCase()}${trimmed.substring(1)}';
+  }
+
+  int _normalizeSavedStep(int savedStep, int flowVersion) {
+    final migratedStep = flowVersion < OnboardingStorage.currentFlowVersion
+        ? savedStep - 1
+        : savedStep;
+    return migratedStep.clamp(0, steps.length - 1);
   }
 }

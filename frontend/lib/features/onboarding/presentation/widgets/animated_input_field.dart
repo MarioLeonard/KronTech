@@ -66,14 +66,6 @@ class _AnimatedInputFieldState extends State<AnimatedInputField> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          widget.label,
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w800,
-            color: theme.colorScheme.onSurface,
-          ),
-        ),
-        const SizedBox(height: 12),
         TextField(
           controller: _controller,
           focusNode: _focusNode,
@@ -86,29 +78,24 @@ class _AnimatedInputFieldState extends State<AnimatedInputField> {
             hintText: widget.hintText,
             prefixIcon: widget.prefixIcon,
             suffixIcon: (_controller.text.trim().isNotEmpty && !hasError)
-                ? Icon(
-                    Icons.check_circle_rounded,
-                    color: theme.colorScheme.secondary,
-                  )
+                ? Icon(Icons.check_circle_rounded, color: Colors.white)
                 : null,
             errorText: widget.errorText,
             filled: true,
             fillColor: theme.inputDecorationTheme.fillColor,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: Colors.white),
+            ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide(
-                color: hasError
-                    ? theme.colorScheme.error
-                    : theme.colorScheme.outlineVariant,
+                color: hasError ? theme.colorScheme.error : Colors.white,
               ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(
-                color: theme.colorScheme.primary,
-                width: 2,
-              ),
+              borderSide: const BorderSide(color: Colors.white, width: 2),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),

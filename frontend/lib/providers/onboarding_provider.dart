@@ -1,10 +1,10 @@
 import 'dart:async';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../models/onboarding_data.dart';
 import '../models/user_model.dart';
 import '../utils/hive_service.dart';
-import '../services/firebase_service.dart';
 
 /// Provider managing the state, validation, and persistence of the onboarding flow
 class OnboardingProvider extends ChangeNotifier {
@@ -19,8 +19,7 @@ class OnboardingProvider extends ChangeNotifier {
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
-  // Firebase service instance
-  final FirebaseService _firebaseService = FirebaseService();
+  final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
 
   String? _firestoreSyncError;
   String? get firestoreSyncError => _firestoreSyncError;
@@ -225,7 +224,8 @@ class OnboardingProvider extends ChangeNotifier {
     return '${trimmed[0].toUpperCase()}${trimmed.substring(1)}';
   }
 
-  /// Complete onboarding and sync data to Firestore
+  /// Complete onboarding locally. Backend-owned profile persistence is handled
+  /// by the authenticated backend API flow.
   Future<UserModel?> completeOnboardingAndSync() async {
     try {
       _isLoading = true;
@@ -235,21 +235,11 @@ class OnboardingProvider extends ChangeNotifier {
       // Compile final user model
       final finalUser = compileFinalUser();
 
-      // Save to Firestore
-      final success = await _firebaseService.saveUserToFirestore(finalUser);
-
-      if (success) {
-        // Clear local draft after successful sync
-        await clearProgress();
-        return finalUser;
-      } else {
-        _firestoreSyncError = 'Failed to save user data to Firestore';
-        notifyListeners();
-        return null;
-      }
+      await clearProgress();
+      return finalUser;
     } catch (e) {
       _firestoreSyncError = 'Error: ${e.toString()}';
-      debugPrint('Firestore sync error: $e');
+      debugPrint('Onboarding completion error: $e');
       notifyListeners();
       return null;
     } finally {
@@ -259,8 +249,8 @@ class OnboardingProvider extends ChangeNotifier {
   }
 
   /// Get current Firebase user
-  bool get isUserAuthenticated => _firebaseService.getCurrentUser() != null;
+  bool get isUserAuthenticated => _firebaseAuth.currentUser != null;
 
   /// Get Firebase user email
-  String? get currentUserEmail => _firebaseService.getCurrentUser()?.email;
+  String? get currentUserEmail => _firebaseAuth.currentUser?.email;
 }

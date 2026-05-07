@@ -72,7 +72,7 @@ class UserModel {
   }
 
   /// Get user's complete address
-  String get completeAddress => '$street, $city, $zipCode, $country';
+  String get completeAddress => '$street, $city, $country';
 
   /// Convert to Map for storage or API calls
   Map<String, dynamic> toMap() {

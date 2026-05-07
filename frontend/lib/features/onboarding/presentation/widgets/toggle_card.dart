@@ -25,9 +25,7 @@ class ToggleCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.colorScheme.surface.withValues(alpha: 0.75),
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(
-          color: value ? theme.colorScheme.secondary : theme.dividerColor,
-        ),
+        border: Border.all(color: Colors.white),
       ),
       child: Row(
         children: [

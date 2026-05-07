@@ -7,11 +7,13 @@ import 'package:frontend/providers/auth_provider.dart';
 import 'package:frontend/screens/home_screen.dart';
 import 'package:frontend/services/oauth_auth_service.dart';
 import 'package:frontend/theme/app_theme.dart';
+import 'package:frontend/utils/hive_service.dart';
 import 'package:provider/provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await HiveService.init();
   runApp(const MyApp());
 }
 
@@ -25,9 +27,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => AuthProvider(authService: OAuthAuthService()),
         ),
-        ChangeNotifierProvider(
-          create: (_) => OnboardingProvider()..load(),
-        ),
+        ChangeNotifierProvider(create: (_) => OnboardingProvider()..load()),
       ],
       child: MaterialApp(
         title: 'KronTech',

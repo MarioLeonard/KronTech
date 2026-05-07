@@ -74,7 +74,7 @@ class ProfileInfoScreen extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             GenderSelector(
-              label: 'Gender',
+              label: 'Gen',
               initialValue: profileData.gender.isEmpty
                   ? null
                   : profileData.gender,

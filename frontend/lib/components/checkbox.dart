@@ -119,8 +119,10 @@ class _InterestSelectorState extends State<InterestSelector> {
               label: Text(interest),
               selected: isSelected,
               onSelected: (_) => _toggleInterest(interest),
+              checkmarkColor: Colors.white,
               backgroundColor: Colors.grey.shade200,
               selectedColor: Colors.blue.shade100,
+              side: const BorderSide(color: Colors.white),
               labelStyle: TextStyle(
                 color: isSelected ? Colors.blue : Colors.black87,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,

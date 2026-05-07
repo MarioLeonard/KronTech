@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 enum OnboardingStepType {
-  welcome,
   firstName,
   lastName,
   email,
@@ -10,9 +9,6 @@ enum OnboardingStepType {
   country,
   city,
   street,
-  zipCode,
-  interests,
-  notifications,
   privacy,
   completion,
 }
@@ -35,14 +31,6 @@ class OnboardingStepDefinition {
   final String? secondaryLabel;
 
   static const List<OnboardingStepDefinition> all = [
-    OnboardingStepDefinition(
-      type: OnboardingStepType.welcome,
-      title: 'A calmer start to your setup',
-      subtitle:
-          'We will shape your profile one thoughtful step at a time and keep every detail safely on this device.',
-      icon: Icons.auto_awesome_rounded,
-      primaryLabel: 'Begin',
-    ),
     OnboardingStepDefinition(
       type: OnboardingStepType.firstName,
       title: 'What should we call you?',
@@ -76,8 +64,8 @@ class OnboardingStepDefinition {
     ),
     OnboardingStepDefinition(
       type: OnboardingStepType.gender,
-      title: 'Which option fits best?',
-      subtitle: 'Choose the label that feels right for your profile.',
+      title: 'How would you like to be identified?',
+      subtitle: 'Select the option that best represents you.',
       icon: Icons.wc_rounded,
       primaryLabel: 'Continue',
       secondaryLabel: 'Back',
@@ -108,43 +96,17 @@ class OnboardingStepDefinition {
       secondaryLabel: 'Back',
     ),
     OnboardingStepDefinition(
-      type: OnboardingStepType.zipCode,
-      title: 'Postal code',
-      subtitle: 'One last detail to complete your saved address.',
-      icon: Icons.markunread_mailbox_outlined,
-      primaryLabel: 'Continue',
-      secondaryLabel: 'Back',
-    ),
-    OnboardingStepDefinition(
-      type: OnboardingStepType.interests,
-      title: 'What are you into lately?',
-      subtitle: 'Pick a few interests so the app can feel more curated.',
-      icon: Icons.interests_outlined,
-      primaryLabel: 'Continue',
-      secondaryLabel: 'Back',
-    ),
-    OnboardingStepDefinition(
-      type: OnboardingStepType.notifications,
-      title: 'Stay in the loop?',
-      subtitle: 'Choose whether important updates should reach you directly.',
-      icon: Icons.notifications_active_outlined,
-      primaryLabel: 'Continue',
-      secondaryLabel: 'Back',
-    ),
-    OnboardingStepDefinition(
       type: OnboardingStepType.privacy,
-      title: 'Review the privacy confirmation',
-      subtitle:
-          'Please confirm before we finalize your local onboarding profile.',
+      title: 'Before we finish',
+      subtitle: 'Please review and accept the privacy and terms confirmation.',
       icon: Icons.verified_user_outlined,
-      primaryLabel: 'Review',
+      primaryLabel: 'Finish',
       secondaryLabel: 'Back',
     ),
     OnboardingStepDefinition(
       type: OnboardingStepType.completion,
-      title: 'Everything looks beautifully in place',
-      subtitle:
-          'Your profile is ready. We will persist the final version locally and print the saved Hive data for verification.',
+      title: 'Your profile is ready',
+      subtitle: 'We will persist the final version locally for verification.',
       icon: Icons.check_circle_outline_rounded,
       primaryLabel: 'Finish onboarding',
       secondaryLabel: 'Back',

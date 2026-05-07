@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../domain/onboarding_step_definition.dart';
 import '../controllers/onboarding_provider.dart';
 
 class CompletionSummary extends StatelessWidget {
@@ -17,14 +18,12 @@ class CompletionSummary extends StatelessWidget {
       ),
       ('Email', provider.onboardingData.profileInfo.email),
       ('Birth date', provider.summaryValue(provider.steps[4].type)),
-      ('Gender', provider.onboardingData.profileInfo.gender),
+      ('Gen', provider.onboardingData.profileInfo.gender),
       (
         'Address',
-        '${provider.onboardingData.address.street}, ${provider.onboardingData.address.city}, ${provider.onboardingData.address.zipCode}, ${provider.onboardingData.address.country}',
+        '${provider.onboardingData.address.street}, ${provider.onboardingData.address.city}, ${provider.onboardingData.address.country}',
       ),
-      ('Interests', provider.summaryValue(provider.steps[10].type)),
-      ('Notifications', provider.summaryValue(provider.steps[11].type)),
-      ('Privacy', provider.summaryValue(provider.steps[12].type)),
+      ('Privacy', provider.summaryValue(OnboardingStepType.privacy)),
     ];
 
     return Column(
@@ -66,7 +65,7 @@ class CompletionSummary extends StatelessWidget {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(22),
                 color: theme.colorScheme.surface.withValues(alpha: 0.72),
-                border: Border.all(color: theme.dividerColor),
+                border: Border.all(color: Colors.white),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,

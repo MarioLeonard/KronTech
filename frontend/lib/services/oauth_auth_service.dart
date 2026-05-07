@@ -15,6 +15,8 @@ class OAuthAuthService implements AuthService {
   firebase_auth.FirebaseAuth? _firebaseAuth;
   final BackendApiService _backendApiService;
   AuthUser? _lastSyncedUser;
+  String? _syncInProgressKey;
+  Future<AuthUser>? _syncInProgress;
 
   firebase_auth.FirebaseAuth get _auth {
     return _firebaseAuth ??= firebase_auth.FirebaseAuth.instance;
@@ -145,6 +147,35 @@ class OAuthAuthService implements AuthService {
       return cachedUser;
     }
 
+    final syncKey = '${user.uid}:$idToken';
+    final syncInProgress = _syncInProgress;
+    if (_syncInProgressKey == syncKey && syncInProgress != null) {
+      return syncInProgress;
+    }
+
+    final syncFuture = _syncBackendProfile(
+      user,
+      idToken: idToken,
+      provider: provider,
+    );
+    _syncInProgressKey = syncKey;
+    _syncInProgress = syncFuture;
+
+    try {
+      return await syncFuture;
+    } finally {
+      if (_syncInProgressKey == syncKey) {
+        _syncInProgressKey = null;
+        _syncInProgress = null;
+      }
+    }
+  }
+
+  Future<AuthUser> _syncBackendProfile(
+    firebase_auth.User user, {
+    required String idToken,
+    required AuthProviderType provider,
+  }) async {
     final profile = await _backendApiService.syncAuthenticatedUser(idToken);
 
     final authUser = AuthUser(
