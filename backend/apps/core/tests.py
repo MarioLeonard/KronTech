@@ -218,21 +218,29 @@ class OnboardingServiceTests(TestCase):
             "email": "testuser@example.com",
             "dateOfBirth": "2000-01-01",
             "gender": "Other",
+            "profilePhotoDataUrl": "data:image/png;base64,avatar",
             "country": "Romania",
             "city": "Bucharest",
             "street": "Main Street 1",
             "acceptPrivacyPolicy": True,
         }
 
+    @patch("common.services.onboarding_service.FirebaseStorageService.upload_profile_photo")
     @patch("common.services.onboarding_service.ProfileService.get_or_create_profile")
     def test_complete_onboarding_updates_authenticated_user_profile(
         self,
         mock_get_or_create_profile,
+        mock_upload_profile_photo,
     ):
         from common.services.onboarding_service import OnboardingService
+        from common.firebase.storage import UploadedProfilePhoto
 
         mock_profile = MagicMock()
         mock_get_or_create_profile.return_value = mock_profile
+        mock_upload_profile_photo.return_value = UploadedProfilePhoto(
+            url="https://firebasestorage.googleapis.com/profile-photo",
+            path="users/test-user-123/profile/profile-photo.png",
+        )
 
         profile = OnboardingService.complete_onboarding(
             self.auth_user,
@@ -245,6 +253,34 @@ class OnboardingServiceTests(TestCase):
         self.assertEqual(written_data["uid"], "test-user-123")
         self.assertTrue(written_data["hasCompletedOnboarding"])
         self.assertEqual(written_data["email"], "testuser@example.com")
+        self.assertEqual(
+            written_data["photo_url"],
+            "https://firebasestorage.googleapis.com/profile-photo",
+        )
+        self.assertEqual(
+            written_data["profilePhotoPath"],
+            "users/test-user-123/profile/profile-photo.png",
+        )
+
+    @patch("common.services.onboarding_service.FirebaseStorageService.upload_profile_photo")
+    @patch("common.services.onboarding_service.ProfileService.get_or_create_profile")
+    def test_complete_onboarding_uses_google_photo_when_no_custom_photo(
+        self,
+        mock_get_or_create_profile,
+        mock_upload_profile_photo,
+    ):
+        from common.services.onboarding_service import OnboardingService
+
+        mock_profile = MagicMock()
+        mock_get_or_create_profile.return_value = mock_profile
+        payload = {**self.payload, "profilePhotoDataUrl": ""}
+
+        OnboardingService.complete_onboarding(self.auth_user, payload)
+
+        mock_upload_profile_photo.assert_not_called()
+        written_data = mock_profile.update.call_args.args[0]
+        self.assertEqual(written_data["photo_url"], "https://example.com/photo.jpg")
+        self.assertEqual(written_data["profilePhotoPath"], "")
 
     def test_complete_onboarding_rejects_mismatched_email(self):
         from common.services.onboarding_service import (

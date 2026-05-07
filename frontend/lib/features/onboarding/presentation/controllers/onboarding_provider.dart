@@ -36,8 +36,6 @@ class OnboardingProvider extends ChangeNotifier {
   double get progress => (_currentStepIndex + 1) / steps.length;
   bool get shouldShowPrimaryAction {
     switch (currentStep.type) {
-      case OnboardingStepType.completion:
-        return true;
       case OnboardingStepType.firstName:
         return _onboardingData.profileInfo.firstName.trim().isNotEmpty;
       case OnboardingStepType.lastName:
@@ -49,6 +47,8 @@ class OnboardingProvider extends ChangeNotifier {
         return _onboardingData.profileInfo.hasSelectedDateOfBirth;
       case OnboardingStepType.gender:
         return _onboardingData.profileInfo.gender.trim().isNotEmpty;
+      case OnboardingStepType.profilePhoto:
+        return true;
       case OnboardingStepType.country:
         return _onboardingData.address.country.trim().isNotEmpty;
       case OnboardingStepType.city:
@@ -142,8 +142,6 @@ class OnboardingProvider extends ChangeNotifier {
 
   String? validateCurrentStep() {
     switch (currentStep.type) {
-      case OnboardingStepType.completion:
-        return null;
       case OnboardingStepType.firstName:
         return OnboardingValidators.requiredText(
           _onboardingData.profileInfo.firstName,
@@ -167,6 +165,8 @@ class OnboardingProvider extends ChangeNotifier {
           _onboardingData.profileInfo.gender,
           fieldLabel: 'gender option',
         );
+      case OnboardingStepType.profilePhoto:
+        return null;
       case OnboardingStepType.country:
         return OnboardingValidators.requiredText(
           _onboardingData.address.country,
@@ -238,6 +238,14 @@ class OnboardingProvider extends ChangeNotifier {
     ),
   );
 
+  Future<void> updateProfilePhoto(String value) => _updateData(
+    _onboardingData.copyWith(
+      profileInfo: _onboardingData.profileInfo.copyWith(
+        profilePhotoDataUrl: value.trim(),
+      ),
+    ),
+  );
+
   Future<void> updateCountry(String value) => _updateData(
     _onboardingData.copyWith(
       address: _onboardingData.address.copyWith(
@@ -294,6 +302,10 @@ class OnboardingProvider extends ChangeNotifier {
         return '${dob.day.toString().padLeft(2, '0')}/${dob.month.toString().padLeft(2, '0')}/${dob.year}';
       case OnboardingStepType.gender:
         return _onboardingData.profileInfo.gender;
+      case OnboardingStepType.profilePhoto:
+        return _onboardingData.profileInfo.profilePhotoDataUrl.isNotEmpty
+            ? 'Selected'
+            : 'Pending';
       case OnboardingStepType.country:
         return _onboardingData.address.country;
       case OnboardingStepType.city:
@@ -304,8 +316,6 @@ class OnboardingProvider extends ChangeNotifier {
         return _onboardingData.preferences.acceptPrivacyPolicy
             ? 'Accepted'
             : 'Pending';
-      case OnboardingStepType.completion:
-        return '';
     }
   }
 
@@ -330,9 +340,18 @@ class OnboardingProvider extends ChangeNotifier {
   }
 
   int _normalizeSavedStep(int savedStep, int flowVersion) {
-    final migratedStep = flowVersion < OnboardingStorage.currentFlowVersion
-        ? savedStep - 1
-        : savedStep;
+    var migratedStep = savedStep;
+    if (flowVersion < 2) {
+      migratedStep -= 1;
+    }
+    if (flowVersion < 3) {
+      final profilePhotoStepIndex = steps.indexWhere(
+        (step) => step.type == OnboardingStepType.profilePhoto,
+      );
+      if (migratedStep >= profilePhotoStepIndex) {
+        migratedStep = profilePhotoStepIndex;
+      }
+    }
     return migratedStep.clamp(0, steps.length - 1);
   }
 }

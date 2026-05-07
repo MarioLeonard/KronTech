@@ -9,6 +9,7 @@ class UserModel {
   final String email;
   final DateTime dateOfBirth;
   final String gender;
+  final String profilePhotoDataUrl;
   final String country;
   final String city;
   final String street;
@@ -26,6 +27,7 @@ class UserModel {
     required this.email,
     required this.dateOfBirth,
     required this.gender,
+    required this.profilePhotoDataUrl,
     required this.country,
     required this.city,
     required this.street,
@@ -46,6 +48,7 @@ class UserModel {
       email: data.profileInfo.email,
       dateOfBirth: data.profileInfo.dateOfBirth,
       gender: data.profileInfo.gender,
+      profilePhotoDataUrl: data.profileInfo.profilePhotoDataUrl,
       country: data.address.country,
       city: data.address.city,
       street: data.address.street,
@@ -83,6 +86,7 @@ class UserModel {
       'email': email,
       'dateOfBirth': dateOfBirth.toIso8601String(),
       'gender': gender,
+      'profilePhotoDataUrl': profilePhotoDataUrl,
       'country': country,
       'city': city,
       'street': street,
@@ -106,6 +110,7 @@ class UserModel {
         map['dateOfBirth'] ?? DateTime.now().toIso8601String(),
       ),
       gender: map['gender'] ?? '',
+      profilePhotoDataUrl: map['profilePhotoDataUrl'] ?? '',
       country: map['country'] ?? '',
       city: map['city'] ?? '',
       street: map['street'] ?? '',
@@ -128,6 +133,7 @@ class UserModel {
     String? email,
     DateTime? dateOfBirth,
     String? gender,
+    String? profilePhotoDataUrl,
     String? country,
     String? city,
     String? street,
@@ -145,6 +151,7 @@ class UserModel {
       email: email ?? this.email,
       dateOfBirth: dateOfBirth ?? this.dateOfBirth,
       gender: gender ?? this.gender,
+      profilePhotoDataUrl: profilePhotoDataUrl ?? this.profilePhotoDataUrl,
       country: country ?? this.country,
       city: city ?? this.city,
       street: street ?? this.street,

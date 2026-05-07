@@ -53,6 +53,7 @@ void main() {
         expect(request.headers['Authorization'], 'Bearer firebase-token');
         expect(request.headers['Content-Type'], contains('application/json'));
         expect(request.body, contains('"firstName":"Test"'));
+        expect(request.body, contains('"profilePhotoDataUrl":"data:image/'));
 
         return http.Response('''
           {
@@ -75,6 +76,7 @@ void main() {
         email: 'test@example.com',
         dateOfBirth: DateTime(2000),
         gender: 'Other',
+        profilePhotoDataUrl: 'data:image/png;base64,avatar',
         country: 'Romania',
         city: 'Bucharest',
         street: 'Main Street 1',

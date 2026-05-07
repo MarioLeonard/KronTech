@@ -9,6 +9,7 @@ class ProfileInfoData {
   final DateTime dateOfBirth;
   final bool hasSelectedDateOfBirth;
   final String gender; // male, female, other
+  final String profilePhotoDataUrl;
 
   ProfileInfoData({
     required this.firstName,
@@ -17,6 +18,7 @@ class ProfileInfoData {
     required this.dateOfBirth,
     required this.hasSelectedDateOfBirth,
     required this.gender,
+    required this.profilePhotoDataUrl,
   });
 
   /// Convert to Map for storage
@@ -28,6 +30,7 @@ class ProfileInfoData {
       'dateOfBirth': dateOfBirth.toIso8601String(),
       'hasSelectedDateOfBirth': hasSelectedDateOfBirth,
       'gender': gender,
+      'profilePhotoDataUrl': profilePhotoDataUrl,
     };
   }
 
@@ -42,6 +45,7 @@ class ProfileInfoData {
       ),
       hasSelectedDateOfBirth: map['hasSelectedDateOfBirth'] ?? false,
       gender: map['gender'] ?? '',
+      profilePhotoDataUrl: map['profilePhotoDataUrl'] ?? '',
     );
   }
 
@@ -54,6 +58,7 @@ class ProfileInfoData {
       dateOfBirth: defaultDateOfBirth,
       hasSelectedDateOfBirth: false,
       gender: '',
+      profilePhotoDataUrl: '',
     );
   }
 
@@ -65,6 +70,7 @@ class ProfileInfoData {
     DateTime? dateOfBirth,
     bool? hasSelectedDateOfBirth,
     String? gender,
+    String? profilePhotoDataUrl,
   }) {
     return ProfileInfoData(
       firstName: firstName ?? this.firstName,
@@ -74,6 +80,7 @@ class ProfileInfoData {
       hasSelectedDateOfBirth:
           hasSelectedDateOfBirth ?? this.hasSelectedDateOfBirth,
       gender: gender ?? this.gender,
+      profilePhotoDataUrl: profilePhotoDataUrl ?? this.profilePhotoDataUrl,
     );
   }
 

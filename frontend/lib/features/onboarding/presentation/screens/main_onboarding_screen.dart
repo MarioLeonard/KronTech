@@ -6,13 +6,13 @@ import '../../domain/onboarding_step_definition.dart';
 import '../controllers/onboarding_provider.dart';
 import '../widgets/animated_input_field.dart';
 import '../widgets/city_location_field.dart';
-import '../widgets/completion_summary.dart';
 import '../widgets/country_location_field.dart';
 import '../widgets/date_picker_card.dart';
 import '../widgets/onboarding_navigation_bar.dart';
 import '../widgets/onboarding_progress_header.dart';
 import '../widgets/onboarding_shell.dart';
 import '../widgets/privacy_card.dart';
+import '../widgets/profile_photo_picker_card.dart';
 import '../widgets/selection_cards.dart';
 
 class MainOnboardingScreen extends StatelessWidget {
@@ -60,7 +60,7 @@ class MainOnboardingScreen extends StatelessWidget {
             isBusy: provider.isCompleting,
             onSecondaryPressed: null,
             onPrimaryPressed: () async {
-              if (step.type == OnboardingStepType.completion) {
+              if (provider.isLastStep) {
                 if (authUser == null) {
                   return;
                 }
@@ -70,9 +70,6 @@ class MainOnboardingScreen extends StatelessWidget {
                 );
                 if (context.mounted && profile != null) {
                   authProvider.updateProfile(profile);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Profile saved successfully.')),
-                  );
                 }
                 return;
               }
@@ -208,6 +205,16 @@ class _StepBody extends StatelessWidget {
           errorText: error,
           onSelected: (value) => provider.updateGender(value),
         );
+      case OnboardingStepType.profilePhoto:
+        return ProfilePhotoPickerCard(
+          value: provider.onboardingData.profileInfo.profilePhotoDataUrl,
+          fallbackPhotoUrl: context
+              .read<AuthProvider>()
+              .user
+              ?.effectivePhotoUrl,
+          errorText: error,
+          onChanged: (value) => provider.updateProfilePhoto(value),
+        );
       case OnboardingStepType.country:
         return CountryLocationField(
           value: provider.onboardingData.address.country,
@@ -243,8 +250,6 @@ class _StepBody extends StatelessWidget {
           errorText: error,
           onChanged: (value) => provider.setPrivacyAccepted(value),
         );
-      case OnboardingStepType.completion:
-        return CompletionSummary(provider: provider);
     }
   }
 }

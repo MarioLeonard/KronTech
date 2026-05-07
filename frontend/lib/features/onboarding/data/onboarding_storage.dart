@@ -9,7 +9,7 @@ class OnboardingStorage {
   static const String completedUserKey = 'onboarding_completed_user';
   static const String currentStepKey = 'onboarding_current_step';
   static const String flowVersionKey = 'onboarding_flow_version';
-  static const int currentFlowVersion = 2;
+  static const int currentFlowVersion = 3;
 
   Future<OnboardingData?> loadDraft() async {
     final box = HiveService.getOnboardingBox();

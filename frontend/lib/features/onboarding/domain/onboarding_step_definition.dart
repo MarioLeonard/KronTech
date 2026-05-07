@@ -6,11 +6,11 @@ enum OnboardingStepType {
   email,
   dateOfBirth,
   gender,
+  profilePhoto,
   country,
   city,
   street,
   privacy,
-  completion,
 }
 
 class OnboardingStepDefinition {
@@ -71,6 +71,14 @@ class OnboardingStepDefinition {
       secondaryLabel: 'Back',
     ),
     OnboardingStepDefinition(
+      type: OnboardingStepType.profilePhoto,
+      title: 'Choose a profile photo',
+      subtitle: 'Select a clear photo to personalize your account.',
+      icon: Icons.add_a_photo_outlined,
+      primaryLabel: 'Continue',
+      secondaryLabel: 'Back',
+    ),
+    OnboardingStepDefinition(
       type: OnboardingStepType.country,
       title: 'Which country are you in?',
       subtitle: 'We use location details to make the experience more relevant.',
@@ -101,14 +109,6 @@ class OnboardingStepDefinition {
       subtitle: 'Please review and accept the privacy and terms confirmation.',
       icon: Icons.verified_user_outlined,
       primaryLabel: 'Finish',
-      secondaryLabel: 'Back',
-    ),
-    OnboardingStepDefinition(
-      type: OnboardingStepType.completion,
-      title: 'Your profile is ready',
-      subtitle: 'We will persist the final version locally for verification.',
-      icon: Icons.check_circle_outline_rounded,
-      primaryLabel: 'Finish onboarding',
       secondaryLabel: 'Back',
     ),
   ];

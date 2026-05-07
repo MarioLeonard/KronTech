@@ -183,6 +183,7 @@ class OAuthAuthService implements AuthService {
       idToken: idToken,
       email: profile.email ?? user.email,
       displayName: profile.displayName ?? user.displayName,
+      photoUrl: user.photoURL,
       profile: profile,
       provider: provider,
     );
