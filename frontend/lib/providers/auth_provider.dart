@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:frontend/models/auth_exception.dart';
 import 'package:frontend/models/auth_user.dart';
+import 'package:frontend/models/user_profile.dart';
 import 'package:frontend/services/auth_service.dart';
 
 enum AuthStatus { idle, loading, authenticated, error }
@@ -123,6 +124,22 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> signOut() async {
     await _authService.signOut();
+  }
+
+  void updateProfile(UserProfile profile) {
+    final currentUser = _user;
+    if (currentUser == null) {
+      return;
+    }
+
+    _user = currentUser.copyWith(
+      email: profile.email ?? currentUser.email,
+      displayName: profile.displayName ?? currentUser.displayName,
+      profile: profile,
+    );
+    _status = AuthStatus.authenticated;
+    _errorMessage = null;
+    notifyListeners();
   }
 
   @override

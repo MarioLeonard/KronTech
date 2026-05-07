@@ -2,15 +2,21 @@ import 'package:flutter/material.dart';
 
 import '../../../../models/onboarding_data.dart';
 import '../../../../models/user_model.dart';
+import '../../../../models/user_profile.dart';
+import '../../../../services/backend_api_service.dart';
 import '../../data/onboarding_storage.dart';
 import '../../domain/onboarding_step_definition.dart';
 import '../../domain/onboarding_validators.dart';
 
 class OnboardingProvider extends ChangeNotifier {
-  OnboardingProvider({OnboardingStorage? storage})
-    : _storage = storage ?? OnboardingStorage();
+  OnboardingProvider({
+    OnboardingStorage? storage,
+    BackendApiService? backendApiService,
+  }) : _storage = storage ?? OnboardingStorage(),
+       _backendApiService = backendApiService ?? BackendApiService();
 
   final OnboardingStorage _storage;
+  final BackendApiService _backendApiService;
   final List<OnboardingStepDefinition> steps = OnboardingStepDefinition.all;
 
   OnboardingData _onboardingData = OnboardingData.empty();
@@ -100,7 +106,7 @@ class OnboardingProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<UserModel?> complete() async {
+  Future<UserProfile?> complete({required String idToken}) async {
     final validation = validateCurrentStep();
     if (validation != null) {
       _inlineError = validation;
@@ -115,14 +121,18 @@ class OnboardingProvider extends ChangeNotifier {
     try {
       await _persist();
       final user = UserModel.fromOnboardingData(_onboardingData);
+      final profile = await _backendApiService.completeOnboarding(
+        idToken: idToken,
+        user: user,
+      );
       await _storage.saveCompletedUser(user);
       debugPrint('Hive onboarding payload:\n${_storage.prettyPrintAll()}');
 
-      return user;
+      return profile;
     } catch (error) {
       debugPrint('Failed to finalize onboarding: $error');
       _inlineError =
-          'Something went wrong while finalizing your profile. Please try again.';
+          'Something went wrong while saving your profile. Please try again.';
       return null;
     } finally {
       _isCompleting = false;
@@ -203,6 +213,15 @@ class OnboardingProvider extends ChangeNotifier {
       ),
     ),
   );
+
+  Future<void> prefillEmail(String? value) async {
+    final email = value?.trim().toLowerCase() ?? '';
+    if (email.isEmpty || _onboardingData.profileInfo.email.isNotEmpty) {
+      return;
+    }
+
+    await updateEmail(email);
+  }
 
   Future<void> updateDateOfBirth(DateTime value) => _updateData(
     _onboardingData.copyWith(

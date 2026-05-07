@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/providers/auth_provider.dart';
 import 'package:provider/provider.dart';
 
 import '../../domain/onboarding_step_definition.dart';
@@ -21,10 +22,24 @@ class MainOnboardingScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<OnboardingProvider>(
       builder: (context, provider, _) {
+        final authProvider = context.read<AuthProvider>();
+        final authUser = authProvider.user;
+
         if (provider.isLoading) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
+        }
+
+        final authEmail = authUser?.email?.trim();
+        if (provider.onboardingData.profileInfo.email.isEmpty &&
+            authEmail != null &&
+            authEmail.isNotEmpty) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (context.mounted) {
+              provider.prefillEmail(authEmail);
+            }
+          });
         }
 
         final step = provider.currentStep;
@@ -46,14 +61,17 @@ class MainOnboardingScreen extends StatelessWidget {
             onSecondaryPressed: null,
             onPrimaryPressed: () async {
               if (step.type == OnboardingStepType.completion) {
-                final user = await provider.complete();
-                if (context.mounted && user != null) {
+                if (authUser == null) {
+                  return;
+                }
+
+                final profile = await provider.complete(
+                  idToken: authUser.idToken,
+                );
+                if (context.mounted && profile != null) {
+                  authProvider.updateProfile(profile);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'Saved locally for ${user.fullName}. Check the console for the full Hive payload.',
-                      ),
-                    ),
+                    SnackBar(content: Text('Profile saved successfully.')),
                   );
                 }
                 return;

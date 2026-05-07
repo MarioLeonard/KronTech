@@ -5,6 +5,7 @@ import 'package:frontend/features/onboarding/presentation/screens/main_onboardin
 import 'package:frontend/firebase_options.dart';
 import 'package:frontend/providers/auth_provider.dart';
 import 'package:frontend/screens/home_screen.dart';
+import 'package:frontend/screens/login_screen.dart';
 import 'package:frontend/services/oauth_auth_service.dart';
 import 'package:frontend/theme/app_theme.dart';
 import 'package:frontend/utils/hive_service.dart';
@@ -87,11 +88,16 @@ class _AuthEntryPointState extends State<AuthEntryPoint> {
       builder: (context, authProvider, child) {
         _showAuthErrorIfNeeded(authProvider.errorMessage);
 
-        if (authProvider.isAuthenticated && authProvider.user != null) {
-          return HomeScreen(user: authProvider.user!);
+        final user = authProvider.user;
+        if (authProvider.isAuthenticated && user != null) {
+          if (user.hasCompletedOnboarding) {
+            return HomeScreen(user: user);
+          }
+
+          return const MainOnboardingScreen();
         }
 
-        return const MainOnboardingScreen();
+        return const LoginScreen();
       },
     );
   }
