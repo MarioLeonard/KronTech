@@ -70,6 +70,46 @@ class UserProfile:
         """Get profile last update timestamp."""
         return self.data.get("updated_at")
 
+    @property
+    def first_name(self) -> Optional[str]:
+        """Get user first name."""
+        return self.data.get("firstName")
+
+    @property
+    def last_name(self) -> Optional[str]:
+        """Get user last name."""
+        return self.data.get("lastName")
+
+    @property
+    def date_of_birth(self) -> Optional[str]:
+        """Get user date of birth."""
+        return self.data.get("dateOfBirth")
+
+    @property
+    def gender(self) -> Optional[str]:
+        """Get user gender."""
+        return self.data.get("gender")
+
+    @property
+    def country(self) -> Optional[str]:
+        """Get user country."""
+        return self.data.get("country")
+
+    @property
+    def city(self) -> Optional[str]:
+        """Get user city."""
+        return self.data.get("city")
+
+    @property
+    def street(self) -> Optional[str]:
+        """Get user street address."""
+        return self.data.get("street")
+
+    @property
+    def profile_photo_url(self) -> Optional[str]:
+        """Get user profile photo URL from Storage."""
+        return self.data.get("profilePhotoUrl")
+
     @classmethod
     def from_firebase_user(cls, uid: str, auth_user: dict):
         """

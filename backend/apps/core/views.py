@@ -70,68 +70,199 @@ def signup(request):
 
 
 @firebase_required
-def profile(request):
+def get_profile(request):
     """
-    Protected endpoint that returns authenticated user profile from Firestore.
+    GET /api/profile/ - Retrieve authenticated user profile from Firestore.
 
     Requires Firebase ID token in Authorization header.
 
     Header format:
         Authorization: Bearer <firebase-id-token>
 
-    Methods:
-        GET: Retrieve user profile
-        PUT/PATCH: Update user profile
-
     Returns:
         JSON with user profile information from Firestore
+        Status: 200 on success, 500 on error
     """
-    auth_user = request.auth_user
+    if request.method != "GET":
+        return JsonResponse(
+            {"error": "Method not allowed. Use GET."},
+            status=405,
+        )
 
-    if request.method == "GET":
-        try:
-            # Get or create profile from Firestore
-            user_profile = ProfileService.get_or_create_profile(auth_user)
+    try:
+        auth_user = request.auth_user
+        uid = auth_user.get("uid")
 
-            return JsonResponse(
-                {
-                    "message": "Successfully retrieved profile!",
-                    "profile": user_profile.to_dict(),
-                }
-            )
-        except Exception as e:
-            return JsonResponse(
-                {"error": f"Failed to retrieve profile: {str(e)}"},
-                status=500,
-            )
+        # Get or create profile from Firestore
+        user_profile = ProfileService.get_or_create_profile(auth_user)
 
-    elif request.method in ["POST", "PUT", "PATCH"]:
+        return JsonResponse(
+            {
+                "message": "Successfully retrieved profile!",
+                "profile": user_profile.to_dict(),
+            },
+            status=200,
+        )
+    except Exception as e:
+        return JsonResponse(
+            {"error": f"Failed to retrieve profile: {str(e)}"},
+            status=500,
+        )
+
+
+@firebase_required
+def update_profile(request):
+    """
+    PATCH /api/profile/ - Update authenticated user profile fields.
+
+    Requires Firebase ID token in Authorization header.
+    UID validation: UID is always extracted from the token, NOT from request body.
+
+    Allowed fields to update:
+    - firstName
+    - lastName
+    - dateOfBirth
+    - gender
+    - country
+    - city
+    - street
+
+    Non-whitelisted fields are silently ignored.
+
+    Header format:
+        Authorization: Bearer <firebase-id-token>
+
+    Request body:
+        {
+            "firstName": "John",
+            "lastName": "Doe",
+            "dateOfBirth": "1990-01-01",
+            "gender": "M",
+            "country": "Romania",
+            "city": "Bucharest",
+            "street": "Main St 123"
+        }
+
+    Returns:
+        JSON with updated user profile
+        Status: 200 on success, 400 on invalid JSON, 500 on error
+    """
+    if request.method != "PATCH":
+        return JsonResponse(
+            {"error": "Method not allowed. Use PATCH."},
+            status=405,
+        )
+
+    try:
+        # Extract UID from token (not from body) 
+        auth_user = request.auth_user
+        uid = auth_user.get("uid")
+
+        # Parse request body
         try:
             body = json.loads(request.body)
-            uid = auth_user.get("uid")
-
-            # Update profile in Firestore
-            user_profile = ProfileService.update_profile(uid, body)
-
-            return JsonResponse(
-                {
-                    "message": "Profile updated successfully!",
-                    "profile": user_profile.to_dict(),
-                }
-            )
         except json.JSONDecodeError:
             return JsonResponse(
                 {"error": "Invalid JSON in request body"},
                 status=400,
             )
-        except Exception as e:
+
+        # Update profile with field validation (only whitelisted fields)
+        user_profile = ProfileService.update_profile(uid, body)
+
+        return JsonResponse(
+            {
+                "message": "Profile updated successfully!",
+                "profile": user_profile.to_dict(),
+            },
+            status=200,
+        )
+    except Exception as e:
+        return JsonResponse(
+            {"error": f"Failed to update profile: {str(e)}"},
+            status=500,
+        )
+
+
+@firebase_required
+def upload_profile_photo(request):
+    """
+    POST /api/profile/photo/ - Upload profile photo to Firebase Storage.
+
+    Requires Firebase ID token in Authorization header.
+    UID validation: UID is always extracted from the token, NOT from request body.
+
+    Allowed file types: JPEG, PNG, WebP, GIF
+    Max file size: 5MB
+
+    Photo is stored at: gs://krontech-7fbdb.appspot.com/users/{uid}/profile/...
+    Only the URL is saved in Firestore.
+
+    Header format:
+        Authorization: Bearer <firebase-id-token>
+
+    Request:
+        Multipart form data with file in 'photo' field
+
+    Returns:
+        JSON with updated user profile including new photo URL
+        Status: 201 on success, 400 on validation error, 500 on error
+    """
+    if request.method != "POST":
+        return JsonResponse(
+            {"error": "Method not allowed. Use POST."},
+            status=405,
+        )
+
+    try:
+        # Extract UID from token (not from body)
+        auth_user = request.auth_user
+        uid = auth_user.get("uid")
+
+        # Get uploaded file
+        if "photo" not in request.FILES:
             return JsonResponse(
-                {"error": f"Failed to update profile: {str(e)}"},
-                status=500,
+                {"error": "No file provided. Use 'photo' field in multipart form data."},
+                status=400,
             )
 
-    else:
+        uploaded_file = request.FILES["photo"]
+
+        # Validate file
+        if uploaded_file.size == 0:
+            return JsonResponse(
+                {"error": "File is empty"},
+                status=400,
+            )
+
+        # Read file content
+        file_content = uploaded_file.read()
+        content_type = uploaded_file.content_type or "application/octet-stream"
+
+        # Upload photo and update profile
+        user_profile = ProfileService.upload_profile_photo(
+            uid=uid,
+            file_content=file_content,
+            filename=uploaded_file.name,
+            content_type=content_type,
+        )
+
         return JsonResponse(
-            {"error": "Method not allowed"},
-            status=405,
+            {
+                "message": "Profile photo uploaded successfully!",
+                "profile": user_profile.to_dict(),
+            },
+            status=201,
+        )
+
+    except ValueError as e:
+        # Validation errors from ProfileService
+        return JsonResponse(
+            {"error": str(e)},
+            status=400,
+        )
+    except Exception as e:
+        return JsonResponse(
+            {"error": f"Failed to upload profile photo: {str(e)}"},
+            status=500,
         )
