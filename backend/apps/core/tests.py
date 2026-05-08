@@ -616,3 +616,509 @@ class FirestoreDatabaseTests(TestCase):
         service = FirestoreService()
         
         self.assertIsNotNone(service)
+
+
+# ============================================================================
+# TRIP ENDPOINT TESTS
+# ============================================================================
+
+
+class TripCreationSecurityTest(TestCase):
+    """Tests for security and authorization of trip creation endpoint."""
+
+    def setUp(self):
+        """Set up test fixtures."""
+        self.factory = RequestFactory()
+        self.uid_alice = "uid_alice_trips"
+        self.uid_bob = "uid_bob_trips"
+        
+        self.auth_user_alice: AuthenticatedUser = {
+            "uid": self.uid_alice,
+            "email": "alice@trips.example.com",
+            "email_verified": True,
+            "display_name": "Alice",
+            "photo_url": None,
+        }
+        
+        self.auth_user_bob: AuthenticatedUser = {
+            "uid": self.uid_bob,
+            "email": "bob@trips.example.com",
+            "email_verified": True,
+            "display_name": "Bob",
+            "photo_url": None,
+        }
+
+    @patch("common.authentication.firebase_auth.verify_token")
+    @patch("common.services.trip_service.TripService.create_trip")
+    def test_create_trip_requires_auth(self, mock_create, mock_verify):
+        """Test that create_trip requires Firebase authentication."""
+        from apps.core.views import create_trip
+        
+        mock_verify.return_value = self.auth_user_alice
+        
+        mock_trip = Mock()
+        mock_trip.to_dict.return_value = {
+            "id": "trip123",
+            "ownerUid": self.uid_alice,
+            "status": "planned",
+        }
+        mock_create.return_value = mock_trip
+
+        request_body = json.dumps({
+            "startLocation": {"latitude": 44.4268, "longitude": 26.1025, "address": "Bucharest"},
+            "destination": {"latitude": 45.9432, "longitude": 24.9668, "address": "Brașov"},
+            "dateTime": "2026-05-15T10:30:00Z",
+            "status": "planned",
+        })
+
+        request = self.factory.post(
+            "/api/trips/",
+            data=request_body,
+            content_type="application/json",
+            HTTP_AUTHORIZATION="Bearer fake-token",
+        )
+        request.auth_user = self.auth_user_alice
+
+        response = create_trip(request)
+
+        self.assertEqual(response.status_code, 201)
+
+    @patch("common.authentication.firebase_auth.verify_token")
+    @patch("common.services.trip_service.TripService.create_trip")
+    def test_create_trip_uses_uid_from_token(self, mock_create, mock_verify):
+        """Test that create_trip uses UID from token, not from request body."""
+        from apps.core.views import create_trip
+        
+        mock_verify.return_value = self.auth_user_alice
+        
+        mock_trip = Mock()
+        mock_trip.to_dict.return_value = {
+            "id": "trip123",
+            "ownerUid": self.uid_alice,
+            "status": "planned",
+        }
+        mock_create.return_value = mock_trip
+
+        request_body = json.dumps({
+            "startLocation": {"latitude": 44.4268, "longitude": 26.1025, "address": "Bucharest"},
+            "destination": {"latitude": 45.9432, "longitude": 24.9668, "address": "Brașov"},
+            "dateTime": "2026-05-15T10:30:00Z",
+            "ownerUid": self.uid_bob,  # Try to spoof another user
+        })
+
+        request = self.factory.post(
+            "/api/trips/",
+            data=request_body,
+            content_type="application/json",
+            HTTP_AUTHORIZATION="Bearer fake-token",
+        )
+        request.auth_user = self.auth_user_alice
+
+        response = create_trip(request)
+
+        # Verify the UID used was from the token, not the request body
+        call_args = mock_create.call_args[1]
+        self.assertEqual(call_args["owner_uid"], self.uid_alice)
+        self.assertNotEqual(call_args["owner_uid"], self.uid_bob)
+
+
+class TripCRUDOperationsTest(TestCase):
+    """Tests for trip CRUD operations."""
+
+    def setUp(self):
+        """Set up test fixtures."""
+        self.factory = RequestFactory()
+        self.uid_alice = "uid_alice_crud"
+        
+        self.auth_user_alice: AuthenticatedUser = {
+            "uid": self.uid_alice,
+            "email": "alice@crud.example.com",
+            "email_verified": True,
+            "display_name": "Alice",
+            "photo_url": None,
+        }
+
+    @patch("common.authentication.firebase_auth.verify_token")
+    @patch("common.services.trip_service.TripService.get_user_trips")
+    def test_list_trips_returns_user_trips(self, mock_list, mock_verify):
+        """Test that list_trips returns all user's trips."""
+        from apps.core.views import list_trips
+        
+        mock_verify.return_value = self.auth_user_alice
+        
+        mock_trip1 = Mock()
+        mock_trip1.to_dict.return_value = {"id": "trip1", "ownerUid": self.uid_alice}
+        mock_trip2 = Mock()
+        mock_trip2.to_dict.return_value = {"id": "trip2", "ownerUid": self.uid_alice}
+        mock_list.return_value = [mock_trip1, mock_trip2]
+
+        request = self.factory.get(
+            "/api/trips/",
+            HTTP_AUTHORIZATION="Bearer fake-token",
+        )
+        request.auth_user = self.auth_user_alice
+
+        response = list_trips(request)
+        response_data = json.loads(response.content)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response_data["trips"]), 2)
+        mock_list.assert_called_once_with(self.uid_alice)
+
+    @patch("common.authentication.firebase_auth.verify_token")
+    @patch("common.services.trip_service.TripService.get_trip")
+    def test_get_trip_with_ownership_check(self, mock_get, mock_verify):
+        """Test that get_trip checks ownership."""
+        from apps.core.views import get_trip
+        
+        mock_verify.return_value = self.auth_user_alice
+        
+        mock_trip = Mock()
+        mock_trip.to_dict.return_value = {
+            "id": "trip123",
+            "ownerUid": self.uid_alice,
+            "status": "planned",
+        }
+        mock_get.return_value = mock_trip
+
+        request = self.factory.get(
+            "/api/trips/trip123/",
+            HTTP_AUTHORIZATION="Bearer fake-token",
+        )
+        request.auth_user = self.auth_user_alice
+
+        response = get_trip(request, "trip123")
+
+        self.assertEqual(response.status_code, 200)
+        mock_get.assert_called_once_with("trip123", self.uid_alice)
+
+    @patch("common.authentication.firebase_auth.verify_token")
+    @patch("common.services.trip_service.TripService.get_trip")
+    def test_get_trip_permission_denied(self, mock_get, mock_verify):
+        """Test that get_trip denies access to other users' trips."""
+        from apps.core.views import get_trip
+        
+        mock_verify.return_value = self.auth_user_alice
+        mock_get.side_effect = PermissionError("Not the owner of this trip")
+
+        request = self.factory.get(
+            "/api/trips/trip123/",
+            HTTP_AUTHORIZATION="Bearer fake-token",
+        )
+        request.auth_user = self.auth_user_alice
+
+        response = get_trip(request, "trip123")
+
+        self.assertEqual(response.status_code, 403)
+
+    @patch("common.authentication.firebase_auth.verify_token")
+    @patch("common.services.trip_service.TripService.update_trip")
+    def test_update_trip_with_validation(self, mock_update, mock_verify):
+        """Test that update_trip validates data."""
+        from apps.core.views import update_trip
+        
+        mock_verify.return_value = self.auth_user_alice
+        
+        mock_trip = Mock()
+        mock_trip.to_dict.return_value = {
+            "id": "trip123",
+            "ownerUid": self.uid_alice,
+            "status": "in_progress",
+        }
+        mock_update.return_value = mock_trip
+
+        request_body = json.dumps({
+            "status": "in_progress",
+        })
+
+        request = self.factory.patch(
+            "/api/trips/trip123/",
+            data=request_body,
+            content_type="application/json",
+            HTTP_AUTHORIZATION="Bearer fake-token",
+        )
+        request.auth_user = self.auth_user_alice
+
+        response = update_trip(request, "trip123")
+
+        self.assertEqual(response.status_code, 200)
+        mock_update.assert_called_once()
+
+    @patch("common.authentication.firebase_auth.verify_token")
+    @patch("common.services.trip_service.TripService.delete_trip")
+    def test_delete_trip_with_ownership_check(self, mock_delete, mock_verify):
+        """Test that delete_trip checks ownership."""
+        from apps.core.views import delete_trip
+        
+        mock_verify.return_value = self.auth_user_alice
+
+        request = self.factory.delete(
+            "/api/trips/trip123/",
+            HTTP_AUTHORIZATION="Bearer fake-token",
+        )
+        request.auth_user = self.auth_user_alice
+
+        response = delete_trip(request, "trip123")
+
+        self.assertEqual(response.status_code, 200)
+        mock_delete.assert_called_once_with("trip123", self.uid_alice)
+
+
+class TripValidationTest(TestCase):
+    """Tests for trip validation in endpoints."""
+
+    def setUp(self):
+        """Set up test fixtures."""
+        self.factory = RequestFactory()
+        self.uid_alice = "uid_alice_validation"
+        
+        self.auth_user_alice: AuthenticatedUser = {
+            "uid": self.uid_alice,
+            "email": "alice@validation.example.com",
+            "email_verified": True,
+            "display_name": "Alice",
+            "photo_url": None,
+        }
+
+    @patch("common.authentication.firebase_auth.verify_token")
+    def test_create_trip_missing_required_fields(self, mock_verify):
+        """Test that create_trip validates required fields."""
+        from apps.core.views import create_trip
+        
+        mock_verify.return_value = self.auth_user_alice
+
+        # Missing destination
+        request_body = json.dumps({
+            "startLocation": {"latitude": 44.4268, "longitude": 26.1025, "address": "Bucharest"},
+            "dateTime": "2026-05-15T10:30:00Z",
+        })
+
+        request = self.factory.post(
+            "/api/trips/",
+            data=request_body,
+            content_type="application/json",
+            HTTP_AUTHORIZATION="Bearer fake-token",
+        )
+        request.auth_user = self.auth_user_alice
+
+        response = create_trip(request)
+
+        self.assertEqual(response.status_code, 400)
+        response_data = json.loads(response.content)
+        self.assertIn("error", response_data)
+
+    @patch("common.authentication.firebase_auth.verify_token")
+    @patch("common.services.trip_service.TripService.create_trip")
+    def test_create_trip_invalid_json(self, mock_create, mock_verify):
+        """Test that create_trip handles invalid JSON."""
+        from apps.core.views import create_trip
+        
+        mock_verify.return_value = self.auth_user_alice
+
+        request = self.factory.post(
+            "/api/trips/",
+            data="invalid json {",
+            content_type="application/json",
+            HTTP_AUTHORIZATION="Bearer fake-token",
+        )
+        request.auth_user = self.auth_user_alice
+
+        response = create_trip(request)
+
+        self.assertEqual(response.status_code, 400)
+        response_data = json.loads(response.content)
+        self.assertIn("error", response_data)
+
+    @patch("common.authentication.firebase_auth.verify_token")
+    @patch("common.services.trip_service.TripService.create_trip")
+    def test_create_trip_invalid_location_validation(self, mock_create, mock_verify):
+        """Test that create_trip handles validation errors from TripService."""
+        from apps.core.views import create_trip
+        
+        mock_verify.return_value = self.auth_user_alice
+        mock_create.side_effect = ValueError("Invalid latitude: must be between -90 and 90")
+
+        request_body = json.dumps({
+            "startLocation": {"latitude": 95.0, "longitude": 26.1025, "address": "Bucharest"},
+            "destination": {"latitude": 45.9432, "longitude": 24.9668, "address": "Brașov"},
+            "dateTime": "2026-05-15T10:30:00Z",
+        })
+
+        request = self.factory.post(
+            "/api/trips/",
+            data=request_body,
+            content_type="application/json",
+            HTTP_AUTHORIZATION="Bearer fake-token",
+        )
+        request.auth_user = self.auth_user_alice
+
+        response = create_trip(request)
+
+        self.assertEqual(response.status_code, 400)
+        response_data = json.loads(response.content)
+        self.assertIn("error", response_data)
+
+
+class TripServiceModelIntegrationTest(TestCase):
+    """Tests for Trip model and service integration."""
+
+    def setUp(self):
+        """Set up test fixtures."""
+        self.uid_alice = "uid_alice_model"
+
+    @patch("apps.core.models.FirestoreService")
+    def test_trip_model_has_required_fields(self, mock_firestore):
+        """Test that Trip model has all required fields."""
+        from apps.core.models import Trip
+        
+        trip_data = {
+            "ownerUid": self.uid_alice,
+            "startLocation": {"latitude": 44.4268, "longitude": 26.1025, "address": "Bucharest"},
+            "destination": {"latitude": 45.9432, "longitude": 24.9668, "address": "Brașov"},
+            "waypoints": [],
+            "dateTime": "2026-05-15T10:30:00Z",
+            "distance": 166.5,
+            "duration": "2h 30m",
+            "status": "planned",
+            "createdAt": "2026-01-01T10:00:00Z",
+            "updatedAt": "2026-01-01T10:00:00Z",
+        }
+        
+        trip = Trip("trip123", trip_data)
+        
+        self.assertEqual(trip.trip_id, "trip123")
+        self.assertEqual(trip.owner_uid, self.uid_alice)
+        self.assertEqual(trip.status, "planned")
+        self.assertIn("startLocation", trip.to_dict())
+
+    def test_trip_service_allowed_fields_constant(self):
+        """Test that TripService has ALLOWED_UPDATE_FIELDS constant."""
+        from common.services.trip_service import TripService
+        
+        expected_fields = {
+            "startLocation",
+            "destination",
+            "waypoints",
+            "dateTime",
+            "distance",
+            "duration",
+            "status",
+        }
+        
+        self.assertEqual(TripService.ALLOWED_UPDATE_FIELDS, expected_fields)
+
+    def test_trip_service_valid_statuses_constant(self):
+        """Test that TripService has VALID_STATUSES constant."""
+        from common.services.trip_service import TripService
+        
+        expected_statuses = {"planned", "in_progress", "completed", "cancelled"}
+        
+        self.assertEqual(TripService.VALID_STATUSES, expected_statuses)
+
+
+class TripHttpMethodValidationTest(TestCase):
+    """Tests for HTTP method validation on trip endpoints."""
+
+    def setUp(self):
+        """Set up test fixtures."""
+        self.factory = RequestFactory()
+        self.uid_alice = "uid_alice_methods"
+        
+        self.auth_user_alice: AuthenticatedUser = {
+            "uid": self.uid_alice,
+            "email": "alice@methods.example.com",
+            "email_verified": True,
+            "display_name": "Alice",
+            "photo_url": None,
+        }
+
+    @patch("common.authentication.firebase_auth.verify_token")
+    def test_create_trip_rejects_get(self, mock_verify):
+        """Test that create_trip endpoint rejects GET requests."""
+        from apps.core.views import create_trip
+        
+        mock_verify.return_value = self.auth_user_alice
+
+        request = self.factory.get(
+            "/api/trips/",
+            HTTP_AUTHORIZATION="Bearer fake-token",
+        )
+        request.auth_user = self.auth_user_alice
+
+        response = create_trip(request)
+
+        self.assertEqual(response.status_code, 405)
+
+    @patch("common.authentication.firebase_auth.verify_token")
+    def test_list_trips_rejects_post(self, mock_verify):
+        """Test that list_trips endpoint rejects POST requests."""
+        from apps.core.views import list_trips
+        
+        mock_verify.return_value = self.auth_user_alice
+
+        request = self.factory.post(
+            "/api/trips/",
+            data="{}",
+            content_type="application/json",
+            HTTP_AUTHORIZATION="Bearer fake-token",
+        )
+        request.auth_user = self.auth_user_alice
+
+        response = list_trips(request)
+
+        self.assertEqual(response.status_code, 405)
+
+    @patch("common.authentication.firebase_auth.verify_token")
+    def test_get_trip_rejects_post(self, mock_verify):
+        """Test that get_trip endpoint rejects POST requests."""
+        from apps.core.views import get_trip
+        
+        mock_verify.return_value = self.auth_user_alice
+
+        request = self.factory.post(
+            "/api/trips/trip123/",
+            data="{}",
+            content_type="application/json",
+            HTTP_AUTHORIZATION="Bearer fake-token",
+        )
+        request.auth_user = self.auth_user_alice
+
+        response = get_trip(request, "trip123")
+
+        self.assertEqual(response.status_code, 405)
+
+    @patch("common.authentication.firebase_auth.verify_token")
+    def test_update_trip_rejects_get(self, mock_verify):
+        """Test that update_trip endpoint rejects GET requests."""
+        from apps.core.views import update_trip
+        
+        mock_verify.return_value = self.auth_user_alice
+
+        request = self.factory.get(
+            "/api/trips/trip123/",
+            HTTP_AUTHORIZATION="Bearer fake-token",
+        )
+        request.auth_user = self.auth_user_alice
+
+        response = update_trip(request, "trip123")
+
+        self.assertEqual(response.status_code, 405)
+
+    @patch("common.authentication.firebase_auth.verify_token")
+    def test_delete_trip_rejects_post(self, mock_verify):
+        """Test that delete_trip endpoint rejects POST requests."""
+        from apps.core.views import delete_trip
+        
+        mock_verify.return_value = self.auth_user_alice
+
+        request = self.factory.post(
+            "/api/trips/trip123/",
+            data="{}",
+            content_type="application/json",
+            HTTP_AUTHORIZATION="Bearer fake-token",
+        )
+        request.auth_user = self.auth_user_alice
+
+        response = delete_trip(request, "trip123")
+
+        self.assertEqual(response.status_code, 405)

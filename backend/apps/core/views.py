@@ -3,6 +3,7 @@ import json
 
 from common.authentication import firebase_required
 from common.services.profile_service import ProfileService
+from common.services.trip_service import TripService
 
 
 def health_check(request):
@@ -264,5 +265,317 @@ def upload_profile_photo(request):
     except Exception as e:
         return JsonResponse(
             {"error": f"Failed to upload profile photo: {str(e)}"},
+            status=500,
+        )
+
+
+# ============================================================================
+# TRIP ENDPOINTS
+# ============================================================================
+
+
+@firebase_required
+def create_trip(request):
+    """
+    POST /api/trips/ - Create a new trip.
+
+    Requires Firebase ID token in Authorization header.
+
+    Request body:
+        {
+            "startLocation": {
+                "latitude": 44.4268,
+                "longitude": 26.1025,
+                "address": "Bucharest, Romania"
+            },
+            "destination": {
+                "latitude": 45.9432,
+                "longitude": 24.9668,
+                "address": "Brașov, Romania"
+            },
+            "dateTime": "2026-05-15T10:30:00Z",
+            "waypoints": [
+                {
+                    "latitude": 45.0,
+                    "longitude": 25.5,
+                    "address": "Some waypoint"
+                }
+            ],
+            "distance": 166.5,
+            "duration": "2h 30m",
+            "status": "planned"
+        }
+
+    Returns:
+        JSON with created trip
+        Status: 201 on success, 400 on validation error, 500 on error
+    """
+    if request.method != "POST":
+        return JsonResponse(
+            {"error": "Method not allowed. Use POST."},
+            status=405,
+        )
+
+    try:
+        auth_user = request.auth_user
+        owner_uid = auth_user.get("uid")
+
+        # Parse request body
+        try:
+            body = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse(
+                {"error": "Invalid JSON in request body"},
+                status=400,
+            )
+
+        # Extract and validate required fields
+        start_location = body.get("startLocation")
+        destination = body.get("destination")
+        date_time = body.get("dateTime")
+
+        if not all([start_location, destination, date_time]):
+            return JsonResponse(
+                {
+                    "error": "Missing required fields: startLocation, destination, dateTime"
+                },
+                status=400,
+            )
+
+        # Create trip
+        trip = TripService.create_trip(
+            owner_uid=owner_uid,
+            start_location=start_location,
+            destination=destination,
+            date_time=date_time,
+            waypoints=body.get("waypoints"),
+            distance=body.get("distance"),
+            duration=body.get("duration"),
+            status=body.get("status", "planned"),
+        )
+
+        return JsonResponse(
+            {
+                "message": "Trip created successfully!",
+                "trip": trip.to_dict(),
+            },
+            status=201,
+        )
+
+    except ValueError as e:
+        return JsonResponse(
+            {"error": str(e)},
+            status=400,
+        )
+    except Exception as e:
+        return JsonResponse(
+            {"error": f"Failed to create trip: {str(e)}"},
+            status=500,
+        )
+
+
+@firebase_required
+def list_trips(request):
+    """
+    GET /api/trips/ - List all trips for authenticated user.
+
+    Requires Firebase ID token in Authorization header.
+
+    Returns:
+        JSON with list of user's trips
+        Status: 200 on success, 500 on error
+    """
+    if request.method != "GET":
+        return JsonResponse(
+            {"error": "Method not allowed. Use GET."},
+            status=405,
+        )
+
+    try:
+        auth_user = request.auth_user
+        owner_uid = auth_user.get("uid")
+
+        # Get all trips for user
+        trips = TripService.get_user_trips(owner_uid)
+
+        return JsonResponse(
+            {
+                "message": "Trips retrieved successfully!",
+                "trips": [trip.to_dict() for trip in trips],
+            },
+            status=200,
+        )
+
+    except Exception as e:
+        return JsonResponse(
+            {"error": f"Failed to retrieve trips: {str(e)}"},
+            status=500,
+        )
+
+
+@firebase_required
+def get_trip(request, trip_id):
+    """
+    GET /api/trips/{id}/ - Get details of a specific trip.
+
+    Requires Firebase ID token in Authorization header.
+    User must own the trip.
+
+    Returns:
+        JSON with trip details
+        Status: 200 on success, 403 on permission denied, 404 on not found, 500 on error
+    """
+    if request.method != "GET":
+        return JsonResponse(
+            {"error": "Method not allowed. Use GET."},
+            status=405,
+        )
+
+    try:
+        auth_user = request.auth_user
+        owner_uid = auth_user.get("uid")
+
+        # Get trip with permission check
+        trip = TripService.get_trip(trip_id, owner_uid)
+
+        if not trip:
+            return JsonResponse(
+                {"error": "Trip not found"},
+                status=404,
+            )
+
+        return JsonResponse(
+            {
+                "message": "Trip retrieved successfully!",
+                "trip": trip.to_dict(),
+            },
+            status=200,
+        )
+
+    except PermissionError as e:
+        return JsonResponse(
+            {"error": str(e)},
+            status=403,
+        )
+    except Exception as e:
+        return JsonResponse(
+            {"error": f"Failed to retrieve trip: {str(e)}"},
+            status=500,
+        )
+
+
+@firebase_required
+def update_trip(request, trip_id):
+    """
+    PATCH /api/trips/{id}/ - Update a trip.
+
+    Requires Firebase ID token in Authorization header.
+    User must own the trip.
+
+    Allowed fields:
+    - startLocation
+    - destination
+    - waypoints
+    - dateTime
+    - distance
+    - duration
+    - status
+
+    Returns:
+        JSON with updated trip
+        Status: 200 on success, 400 on validation error, 403 on permission denied, 404 on not found, 500 on error
+    """
+    if request.method != "PATCH":
+        return JsonResponse(
+            {"error": "Method not allowed. Use PATCH."},
+            status=405,
+        )
+
+    try:
+        auth_user = request.auth_user
+        owner_uid = auth_user.get("uid")
+
+        # Parse request body
+        try:
+            body = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse(
+                {"error": "Invalid JSON in request body"},
+                status=400,
+            )
+
+        # Update trip with permission check
+        trip = TripService.update_trip(trip_id, owner_uid, body)
+
+        return JsonResponse(
+            {
+                "message": "Trip updated successfully!",
+                "trip": trip.to_dict(),
+            },
+            status=200,
+        )
+
+    except PermissionError as e:
+        return JsonResponse(
+            {"error": str(e)},
+            status=403,
+        )
+    except ValueError as e:
+        return JsonResponse(
+            {"error": str(e)},
+            status=400,
+        )
+    except Exception as e:
+        return JsonResponse(
+            {"error": f"Failed to update trip: {str(e)}"},
+            status=500,
+        )
+
+
+@firebase_required
+def delete_trip(request, trip_id):
+    """
+    DELETE /api/trips/{id}/ - Delete a trip.
+
+    Requires Firebase ID token in Authorization header.
+    User must own the trip.
+
+    Returns:
+        JSON confirmation
+        Status: 200 on success, 403 on permission denied, 404 on not found, 500 on error
+    """
+    if request.method != "DELETE":
+        return JsonResponse(
+            {"error": "Method not allowed. Use DELETE."},
+            status=405,
+        )
+
+    try:
+        auth_user = request.auth_user
+        owner_uid = auth_user.get("uid")
+
+        # Delete trip with permission check
+        TripService.delete_trip(trip_id, owner_uid)
+
+        return JsonResponse(
+            {
+                "message": "Trip deleted successfully!",
+            },
+            status=200,
+        )
+
+    except PermissionError as e:
+        return JsonResponse(
+            {"error": str(e)},
+            status=403,
+        )
+    except ValueError as e:
+        return JsonResponse(
+            {"error": str(e)},
+            status=404,
+        )
+    except Exception as e:
+        return JsonResponse(
+            {"error": f"Failed to delete trip: {str(e)}"},
             status=500,
         )
