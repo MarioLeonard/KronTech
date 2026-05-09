@@ -98,42 +98,52 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 430),
-              child: _AuthPanel(
-                authProvider: authProvider,
-                formKey: _formKey,
-                emailController: _emailController,
-                passwordController: _passwordController,
-                confirmPasswordController: _confirmPasswordController,
-                isLoading: isLoading,
-                isCreatingAccount: _isCreatingAccount,
-                hidePassword: _hidePassword,
-                hideConfirmPassword: _hideConfirmPassword,
-                hasValidEmail: _hasValidEmail,
-                hasValidPassword: _hasValidPassword,
-                canSubmitEmailPassword: _canSubmitEmailPassword,
-                onSubmitEmailPassword: () => _submitEmailPassword(authProvider),
-                onTogglePasswordVisibility: () {
-                  setState(() {
-                    _hidePassword = !_hidePassword;
-                  });
-                },
-                onToggleConfirmPasswordVisibility: () {
-                  setState(() {
-                    _hideConfirmPassword = !_hideConfirmPassword;
-                  });
-                },
-                onToggleCreateAccount: _toggleCreateAccount,
-                emailValidator: _validateEmail,
-                passwordValidator: _validatePassword,
-                confirmPasswordValidator: _validateConfirmPassword,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: constraints.maxHeight - 40,
+                ),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 600),
+                    child: _AuthPanel(
+                      authProvider: authProvider,
+                      formKey: _formKey,
+                      emailController: _emailController,
+                      passwordController: _passwordController,
+                      confirmPasswordController: _confirmPasswordController,
+                      isLoading: isLoading,
+                      isCreatingAccount: _isCreatingAccount,
+                      hidePassword: _hidePassword,
+                      hideConfirmPassword: _hideConfirmPassword,
+                      hasValidEmail: _hasValidEmail,
+                      hasValidPassword: _hasValidPassword,
+                      canSubmitEmailPassword: _canSubmitEmailPassword,
+                      onSubmitEmailPassword: () =>
+                          _submitEmailPassword(authProvider),
+                      onTogglePasswordVisibility: () {
+                        setState(() {
+                          _hidePassword = !_hidePassword;
+                        });
+                      },
+                      onToggleConfirmPasswordVisibility: () {
+                        setState(() {
+                          _hideConfirmPassword = !_hideConfirmPassword;
+                        });
+                      },
+                      onToggleCreateAccount: _toggleCreateAccount,
+                      emailValidator: _validateEmail,
+                      passwordValidator: _validatePassword,
+                      confirmPasswordValidator: _validateConfirmPassword,
+                    ),
+                  ),
+                ),
               ),
-            ),
-          ),
+            );
+          },
         ),
       ),
     );
@@ -228,12 +238,17 @@ class _AuthPanel extends StatelessWidget {
     final activeProvider = authProvider.activeProvider;
     final colorScheme = theme.colorScheme;
     final cardColor = theme.cardTheme.color ?? colorScheme.surface;
+    final subtitleColor = colorScheme.onSurfaceVariant;
+    final primaryTextColor = theme.textTheme.bodyLarge?.color ?? Colors.white;
+    final showEmailPasswordAction = isCreatingAccount
+        ? canSubmitEmailPassword
+        : hasValidPassword;
 
     return DecoratedBox(
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: colorScheme.outlineVariant),
+        border: Border.all(color: Colors.white),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.18),
@@ -248,30 +263,20 @@ class _AuthPanel extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const _LogoMark(),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'KronTech',
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        isCreatingAccount
-                            ? 'Create your account'
-                            : 'Welcome back',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
+                Text(
+                  'KronTech',
+                  style: theme.textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  isCreatingAccount ? 'Create your account' : 'Welcome back',
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: subtitleColor,
                   ),
                 ),
               ],
@@ -288,104 +293,102 @@ class _AuthPanel extends StatelessWidget {
                     textInputAction: TextInputAction.next,
                     autofillHints: const [AutofillHints.email],
                     enabled: !isLoading,
+                    style: theme.textTheme.bodyLarge,
+                    cursorColor: primaryTextColor,
                     decoration: _inputDecoration(
-                      label: 'Email',
-                      hint: 'you@example.com',
+                      context: context,
+                      hint: 'Email address',
                       icon: Icons.alternate_email,
+                      hasSuccess: hasValidEmail,
                     ),
                     validator: emailValidator,
                   ),
-                  if (hasValidEmail) ...[
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: passwordController,
-                      textInputAction: isCreatingAccount
-                          ? TextInputAction.next
-                          : TextInputAction.done,
-                      obscureText: hidePassword,
-                      autofillHints: const [AutofillHints.password],
-                      enabled: !isLoading,
-                      onFieldSubmitted: (_) {
-                        if (!isCreatingAccount) {
-                          onSubmitEmailPassword();
-                        }
-                      },
-                      decoration: _inputDecoration(
-                        label: 'Password',
-                        hint: 'Minimum 6 characters',
-                        icon: Icons.lock_outline,
-                        suffixIcon: IconButton(
-                          onPressed: isLoading
-                              ? null
-                              : onTogglePasswordVisibility,
-                          icon: Icon(
-                            hidePassword
-                                ? Icons.visibility_outlined
-                                : Icons.visibility_off_outlined,
-                          ),
-                          tooltip: hidePassword
-                              ? 'Show password'
-                              : 'Hide password',
-                        ),
-                      ),
-                      validator: passwordValidator,
-                    ),
-                  ],
-                  if (isCreatingAccount && hasValidPassword) ...[
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: confirmPasswordController,
-                      textInputAction: TextInputAction.done,
-                      obscureText: hideConfirmPassword,
-                      autofillHints: const [AutofillHints.newPassword],
-                      enabled: !isLoading,
-                      onFieldSubmitted: (_) => onSubmitEmailPassword(),
-                      decoration: _inputDecoration(
-                        label: 'Confirm password',
-                        hint: 'Repeat your password',
-                        icon: Icons.verified_user_outlined,
-                        suffixIcon: IconButton(
-                          onPressed: isLoading
-                              ? null
-                              : onToggleConfirmPasswordVisibility,
-                          icon: Icon(
-                            hideConfirmPassword
-                                ? Icons.visibility_outlined
-                                : Icons.visibility_off_outlined,
-                          ),
-                          tooltip: hideConfirmPassword
-                              ? 'Show password'
-                              : 'Hide password',
-                        ),
-                      ),
-                      validator: confirmPasswordValidator,
-                    ),
-                  ],
-                  if (hasValidPassword) ...[
-                    const SizedBox(height: 16),
-                    if (isCreatingAccount)
-                      Align(
-                        child: TextButton(
-                          onPressed: isLoading || !canSubmitEmailPassword
-                              ? null
-                              : onSubmitEmailPassword,
-                          style: TextButton.styleFrom(
-                            foregroundColor: colorScheme.primary,
-                            minimumSize: Size.zero,
-                            padding: EdgeInsets.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            overlayColor: Colors.transparent,
-                            splashFactory: NoSplash.splashFactory,
-                            textStyle: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
+                  _AnimatedLoginFieldSlot(
+                    visible: hasValidEmail,
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: TextFormField(
+                        controller: passwordController,
+                        textInputAction: isCreatingAccount
+                            ? TextInputAction.next
+                            : TextInputAction.done,
+                        obscureText: hidePassword,
+                        autofillHints: const [AutofillHints.password],
+                        enabled: !isLoading,
+                        style: theme.textTheme.bodyLarge,
+                        cursorColor: primaryTextColor,
+                        onFieldSubmitted: (_) {
+                          if (!isCreatingAccount) {
+                            onSubmitEmailPassword();
+                          }
+                        },
+                        decoration: _inputDecoration(
+                          context: context,
+                          hint: 'Password',
+                          icon: Icons.lock_outline,
+                          suffixIcon: IconButton(
+                            onPressed: isLoading
+                                ? null
+                                : onTogglePasswordVisibility,
+                            icon: Icon(
+                              hidePassword
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined,
+                              color: Colors.white,
                             ),
+                            tooltip: hidePassword
+                                ? 'Show password'
+                                : 'Hide password',
                           ),
-                          child: const Text('Create account'),
+                          hasSuccess: hasValidPassword,
                         ),
-                      )
-                    else
-                      SizedBox(
+                        validator: passwordValidator,
+                      ),
+                    ),
+                  ),
+                  _AnimatedLoginFieldSlot(
+                    visible: isCreatingAccount && hasValidPassword,
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: TextFormField(
+                        controller: confirmPasswordController,
+                        textInputAction: TextInputAction.done,
+                        obscureText: hideConfirmPassword,
+                        autofillHints: const [AutofillHints.newPassword],
+                        enabled: !isLoading,
+                        style: theme.textTheme.bodyLarge,
+                        cursorColor: primaryTextColor,
+                        onFieldSubmitted: (_) => onSubmitEmailPassword(),
+                        decoration: _inputDecoration(
+                          context: context,
+                          hint: 'Confirm password',
+                          icon: Icons.verified_user_outlined,
+                          suffixIcon: IconButton(
+                            onPressed: isLoading
+                                ? null
+                                : onToggleConfirmPasswordVisibility,
+                            icon: Icon(
+                              hideConfirmPassword
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined,
+                              color: Colors.white,
+                            ),
+                            tooltip: hideConfirmPassword
+                                ? 'Show password'
+                                : 'Hide password',
+                          ),
+                          hasSuccess: canSubmitEmailPassword,
+                        ),
+                        validator: confirmPasswordValidator,
+                      ),
+                    ),
+                  ),
+                  _AnimatedLoginFieldSlot(
+                    visible: showEmailPasswordAction,
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 16),
+                      child: SizedBox(
+                        width: double.infinity,
                         height: 52,
                         child: FilledButton.icon(
                           onPressed: isLoading || !canSubmitEmailPassword
@@ -402,8 +405,16 @@ class _AuthPanel extends StatelessWidget {
                                     color: Colors.white,
                                   ),
                                 )
-                              : const Icon(Icons.login),
-                          label: const Text('Sign in with Email'),
+                              : Icon(
+                                  isCreatingAccount
+                                      ? Icons.person_add_alt_1_rounded
+                                      : Icons.login_rounded,
+                                ),
+                          label: Text(
+                            isCreatingAccount
+                                ? 'Create account'
+                                : 'Sign in with Email',
+                          ),
                           style: FilledButton.styleFrom(
                             textStyle: const TextStyle(
                               fontSize: 15,
@@ -415,13 +426,14 @@ class _AuthPanel extends StatelessWidget {
                           ),
                         ),
                       ),
-                  ],
+                    ),
+                  ),
                   const SizedBox(height: 10),
                   Align(
                     child: TextButton(
                       onPressed: isLoading ? null : onToggleCreateAccount,
                       style: TextButton.styleFrom(
-                        foregroundColor: colorScheme.primary,
+                        foregroundColor: Colors.white,
                         minimumSize: Size.zero,
                         padding: EdgeInsets.zero,
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -442,18 +454,22 @@ class _AuthPanel extends StatelessWidget {
             const SizedBox(height: 10),
             Row(
               children: [
-                Expanded(child: Divider(color: colorScheme.outlineVariant)),
+                Expanded(
+                  child: Divider(color: Colors.white.withValues(alpha: 0.5)),
+                ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   child: Text(
                     'or',
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
+                      color: subtitleColor,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),
-                Expanded(child: Divider(color: colorScheme.outlineVariant)),
+                Expanded(
+                  child: Divider(color: Colors.white.withValues(alpha: 0.5)),
+                ),
               ],
             ),
             const SizedBox(height: 14),
@@ -468,7 +484,7 @@ class _AuthPanel extends StatelessWidget {
               isLoading: isLoading && activeProvider == AuthProviderType.google,
               backgroundColor: Colors.white,
               foregroundColor: const Color(0xFF1F2937),
-              borderColor: colorScheme.outlineVariant,
+              borderColor: Colors.white,
             ),
             if (isLoading) ...[
               const SizedBox(height: 18),
@@ -486,40 +502,79 @@ class _AuthPanel extends StatelessWidget {
   }
 
   InputDecoration _inputDecoration({
-    required String label,
+    required BuildContext context,
     required String hint,
     required IconData icon,
     Widget? suffixIcon,
+    bool hasSuccess = false,
   }) {
+    final theme = Theme.of(context);
+    final errorColor = theme.colorScheme.error;
+    const borderRadius = BorderRadius.all(Radius.circular(8));
+
     return InputDecoration(
-      labelText: label,
       hintText: hint,
       prefixIcon: Icon(icon),
-      suffixIcon: suffixIcon,
+      suffixIcon:
+          suffixIcon ??
+          (hasSuccess
+              ? const Icon(Icons.check_circle_rounded, color: Colors.white)
+              : null),
+      filled: true,
+      fillColor: theme.inputDecorationTheme.fillColor,
+      border: const OutlineInputBorder(
+        borderRadius: borderRadius,
+        borderSide: BorderSide(color: Colors.white),
+      ),
+      enabledBorder: const OutlineInputBorder(
+        borderRadius: borderRadius,
+        borderSide: BorderSide(color: Colors.white),
+      ),
+      focusedBorder: const OutlineInputBorder(
+        borderRadius: borderRadius,
+        borderSide: BorderSide(color: Colors.white, width: 2),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: borderRadius,
+        borderSide: BorderSide(color: errorColor, width: 2),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: borderRadius,
+        borderSide: BorderSide(color: errorColor, width: 2),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     );
   }
 }
 
-class _LogoMark extends StatelessWidget {
-  const _LogoMark();
+class _AnimatedLoginFieldSlot extends StatelessWidget {
+  const _AnimatedLoginFieldSlot({required this.visible, required this.child});
+
+  final bool visible;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: colorScheme.secondary,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: SizedBox.square(
-        dimension: 48,
-        child: Icon(
-          Icons.hub_outlined,
-          color: colorScheme.onSecondary,
-          size: 26,
-        ),
-      ),
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 520),
+      switchInCurve: Curves.easeInOutCubic,
+      switchOutCurve: Curves.easeInOutCubic,
+      layoutBuilder: (currentChild, previousChildren) {
+        return currentChild ?? const SizedBox.shrink();
+      },
+      transitionBuilder: (child, animation) {
+        return SizeTransition(
+          axisAlignment: -1,
+          sizeFactor: animation,
+          child: FadeTransition(opacity: animation, child: child),
+        );
+      },
+      child: visible
+          ? KeyedSubtree(
+              key: const ValueKey('visible-login-field'),
+              child: child,
+            )
+          : const SizedBox.shrink(key: ValueKey('hidden-login-field')),
     );
   }
 }

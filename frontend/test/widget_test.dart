@@ -31,10 +31,7 @@ void main() {
     expect(find.text('Password'), findsOneWidget);
     expect(find.text('Sign in with Email'), findsNothing);
 
-    await tester.enterText(
-      find.widgetWithText(TextFormField, 'Password'),
-      '123456',
-    );
+    await tester.enterText(find.byType(TextFormField).at(1), '123456');
     await tester.pump();
 
     expect(find.text('Sign in with Email'), findsOneWidget);
@@ -44,8 +41,18 @@ void main() {
     await tester.pump();
 
     expect(find.text('Confirm password'), findsOneWidget);
-    expect(find.text('Create account'), findsOneWidget);
+    expect(find.text('Create account'), findsNothing);
     expect(find.text('Already have an account? Sign in'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextFormField).at(2), '123457');
+    await tester.pump();
+
+    expect(find.text('Create account'), findsNothing);
+
+    await tester.enterText(find.byType(TextFormField).at(2), '123456');
+    await tester.pumpAndSettle();
+
+    expect(find.text('Create account'), findsOneWidget);
   });
 }
 

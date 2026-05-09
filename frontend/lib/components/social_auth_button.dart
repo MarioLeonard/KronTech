@@ -43,7 +43,7 @@ class SocialAuthButton extends StatelessWidget {
           foregroundColor: foregroundColor,
           textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(8),
             side: borderColor == null
                 ? BorderSide.none
                 : BorderSide(color: borderColor!),

@@ -18,14 +18,18 @@ Google login uses Firebase Auth through FlutterFire:
 Run locally:
 
 ```bash
-flutter run -d chrome
+flutter run -d chrome --wasm
 ```
 
-By default, the frontend calls `http://127.0.0.1:8000`. To use another backend:
+The backend URL is loaded from `.env`:
 
-```bash
-flutter run -d chrome --dart-define=BACKEND_BASE_URL=http://127.0.0.1:8000
+```env
+BACKEND_BASE_URL=http://127.0.0.1:8000
 ```
+
+If Chrome shows a CanvasKit context-loss error after hot restart, stop the run
+session and start it again with `--wasm`. This uses the Skwasm renderer instead
+of CanvasKit for local web development.
 
 Firebase Console requirements:
 

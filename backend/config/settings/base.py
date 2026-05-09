@@ -33,6 +33,10 @@ FIREBASE_CREDENTIALS_PATH = config(
     default=str(BASE_DIR / "firebase-key.json"),
 )
 FIRESTORE_DATABASE_ID = config("FIRESTORE_DATABASE_ID", default="(default)")
+FIREBASE_STORAGE_BUCKET = config(
+    "FIREBASE_STORAGE_BUCKET",
+    default="krontech-7fbdb.firebasestorage.app",
+)
 
 MIDDLEWARE = [
     'common.cors.CorsMiddleware',
