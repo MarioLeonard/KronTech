@@ -8,6 +8,7 @@ from apps.core.views import (
     update_profile,
     upload_profile_photo,
     create_trip,
+    generate_trip,
     list_trips,
     get_trip,
     update_trip,
@@ -24,6 +25,7 @@ urlpatterns = [
     path("profile/", update_profile, name="update-profile"),
     path("profile/photo/", upload_profile_photo, name="upload-profile-photo"),
     # Trip endpoints
+    path("trips/generate/", generate_trip, name="generate-trip"),
     path("trips/", create_trip, name="create-trip"),
     path("trips/", list_trips, name="list-trips"),
     path("trips/<str:trip_id>/", get_trip, name="get-trip"),

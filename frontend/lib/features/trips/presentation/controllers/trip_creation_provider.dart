@@ -1,19 +1,20 @@
 import 'package:flutter/foundation.dart';
-import 'package:frontend/features/trips/data/gemini_trip_service.dart';
+import 'package:frontend/features/trips/data/backend_trip_generation_service.dart';
 import 'package:frontend/features/trips/domain/generated_trip.dart';
 import 'package:frontend/features/trips/domain/trip_creation_request.dart';
 
 enum TripCreationStatus { idle, loading, success, error }
 
 class TripCreationProvider extends ChangeNotifier {
-  TripCreationProvider({GeminiTripService? tripService})
-    : _tripService = tripService ?? GeminiTripService();
+  TripCreationProvider({BackendTripGenerationService? tripService})
+    : _tripService = tripService ?? BackendTripGenerationService();
 
-  final GeminiTripService _tripService;
+  final BackendTripGenerationService _tripService;
 
   TripCreationStatus _status = TripCreationStatus.idle;
   GeneratedTrip? _trip;
   TripCreationRequest? _lastRequest;
+  String? _lastIdToken;
   String? _errorMessage;
 
   TripCreationStatus get status => _status;
@@ -22,17 +23,24 @@ class TripCreationProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   bool get isLoading => _status == TripCreationStatus.loading;
 
-  Future<void> generateTrip(TripCreationRequest request) async {
+  Future<void> generateTrip({
+    required TripCreationRequest request,
+    required String idToken,
+  }) async {
     _status = TripCreationStatus.loading;
     _lastRequest = request;
+    _lastIdToken = idToken;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      final generatedTrip = await _tripService.generateTrip(request);
+      final generatedTrip = await _tripService.generateTrip(
+        request: request,
+        idToken: idToken,
+      );
       _trip = generatedTrip;
       _status = TripCreationStatus.success;
-    } on GeminiTripException catch (error) {
+    } on TripGenerationException catch (error) {
       _errorMessage = error.message;
       _status = TripCreationStatus.error;
     } catch (_) {
@@ -46,16 +54,18 @@ class TripCreationProvider extends ChangeNotifier {
 
   Future<void> retry() async {
     final request = _lastRequest;
-    if (request == null) {
+    final idToken = _lastIdToken;
+    if (request == null || idToken == null || idToken.isEmpty) {
       return;
     }
-    await generateTrip(request);
+    await generateTrip(request: request, idToken: idToken);
   }
 
   void reset() {
     _status = TripCreationStatus.idle;
     _trip = null;
     _lastRequest = null;
+    _lastIdToken = null;
     _errorMessage = null;
     notifyListeners();
   }

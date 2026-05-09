@@ -8,6 +8,10 @@ from common.services.onboarding_service import (
     OnboardingValidationError,
 )
 from common.services.profile_service import ProfileService
+from common.services.gemini_trip_generation_service import (
+    GeminiTripGenerationError,
+    GeminiTripGenerationService,
+)
 from common.services.trip_service import TripService
 
 
@@ -380,6 +384,49 @@ def create_trip(request):
     except Exception as e:
         return JsonResponse(
             {"error": f"Failed to create trip: {str(e)}"},
+            status=500,
+        )
+
+
+@csrf_exempt
+@firebase_required
+def generate_trip(request):
+    """
+    POST /api/trips/generate/ - Generate a trip itinerary through Gemini.
+
+    Requires Firebase ID token in Authorization header. Gemini credentials are
+    read from backend environment variables, never from the Flutter client.
+    """
+    if request.method != "POST":
+        return JsonResponse(
+            {"error": "Method not allowed. Use POST."},
+            status=405,
+        )
+
+    try:
+        try:
+            body = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse(
+                {"error": "Invalid JSON in request body"},
+                status=400,
+            )
+
+        trip = GeminiTripGenerationService.generate_trip(body)
+        return JsonResponse(
+            {
+                "message": "Trip itinerary generated successfully!",
+                "trip": trip,
+            },
+            status=200,
+        )
+    except ValueError as e:
+        return JsonResponse({"error": str(e)}, status=400)
+    except GeminiTripGenerationError as e:
+        return JsonResponse({"error": str(e)}, status=502)
+    except Exception as e:
+        return JsonResponse(
+            {"error": f"Failed to generate trip itinerary: {str(e)}"},
             status=500,
         )
 

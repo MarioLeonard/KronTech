@@ -5,6 +5,7 @@ import 'package:frontend/features/trips/presentation/widgets/trip_empty_state.da
 import 'package:frontend/features/trips/presentation/widgets/trip_error_state.dart';
 import 'package:frontend/features/trips/presentation/widgets/trip_request_form.dart';
 import 'package:frontend/features/trips/presentation/widgets/trip_result_view.dart';
+import 'package:frontend/providers/auth_provider.dart';
 import 'package:provider/provider.dart';
 
 class TripCreationScreen extends StatelessWidget {
@@ -66,7 +67,21 @@ class _TripCreationView extends StatelessWidget {
   }
 
   void _generate(BuildContext context, TripCreationRequest request) {
-    context.read<TripCreationProvider>().generateTrip(request);
+    final user = context.read<AuthProvider>().user;
+    final idToken = user?.idToken;
+    if (idToken == null || idToken.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Sesiunea a expirat. Autentifica-te din nou.'),
+        ),
+      );
+      return;
+    }
+
+    context.read<TripCreationProvider>().generateTrip(
+      request: request,
+      idToken: idToken,
+    );
   }
 }
 
