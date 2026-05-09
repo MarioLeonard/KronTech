@@ -94,6 +94,7 @@ void main() {
     'syncAuthenticatedUser surfaces backend errors as auth errors',
     () async {
       final service = BackendApiService(
+        baseUrl: 'http://127.0.0.1:8000',
         client: MockClient((request) async {
           return http.Response('{"error": "Registration failed"}', 500);
         }),

@@ -21,10 +21,10 @@ Run locally:
 flutter run -d chrome --wasm
 ```
 
-By default, the frontend calls `http://127.0.0.1:8000`. To use another backend:
+The backend URL is loaded from `.env`:
 
-```bash
-flutter run -d chrome --wasm --dart-define=BACKEND_BASE_URL=http://127.0.0.1:8000
+```env
+BACKEND_BASE_URL=http://127.0.0.1:8000
 ```
 
 If Chrome shows a CanvasKit context-loss error after hot restart, stop the run

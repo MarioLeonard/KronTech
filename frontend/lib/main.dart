@@ -9,10 +9,12 @@ import 'package:frontend/screens/login_screen.dart';
 import 'package:frontend/services/oauth_auth_service.dart';
 import 'package:frontend/theme/app_theme.dart';
 import 'package:frontend/utils/hive_service.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: '.env');
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await HiveService.init();
   runApp(const MyApp());
