@@ -219,3 +219,182 @@ class UserProfile:
             return None
         except Exception as e:
             raise Exception(f"Failed to get user profile by email: {e}")
+
+
+class Trip:
+    """
+    Trip model that syncs data from Firestore.
+
+    Represents a trip created by a user with locations, timing, and route details.
+    """
+
+    COLLECTION = "trips"
+    VALID_STATUSES = {"planned", "in_progress", "completed", "cancelled"}
+
+    def __init__(self, trip_id: str, data: Optional[dict] = None):
+        """
+        Initialize a trip.
+
+        Args:
+            trip_id: Unique trip identifier
+            data: Trip data from Firestore
+        """
+        self.trip_id = trip_id
+        self.data = data or {}
+        self._load_data()
+
+    def _load_data(self):
+        """Load trip data from Firestore if not provided."""
+        if not self.data and self.trip_id:
+            firestore = FirestoreService()
+            self.data = firestore.get_document(self.COLLECTION, self.trip_id) or {}
+
+    @property
+    def owner_uid(self) -> Optional[str]:
+        """Get trip owner UID."""
+        return self.data.get("ownerUid")
+
+    @property
+    def start_location(self) -> Optional[dict]:
+        """Get trip start location."""
+        return self.data.get("startLocation")
+
+    @property
+    def destination(self) -> Optional[dict]:
+        """Get trip destination."""
+        return self.data.get("destination")
+
+    @property
+    def waypoints(self) -> Optional[list]:
+        """Get trip waypoints."""
+        return self.data.get("waypoints", [])
+
+    @property
+    def date_time(self) -> Optional[str]:
+        """Get trip date and time."""
+        return self.data.get("dateTime")
+
+    @property
+    def distance(self) -> Optional[float]:
+        """Get trip distance in km."""
+        return self.data.get("distance")
+
+    @property
+    def duration(self) -> Optional[str]:
+        """Get estimated trip duration."""
+        return self.data.get("duration")
+
+    @property
+    def status(self) -> Optional[str]:
+        """Get trip status."""
+        return self.data.get("status", "planned")
+
+    @property
+    def created_at(self) -> Optional[str]:
+        """Get trip creation timestamp."""
+        return self.data.get("createdAt")
+
+    @property
+    def updated_at(self) -> Optional[str]:
+        """Get trip last update timestamp."""
+        return self.data.get("updatedAt")
+
+    def to_dict(self) -> dict:
+        """
+        Convert trip to dictionary.
+
+        Returns:
+            Trip data as dictionary
+        """
+        return {
+            "id": self.trip_id,
+            **self.data,
+        }
+
+    def update(self, data: dict) -> bool:
+        """
+        Update trip in Firestore.
+
+        Args:
+            data: Fields to update
+
+        Returns:
+            True if successful
+        """
+        try:
+            firestore = FirestoreService()
+            firestore.update_document(self.COLLECTION, self.trip_id, data)
+            self.data.update(data)
+            return True
+        except Exception as e:
+            raise Exception(f"Failed to update trip: {e}")
+
+    def save(self) -> bool:
+        """
+        Save trip to Firestore.
+
+        Returns:
+            True if successful
+        """
+        try:
+            firestore = FirestoreService()
+            firestore.set_document(self.COLLECTION, self.trip_id, self.data)
+            return True
+        except Exception as e:
+            raise Exception(f"Failed to save trip: {e}")
+
+    def delete(self) -> bool:
+        """
+        Delete trip from Firestore.
+
+        Returns:
+            True if successful
+        """
+        try:
+            firestore = FirestoreService()
+            firestore.delete_document(self.COLLECTION, self.trip_id)
+            return True
+        except Exception as e:
+            raise Exception(f"Failed to delete trip: {e}")
+
+    @classmethod
+    def get_by_id(cls, trip_id: str) -> Optional["Trip"]:
+        """
+        Get trip by ID.
+
+        Args:
+            trip_id: Trip ID
+
+        Returns:
+            Trip instance or None if not found
+        """
+        try:
+            firestore = FirestoreService()
+            data = firestore.get_document(cls.COLLECTION, trip_id)
+            if data:
+                return cls(trip_id, data)
+            return None
+        except Exception as e:
+            raise Exception(f"Failed to get trip: {e}")
+
+    @classmethod
+    def get_by_owner(cls, owner_uid: str) -> list:
+        """
+        Get all trips for a specific owner.
+
+        Args:
+            owner_uid: Owner Firebase UID
+
+        Returns:
+            List of Trip instances
+        """
+        try:
+            firestore = FirestoreService()
+            results = firestore.get_documents(
+                cls.COLLECTION,
+                filters=[("ownerUid", "==", owner_uid)],
+            )
+            return [cls(doc.get("id"), doc) for doc in results]
+        except Exception as e:
+            raise Exception(f"Failed to get trips for owner {owner_uid}: {e}")
+
