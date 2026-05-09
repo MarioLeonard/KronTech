@@ -1,7 +1,12 @@
 from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 import json
 
 from common.authentication import firebase_required
+from common.services.onboarding_service import (
+    OnboardingService,
+    OnboardingValidationError,
+)
 from common.services.profile_service import ProfileService
 
 
@@ -10,6 +15,7 @@ def health_check(request):
     return JsonResponse({"status": "ok"})
 
 
+@csrf_exempt
 @firebase_required
 def signup(request):
     """
@@ -43,17 +49,7 @@ def signup(request):
 
     try:
         auth_user = request.auth_user
-        
-        # Get or create profile from Firebase auth data
         user_profile = ProfileService.get_or_create_profile(auth_user)
-
-        # Update with additional data if provided
-        try:
-            body = json.loads(request.body)
-            if body:
-                user_profile.update(body)
-        except json.JSONDecodeError:
-            pass  # No additional data provided
 
         return JsonResponse(
             {
@@ -69,6 +65,7 @@ def signup(request):
         )
 
 
+@csrf_exempt
 @firebase_required
 def get_profile(request):
     """
@@ -264,5 +261,36 @@ def upload_profile_photo(request):
     except Exception as e:
         return JsonResponse(
             {"error": f"Failed to upload profile photo: {str(e)}"},
+            status=500,
+        )
+
+    try:
+        body = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse(
+            {"error": "Invalid JSON in request body"},
+            status=400,
+        )
+
+    try:
+        user_profile = OnboardingService.complete_onboarding(
+            request.auth_user,
+            body,
+        )
+        return JsonResponse(
+            {
+                "message": "Onboarding completed successfully!",
+                "profile": user_profile.to_dict(),
+            },
+            status=200,
+        )
+    except OnboardingValidationError as error:
+        return JsonResponse(
+            {"error": "Validation failed", "message": str(error)},
+            status=400,
+        )
+    except Exception as error:
+        return JsonResponse(
+            {"error": f"Failed to complete onboarding: {str(error)}"},
             status=500,
         )

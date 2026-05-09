@@ -1,8 +1,52 @@
+# Firebase credentials
+firebase-key.json
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Virtual environments
 .venv/
+venv/
+env/
+ENV/
+
+# Python
 __pycache__/
 *.py[cod]
-db.sqlite3
-.env
-.DS_Store
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
-firebase-key.json
+# Django
+db.sqlite3
+local_settings.py
+media/
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
