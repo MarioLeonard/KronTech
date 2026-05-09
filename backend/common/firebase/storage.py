@@ -12,6 +12,11 @@ from firebase_admin import storage
 logger = logging.getLogger(__name__)
 
 
+class FirebaseStorageError(Exception):
+    """Custom exception for Firebase Storage errors."""
+    pass
+
+
 class FirebaseStorageService:
     """Service for Firebase Cloud Storage file operations."""
 
