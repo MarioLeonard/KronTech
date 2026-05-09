@@ -108,6 +108,19 @@ def get_profile(request):
         )
 
 
+@csrf_exempt
+def profile(request):
+    """Dispatch profile requests by HTTP method."""
+    if request.method == "GET":
+        return get_profile(request)
+    if request.method == "PATCH":
+        return update_profile(request)
+    return JsonResponse(
+        {"error": "Method not allowed. Use GET or PATCH."},
+        status=405,
+    )
+
+
 @firebase_required
 def update_profile(request):
     """
