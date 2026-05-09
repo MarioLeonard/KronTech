@@ -4,7 +4,6 @@ import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:flutter/foundation.dart';
 import 'package:frontend/models/auth_exception.dart';
 import 'package:frontend/models/auth_user.dart';
-import 'package:frontend/models/user_profile.dart';
 import 'package:frontend/services/auth_service.dart';
 import 'package:frontend/services/backend_api_service.dart';
 

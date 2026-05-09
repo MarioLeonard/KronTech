@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/models/auth_user.dart';
 
-import 'profile_screen.dart';
-
 class HomeScreen extends StatelessWidget {
   const HomeScreen({required this.user, super.key});
 
