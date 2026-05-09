@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:frontend/models/auth_exception.dart';
 import 'package:frontend/models/auth_user.dart';
+import 'package:frontend/models/user_profile.dart';
 import 'package:frontend/services/auth_service.dart';
 
 enum AuthStatus { idle, loading, authenticated, error }
@@ -10,13 +11,29 @@ enum AuthStatus { idle, loading, authenticated, error }
 class AuthProvider extends ChangeNotifier {
   AuthProvider({required AuthService authService})
     : _authService = authService {
-    _authSubscription = _authService.authStateChanges().listen((user) {
-      _user = user;
-      _status = user == null ? AuthStatus.idle : AuthStatus.authenticated;
-      _errorMessage = null;
-      _activeProvider = null;
-      notifyListeners();
-    });
+    _authSubscription = _authService.authStateChanges().listen(
+      (user) {
+        _user = user;
+        if (user == null) {
+          if (_status != AuthStatus.error) {
+            _status = AuthStatus.idle;
+            _errorMessage = null;
+          }
+        } else {
+          _status = AuthStatus.authenticated;
+          _errorMessage = null;
+        }
+        _activeProvider = null;
+        notifyListeners();
+      },
+      onError: (_) {
+        _user = null;
+        _status = AuthStatus.error;
+        _errorMessage = 'Could not sync the session with the backend.';
+        _activeProvider = null;
+        notifyListeners();
+      },
+    );
   }
 
   final AuthService _authService;
@@ -38,6 +55,30 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> signInWithGoogle() {
     return _runSignIn(AuthProviderType.google, _authService.continueWithGoogle);
+  }
+
+  Future<void> signInWithEmailPassword({
+    required String email,
+    required String password,
+    required EmailPasswordAuthMode mode,
+  }) {
+    final normalizedEmail = email.trim();
+
+    if (normalizedEmail.isEmpty || password.isEmpty) {
+      _status = AuthStatus.error;
+      _errorMessage = 'Enter your email and password.';
+      notifyListeners();
+      return Future<void>.value();
+    }
+
+    return _runSignIn(
+      AuthProviderType.emailPassword,
+      () => _authService.signInWithEmailPassword(
+        email: normalizedEmail,
+        password: password,
+        mode: mode,
+      ),
+    );
   }
 
   Future<void> _runSignIn(
@@ -62,7 +103,7 @@ class AuthProvider extends ChangeNotifier {
       _errorMessage = error.message;
     } catch (_) {
       _status = AuthStatus.error;
-      _errorMessage = 'A aparut o eroare neasteptata. Incearca din nou.';
+      _errorMessage = 'An unexpected error occurred. Please try again.';
     } finally {
       _activeProvider = null;
       notifyListeners();
@@ -83,6 +124,22 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> signOut() async {
     await _authService.signOut();
+  }
+
+  void updateProfile(UserProfile profile) {
+    final currentUser = _user;
+    if (currentUser == null) {
+      return;
+    }
+
+    _user = currentUser.copyWith(
+      email: profile.email ?? currentUser.email,
+      displayName: profile.displayName ?? currentUser.displayName,
+      profile: profile,
+    );
+    _status = AuthStatus.authenticated;
+    _errorMessage = null;
+    notifyListeners();
   }
 
   @override

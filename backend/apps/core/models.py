@@ -128,6 +128,7 @@ class UserProfile:
             "display_name": auth_user.get("display_name"),
             "photo_url": auth_user.get("photo_url"),
             "email_verified": auth_user.get("email_verified", False),
+            "hasCompletedOnboarding": False,
         }
         return cls(uid, profile_data)
 

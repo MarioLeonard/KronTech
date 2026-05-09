@@ -601,6 +601,141 @@ class SignupEndpointTests(TestCase):
         # GET should fail with 401 (no auth) or 405 (method not allowed)
         self.assertIn(response.status_code, [401, 405])
 
+    @patch("common.authentication.firebase_auth.verify_token")
+    @patch("apps.core.views.ProfileService.get_or_create_profile")
+    def test_signup_ignores_client_profile_fields(
+        self,
+        mock_get_or_create_profile,
+        mock_verify_token,
+    ):
+        """Signup must not allow clients to set protected profile fields."""
+        mock_verify_token.return_value = self.auth_user
+        mock_profile = MagicMock()
+        mock_profile.to_dict.return_value = {
+            "uid": "test-user-123",
+            "email": "testuser@example.com",
+            "hasCompletedOnboarding": False,
+        }
+        mock_get_or_create_profile.return_value = mock_profile
+
+        response = self.client.post(
+            reverse("core:signup"),
+            data=json.dumps({"hasCompletedOnboarding": True}),
+            content_type="application/json",
+            HTTP_AUTHORIZATION="Bearer valid-token",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        mock_profile.update.assert_not_called()
+
+    @patch("common.authentication.firebase_auth.verify_token")
+    def test_profile_endpoint_rejects_client_writes(self, mock_verify_token):
+        """Profile writes must go through dedicated backend flows."""
+        mock_verify_token.return_value = self.auth_user
+
+        response = self.client.post(
+            reverse("core:profile"),
+            data=json.dumps({"hasCompletedOnboarding": True}),
+            content_type="application/json",
+            HTTP_AUTHORIZATION="Bearer valid-token",
+        )
+
+        self.assertEqual(response.status_code, 405)
+
+
+class OnboardingServiceTests(TestCase):
+    """Test onboarding validation and Firestore write orchestration."""
+
+    def setUp(self):
+        self.auth_user = {
+            "uid": "test-user-123",
+            "email": "testuser@example.com",
+            "email_verified": True,
+            "display_name": "Test User",
+            "photo_url": "https://example.com/photo.jpg",
+            "custom_claims": {},
+        }
+        self.payload = {
+            "firstName": "Test",
+            "lastName": "User",
+            "email": "testuser@example.com",
+            "dateOfBirth": "2000-01-01",
+            "gender": "Other",
+            "profilePhotoDataUrl": "data:image/png;base64,avatar",
+            "country": "Romania",
+            "city": "Bucharest",
+            "street": "Main Street 1",
+            "acceptPrivacyPolicy": True,
+        }
+
+    @patch("common.services.onboarding_service.FirebaseStorageService.upload_profile_photo")
+    @patch("common.services.onboarding_service.ProfileService.get_or_create_profile")
+    def test_complete_onboarding_updates_authenticated_user_profile(
+        self,
+        mock_get_or_create_profile,
+        mock_upload_profile_photo,
+    ):
+        from common.services.onboarding_service import OnboardingService
+        from common.firebase.storage import UploadedProfilePhoto
+
+        mock_profile = MagicMock()
+        mock_get_or_create_profile.return_value = mock_profile
+        mock_upload_profile_photo.return_value = UploadedProfilePhoto(
+            url="https://firebasestorage.googleapis.com/profile-photo",
+            path="users/test-user-123/profile/profile-photo.png",
+        )
+
+        profile = OnboardingService.complete_onboarding(
+            self.auth_user,
+            self.payload,
+        )
+
+        self.assertEqual(profile, mock_profile)
+        mock_get_or_create_profile.assert_called_once_with(self.auth_user)
+        written_data = mock_profile.update.call_args.args[0]
+        self.assertEqual(written_data["uid"], "test-user-123")
+        self.assertTrue(written_data["hasCompletedOnboarding"])
+        self.assertEqual(written_data["email"], "testuser@example.com")
+        self.assertEqual(
+            written_data["photo_url"],
+            "https://firebasestorage.googleapis.com/profile-photo",
+        )
+        self.assertEqual(
+            written_data["profilePhotoPath"],
+            "users/test-user-123/profile/profile-photo.png",
+        )
+
+    @patch("common.services.onboarding_service.FirebaseStorageService.upload_profile_photo")
+    @patch("common.services.onboarding_service.ProfileService.get_or_create_profile")
+    def test_complete_onboarding_uses_google_photo_when_no_custom_photo(
+        self,
+        mock_get_or_create_profile,
+        mock_upload_profile_photo,
+    ):
+        from common.services.onboarding_service import OnboardingService
+
+        mock_profile = MagicMock()
+        mock_get_or_create_profile.return_value = mock_profile
+        payload = {**self.payload, "profilePhotoDataUrl": ""}
+
+        OnboardingService.complete_onboarding(self.auth_user, payload)
+
+        mock_upload_profile_photo.assert_not_called()
+        written_data = mock_profile.update.call_args.args[0]
+        self.assertEqual(written_data["photo_url"], "https://example.com/photo.jpg")
+        self.assertEqual(written_data["profilePhotoPath"], "")
+
+    def test_complete_onboarding_rejects_mismatched_email(self):
+        from common.services.onboarding_service import (
+            OnboardingService,
+            OnboardingValidationError,
+        )
+
+        payload = {**self.payload, "email": "other@example.com"}
+
+        with self.assertRaises(OnboardingValidationError):
+            OnboardingService.complete_onboarding(self.auth_user, payload)
+
 
 
 
@@ -612,8 +747,9 @@ class FirestoreDatabaseTests(TestCase):
         """Test FirestoreService initializes correctly."""
         from common.firebase.database import FirestoreService
         
-        # Create instance
-        service = FirestoreService()
+        FirestoreService._db = None
+        with patch("common.firebase.database.firebase_admin._apps", {"app": object()}):
+            service = FirestoreService()
         
         self.assertIsNotNone(service)
 
