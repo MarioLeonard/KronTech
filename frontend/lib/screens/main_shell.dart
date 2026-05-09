@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/models/auth_user.dart';
 import 'package:frontend/providers/auth_provider.dart';
+import 'package:frontend/screens/chat_screen.dart';
 import 'package:frontend/screens/home_screen.dart';
 import 'package:frontend/screens/profile_screen.dart';
 import 'package:frontend/screens/settings_screen.dart';
@@ -30,6 +31,11 @@ class _MainShellState extends State<MainShell> {
         label: 'Profile',
         icon: Icons.person_rounded,
         content: ProfileScreen(user: widget.user),
+      ),
+      const _ShellDestination(
+        label: 'Chat',
+        icon: Icons.chat_bubble_rounded,
+        content: ChatScreen(),
       ),
       const _ShellDestination(
         label: 'Settings',
