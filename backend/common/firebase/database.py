@@ -7,6 +7,7 @@ import firebase_admin
 from firebase_admin import firestore
 from django.conf import settings
 from google.cloud import firestore as cloud_firestore
+from google.cloud.firestore_v1.base_query import FieldFilter
 from google.oauth2 import service_account
 
 logger = logging.getLogger(__name__)
@@ -99,7 +100,7 @@ class FirestoreService:
 
             if filters:
                 for field, operator, value in filters:
-                    query = query.where(field, operator, value)
+                    query = query.where(filter=FieldFilter(field, operator, value))
 
             if limit:
                 query = query.limit(limit)

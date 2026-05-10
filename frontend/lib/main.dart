@@ -14,9 +14,9 @@ import 'package:provider/provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Load .env file from assets before any service initialization
+  // Load .env file before any service initialization.
   try {
-    await dotenv.load(fileName: 'assets/.env');
+    await dotenv.load(fileName: '.env');
   } catch (e) {
     debugPrint('Warning: .env file not found. Using default configuration.');
   }
