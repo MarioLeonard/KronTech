@@ -94,16 +94,17 @@ class FirestoreFriendRepository:
         return [{"id": doc.id, **doc.to_dict()} for doc in docs]
 
     def find_pending_request(self, sender_id: str, receiver_id: str) -> Optional[dict]:
+        # Query one indexed field and filter the rest locally to avoid requiring
+        # a composite Firestore index for duplicate checks.
         docs = (
             self._db.collection("friend_requests")
             .where(filter=FieldFilter("sender_id", "==", sender_id))
-            .where(filter=FieldFilter("receiver_id", "==", receiver_id))
-            .where(filter=FieldFilter("status", "==", "pending"))
-            .limit(1)
             .stream()
         )
         for doc in docs:
-            return {"id": doc.id, **doc.to_dict()}
+            data = doc.to_dict()
+            if data.get("receiver_id") == receiver_id and data.get("status") == "pending":
+                return {"id": doc.id, **data}
         return None
 
     def get_request(self, request_id: str) -> Optional[dict]:
@@ -113,14 +114,24 @@ class FirestoreFriendRepository:
         return {"id": doc.id, **doc.to_dict()}
 
     def list_received_requests(self, user_id: str) -> List[dict]:
+        # Keep this index-light for local/dev projects. Filtering by receiver_id
+        # uses Firestore's single-field index; pending filter and ordering are
+        # applied in Python to avoid requiring a composite index before the
+        # feature can run.
         docs = (
             self._db.collection("friend_requests")
             .where(filter=FieldFilter("receiver_id", "==", user_id))
-            .where(filter=FieldFilter("status", "==", "pending"))
-            .order_by("created_at")
             .stream()
         )
-        return [{"id": doc.id, **doc.to_dict()} for doc in docs]
+        requests = []
+        for doc in docs:
+            data = doc.to_dict()
+            if data.get("status") == "pending":
+                requests.append({"id": doc.id, **data})
+        return sorted(
+            requests,
+            key=lambda request: request.get("created_at") or "",
+        )
 
     def create_request(self, data: dict) -> dict:
         request_id = data["id"]
