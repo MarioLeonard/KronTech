@@ -21,4 +21,5 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('apps.core.urls')),
     path('api/chat/', include('apps.chat.urls')),
+    path('api/friends/', include('apps.friends.urls')),
 ]

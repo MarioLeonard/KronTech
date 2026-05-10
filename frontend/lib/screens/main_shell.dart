@@ -3,6 +3,7 @@ import 'package:frontend/features/trips/presentation/screens/my_trips_screen.dar
 import 'package:frontend/models/auth_user.dart';
 import 'package:frontend/providers/auth_provider.dart';
 import 'package:frontend/screens/chat_screen.dart';
+import 'package:frontend/screens/friends_screen.dart';
 import 'package:frontend/screens/home_screen.dart';
 import 'package:frontend/screens/profile_screen.dart';
 import 'package:frontend/screens/settings_screen.dart';
@@ -37,6 +38,11 @@ class _MainShellState extends State<MainShell> {
         label: 'Profile',
         icon: Icons.person_rounded,
         content: ProfileScreen(user: widget.user),
+      ),
+      const _ShellDestination(
+        label: 'Friends',
+        icon: Icons.group_rounded,
+        content: FriendsScreen(),
       ),
       const _ShellDestination(
         label: 'Chat',

@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     'apps.core',
     'apps.tourism',
     'apps.chat',
+    'apps.friends',
 ]
 
 # Firebase Configuration
