@@ -1,5 +1,6 @@
 import hashlib
 import logging
+from datetime import datetime
 from typing import Iterable, Optional
 
 from django.db.models import Q
@@ -178,6 +179,11 @@ class ChatService:
             if not other_user:
                 continue
             unread_counts = conversation.get("unread_counts") or {}
+            last_message_timestamp = (
+                conversation.get("last_message_timestamp")
+                or conversation.get("updated_at")
+                or conversation.get("created_at")
+            )
             conversations_by_id[conversation["conversation_id"]] = {
                 "conversation_id": conversation["conversation_id"],
                 "other_user_id": other_user,
@@ -185,9 +191,9 @@ class ChatService:
                 "last_message": conversation.get("last_message") or "",
                 "last_message_id": conversation.get("last_message_id"),
                 "last_message_sender_id": conversation.get("last_message_sender_id"),
-                "last_message_timestamp": conversation.get("last_message_timestamp")
-                or conversation.get("updated_at")
-                or conversation.get("created_at"),
+                "last_message_timestamp": ChatService._serialize_timestamp(
+                    last_message_timestamp,
+                ),
                 "unread_count": unread_counts.get(user_id, 0),
             }
 
@@ -207,7 +213,9 @@ class ChatService:
                     'other_user': ChatService.get_user_summary(other_user),
                     'last_message': msg.content,
                     'last_message_sender_id': msg.sender_id,
-                    'last_message_timestamp': msg.timestamp,
+                    'last_message_timestamp': ChatService._serialize_timestamp(
+                        msg.timestamp,
+                    ),
                     'unread_count': unread_count
                 }
             elif not conversations_by_id[msg.conversation_id].get("last_message_id"):
@@ -215,7 +223,9 @@ class ChatService:
                     "last_message": msg.content,
                     "last_message_id": str(msg.id),
                     "last_message_sender_id": msg.sender_id,
-                    "last_message_timestamp": msg.timestamp,
+                    "last_message_timestamp": ChatService._serialize_timestamp(
+                        msg.timestamp,
+                    ),
                     "unread_count": Message.objects.filter(
                         conversation_id=msg.conversation_id,
                         receiver_id=user_id,
@@ -228,6 +238,17 @@ class ChatService:
             key=lambda item: item.get("last_message_timestamp") or "",
             reverse=True,
         )
+
+    @staticmethod
+    def _serialize_timestamp(value) -> str:
+        """Return a stable ISO string for Django/Firestore/string timestamps."""
+        if value is None:
+            return ""
+        if isinstance(value, datetime):
+            return value.isoformat()
+        if hasattr(value, "isoformat"):
+            return value.isoformat()
+        return str(value)
 
     @staticmethod
     def mark_messages_as_read(conversation_id: str, user_id: str) -> int:

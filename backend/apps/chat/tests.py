@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework.test import APIRequestFactory
@@ -66,6 +68,52 @@ class ChatConversationServiceTest(TestCase):
         self.assertEqual(conversations[0]["other_user_id"], "bob")
         self.assertEqual(conversations[0]["last_message"], "")
         self.assertEqual(conversations[0]["unread_count"], 0)
+
+    @patch("common.services.chat_service.ChatService.get_user_summary")
+    @patch("common.services.chat_service.ChatService._get_firestore_conversations")
+    def test_list_conversations_sorts_mixed_timestamp_types(
+        self,
+        mock_conversations,
+        mock_user_summary,
+    ):
+        older_conversation_id = ChatService.generate_conversation_id("alice", "bob")
+        newer_conversation_id = ChatService.generate_conversation_id("alice", "cara")
+        mock_conversations.return_value = [
+            {
+                "conversation_id": older_conversation_id,
+                "participants": ["alice", "bob"],
+                "created_at": "2026-05-10T10:00:00+00:00",
+                "updated_at": "2026-05-10T10:00:00+00:00",
+                "last_message": "",
+                "last_message_timestamp": None,
+                "unread_counts": {"alice": 0, "bob": 0},
+            },
+            {
+                "conversation_id": newer_conversation_id,
+                "participants": ["alice", "cara"],
+                "last_message": "Hello",
+                "last_message_timestamp": datetime(
+                    2026,
+                    5,
+                    10,
+                    11,
+                    0,
+                    tzinfo=timezone.utc,
+                ),
+                "unread_counts": {"alice": 1, "cara": 0},
+            },
+        ]
+        mock_user_summary.side_effect = lambda user_id: {
+            "id": user_id,
+            "name": user_id,
+            "avatar_url": None,
+        }
+
+        conversations = ChatService.get_user_conversations("alice")
+
+        self.assertEqual(conversations[0]["conversation_id"], newer_conversation_id)
+        self.assertEqual(conversations[1]["conversation_id"], older_conversation_id)
+        self.assertIsInstance(conversations[0]["last_message_timestamp"], str)
 
     @patch("common.services.chat_service.ChatService.get_conversation")
     def test_messages_endpoint_returns_empty_for_empty_conversation(
