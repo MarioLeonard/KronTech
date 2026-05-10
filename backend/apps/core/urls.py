@@ -3,6 +3,7 @@ from django.urls import path
 from apps.core.views import (
     health_check,
     signup,
+    complete_onboarding,
     profile,
     get_profile,
     update_profile,
@@ -19,6 +20,7 @@ app_name = "core"
 urlpatterns = [
     path("health/", health_check, name="health-check"),
     path("signup/", signup, name="signup"),
+    path("onboarding/complete/", complete_onboarding, name="complete-onboarding"),
     path("profile/", profile, name="profile"),
     path("profile/", get_profile, name="get-profile"),
     path("profile/", update_profile, name="update-profile"),

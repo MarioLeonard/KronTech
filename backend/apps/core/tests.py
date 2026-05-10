@@ -20,6 +20,7 @@ from apps.core.models import UserProfile
 from apps.core.views import get_profile, update_profile, upload_profile_photo
 from common.authentication import firebase_required
 from common.firebase.types import AuthenticatedUser
+from common.services.onboarding_service import OnboardingValidationError
 
 
 class HealthCheckTests(TestCase):
@@ -745,6 +746,82 @@ class OnboardingServiceTests(TestCase):
 
         with self.assertRaises(OnboardingValidationError):
             OnboardingService.complete_onboarding(self.auth_user, payload)
+
+
+class OnboardingEndpointTests(TestCase):
+    """Test onboarding completion endpoint routing and response handling."""
+
+    def setUp(self):
+        self.auth_user = {
+            "uid": "test-user-123",
+            "email": "testuser@example.com",
+            "email_verified": True,
+            "display_name": "Test User",
+            "photo_url": "https://example.com/photo.jpg",
+            "custom_claims": {},
+        }
+        self.payload = {
+            "firstName": "Test",
+            "lastName": "User",
+            "email": "testuser@example.com",
+            "dateOfBirth": "2000-01-01T00:00:00.000",
+            "gender": "Other",
+            "profilePhotoDataUrl": "",
+            "country": "Romania",
+            "city": "Bucharest",
+            "street": "Main Street 1",
+            "acceptPrivacyPolicy": True,
+        }
+
+    @patch("apps.core.views.OnboardingService.complete_onboarding")
+    @patch("common.authentication.firebase_auth.verify_token")
+    def test_complete_onboarding_endpoint_returns_profile(
+        self,
+        mock_verify_token,
+        mock_complete_onboarding,
+    ):
+        mock_verify_token.return_value = self.auth_user
+        mock_profile = MagicMock()
+        mock_profile.to_dict.return_value = {
+            "uid": "test-user-123",
+            "email": "testuser@example.com",
+            "hasCompletedOnboarding": True,
+        }
+        mock_complete_onboarding.return_value = mock_profile
+
+        response = self.client.post(
+            reverse("core:complete-onboarding"),
+            data=json.dumps(self.payload),
+            content_type="application/json",
+            HTTP_AUTHORIZATION="Bearer valid-token",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        body = json.loads(response.content)
+        self.assertTrue(body["profile"]["hasCompletedOnboarding"])
+        mock_complete_onboarding.assert_called_once_with(self.auth_user, self.payload)
+
+    @patch("apps.core.views.OnboardingService.complete_onboarding")
+    @patch("common.authentication.firebase_auth.verify_token")
+    def test_complete_onboarding_endpoint_returns_validation_errors(
+        self,
+        mock_verify_token,
+        mock_complete_onboarding,
+    ):
+        mock_verify_token.return_value = self.auth_user
+        mock_complete_onboarding.side_effect = OnboardingValidationError(
+            "firstName is required."
+        )
+
+        response = self.client.post(
+            reverse("core:complete-onboarding"),
+            data=json.dumps({**self.payload, "firstName": ""}),
+            content_type="application/json",
+            HTTP_AUTHORIZATION="Bearer valid-token",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("firstName is required", response.content.decode())
 
 
 

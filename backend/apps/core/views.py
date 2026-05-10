@@ -72,6 +72,51 @@ def signup(request):
 
 @csrf_exempt
 @firebase_required
+def complete_onboarding(request):
+    """
+    POST /api/onboarding/complete/ - Complete authenticated user onboarding.
+
+    Requires Firebase ID token in Authorization header. The authenticated UID is
+    always taken from the token, not from the client payload.
+    """
+    if request.method != "POST":
+        return JsonResponse(
+            {"error": "Method not allowed. Use POST."},
+            status=405,
+        )
+
+    try:
+        try:
+            body = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse(
+                {"error": "Invalid JSON in request body"},
+                status=400,
+            )
+
+        user_profile = OnboardingService.complete_onboarding(
+            request.auth_user,
+            body,
+        )
+
+        return JsonResponse(
+            {
+                "message": "Onboarding completed successfully!",
+                "profile": user_profile.to_dict(),
+            },
+            status=200,
+        )
+    except OnboardingValidationError as e:
+        return JsonResponse({"error": str(e)}, status=400)
+    except Exception as e:
+        return JsonResponse(
+            {"error": f"Failed to complete onboarding: {str(e)}"},
+            status=500,
+        )
+
+
+@csrf_exempt
+@firebase_required
 def get_profile(request):
     """
     GET /api/profile/ - Retrieve authenticated user profile from Firestore.
