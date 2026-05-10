@@ -8,6 +8,10 @@ from common.services.onboarding_service import (
     OnboardingValidationError,
 )
 from common.services.profile_service import ProfileService
+from common.services.gemini_trip_generation_service import (
+    GeminiTripGenerationError,
+    GeminiTripGenerationService,
+)
 from common.services.trip_service import TripService
 
 
@@ -284,6 +288,19 @@ def upload_profile_photo(request):
 # ============================================================================
 
 
+@csrf_exempt
+def trips(request):
+    """Dispatch /api/trips/ collection requests by HTTP method."""
+    if request.method == "GET":
+        return list_trips(request)
+    if request.method == "POST":
+        return create_trip(request)
+    return JsonResponse(
+        {"error": "Method not allowed. Use GET or POST."},
+        status=405,
+    )
+
+
 @firebase_required
 def create_trip(request):
     """
@@ -380,6 +397,58 @@ def create_trip(request):
     except Exception as e:
         return JsonResponse(
             {"error": f"Failed to create trip: {str(e)}"},
+            status=500,
+        )
+
+
+@csrf_exempt
+@firebase_required
+def generate_trip(request):
+    """
+    POST /api/trips/generate/ - Generate a trip itinerary through Gemini.
+
+    Requires Firebase ID token in Authorization header. Gemini credentials are
+    read from backend environment variables, never from the Flutter client.
+    """
+    if request.method != "POST":
+        return JsonResponse(
+            {"error": "Method not allowed. Use POST."},
+            status=405,
+        )
+
+    try:
+        try:
+            body = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse(
+                {"error": "Invalid JSON in request body"},
+                status=400,
+            )
+
+        auth_user = request.auth_user
+        owner_uid = auth_user.get("uid")
+
+        generated_trip = GeminiTripGenerationService.generate_trip(body)
+        saved_trip = TripService.create_generated_trip(
+            owner_uid=owner_uid,
+            request_data=body,
+            itinerary=generated_trip,
+        )
+        return JsonResponse(
+            {
+                "message": "Trip itinerary generated successfully!",
+                "trip": generated_trip,
+                "savedTrip": saved_trip.to_dict(),
+            },
+            status=200,
+        )
+    except ValueError as e:
+        return JsonResponse({"error": str(e)}, status=400)
+    except GeminiTripGenerationError as e:
+        return JsonResponse({"error": str(e)}, status=502)
+    except Exception as e:
+        return JsonResponse(
+            {"error": f"Failed to generate trip itinerary: {str(e)}"},
             status=500,
         )
 

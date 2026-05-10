@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/features/trips/presentation/screens/my_trips_screen.dart';
 import 'package:frontend/models/auth_user.dart';
 import 'package:frontend/providers/auth_provider.dart';
 import 'package:frontend/screens/chat_screen.dart';
@@ -26,6 +27,11 @@ class _MainShellState extends State<MainShell> {
         label: 'Home',
         icon: Icons.home_rounded,
         content: HomeScreen(user: widget.user),
+      ),
+      const _ShellDestination(
+        label: 'Trips',
+        icon: Icons.route_rounded,
+        content: MyTripsScreen(),
       ),
       _ShellDestination(
         label: 'Profile',

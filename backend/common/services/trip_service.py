@@ -226,6 +226,54 @@ class TripService:
         return trip
 
     @staticmethod
+    def create_generated_trip(
+        owner_uid: str,
+        request_data: dict,
+        itinerary: dict,
+        status: str = "planned",
+    ) -> Trip:
+        """
+        Persist a Gemini-generated itinerary as a trip document.
+
+        The generated itinerary is stored as opaque structured data so the
+        Flutter client can render the same cards later without another AI call.
+        """
+        if not owner_uid:
+            raise ValueError("owner_uid is required")
+        if not isinstance(request_data, dict):
+            raise ValueError("request_data must be a dictionary")
+        if not isinstance(itinerary, dict):
+            raise ValueError("itinerary must be a dictionary")
+        TripService.validate_status(status)
+
+        trip_id = str(uuid.uuid4())
+        now = datetime.utcnow().isoformat() + "Z"
+        cities = itinerary.get("cities") or request_data.get("cities") or []
+
+        trip_data = {
+            "id": trip_id,
+            "ownerUid": owner_uid,
+            "type": "generated_itinerary",
+            "title": itinerary.get("title") or "Excursie generata",
+            "summary": itinerary.get("summary") or "",
+            "cities": cities,
+            "startDate": itinerary.get("startDate") or request_data.get("startDate"),
+            "endDate": itinerary.get("endDate") or request_data.get("endDate"),
+            "currency": itinerary.get("currency") or request_data.get("currency") or "EUR",
+            "status": status,
+            "request": request_data,
+            "itinerary": itinerary,
+            "createdAt": now,
+            "updatedAt": now,
+        }
+
+        trip = Trip(trip_id, trip_data)
+        trip.save()
+
+        logger.info(f"Created generated trip {trip_id} for user {owner_uid}")
+        return trip
+
+    @staticmethod
     def get_user_trips(owner_uid: str) -> List[Trip]:
         """
         Get all trips for a user.
