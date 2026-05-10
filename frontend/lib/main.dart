@@ -43,8 +43,8 @@ class MyApp extends StatelessWidget {
         theme: AppTheme.light,
         darkTheme: AppTheme.dark,
         themeMode: ThemeMode.dark,
-        home: const AuthEntryPoint(),
-      ),
+        // TODO: Change back to AuthEntryPoint() after testing
+        home: const AuthEntryPoint
     );
   }
 }

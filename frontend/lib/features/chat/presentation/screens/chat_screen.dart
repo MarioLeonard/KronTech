@@ -72,45 +72,47 @@ class _ChatScreenState extends State<ChatScreen> {
       builder: (context, chatProvider, _) {
         if (isLargeScreen) {
           /// Split view for large screens
-          return Row(
-            children: [
-              /// Sidebar
-              SizedBox(
-                width: 320,
-                child: Container(
-                  decoration: BoxDecoration(
-                    border: Border(
-                      right: BorderSide(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.outline.withValues(alpha: 0.1),
+          return Scaffold(
+            body: Row(
+              children: [
+                /// Sidebar
+                SizedBox(
+                  width: 320,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      border: Border(
+                        right: BorderSide(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.outline.withValues(alpha: 0.1),
+                        ),
                       ),
                     ),
+                    child: ChatSidebar(
+                      selectedConversationId:
+                          chatProvider.selectedConversation?.id,
+                      onConversationSelected: (conversationId) {
+                        chatProvider.selectConversation(conversationId);
+                      },
+                    ),
                   ),
-                  child: ChatSidebar(
-                    selectedConversationId:
-                        chatProvider.selectedConversation?.id,
-                    onConversationSelected: (conversationId) {
-                      chatProvider.selectConversation(conversationId);
+                ),
+
+                /// Main conversation view
+                Expanded(
+                  child: ChatConversationView(
+                    conversation: chatProvider.selectedConversation,
+                    onParticipantTap: () {
+                      if (chatProvider.selectedConversation != null) {
+                        _navigateToProfile(
+                          chatProvider.selectedConversation!.participant.name,
+                        );
+                      }
                     },
                   ),
                 ),
-              ),
-
-              /// Main conversation view
-              Expanded(
-                child: ChatConversationView(
-                  conversation: chatProvider.selectedConversation,
-                  onParticipantTap: () {
-                    if (chatProvider.selectedConversation != null) {
-                      _navigateToProfile(
-                        chatProvider.selectedConversation!.participant.name,
-                      );
-                    }
-                  },
-                ),
-              ),
-            ],
+              ],
+            ),
           );
         } else {
           /// Mobile layout - showing sidebar with navigation
