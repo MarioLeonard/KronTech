@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/features/trips/presentation/screens/trip_creation_screen.dart';
+import 'package:frontend/features/trips/presentation/screens/my_trips_screen.dart';
 import 'package:frontend/models/auth_user.dart';
 import 'package:frontend/providers/auth_provider.dart';
 import 'package:frontend/screens/chat_screen.dart';
@@ -31,7 +31,7 @@ class _MainShellState extends State<MainShell> {
       const _ShellDestination(
         label: 'Trips',
         icon: Icons.route_rounded,
-        content: TripCreationScreen(),
+        content: MyTripsScreen(),
       ),
       _ShellDestination(
         label: 'Profile',

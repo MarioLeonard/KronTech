@@ -288,6 +288,19 @@ def upload_profile_photo(request):
 # ============================================================================
 
 
+@csrf_exempt
+def trips(request):
+    """Dispatch /api/trips/ collection requests by HTTP method."""
+    if request.method == "GET":
+        return list_trips(request)
+    if request.method == "POST":
+        return create_trip(request)
+    return JsonResponse(
+        {"error": "Method not allowed. Use GET or POST."},
+        status=405,
+    )
+
+
 @firebase_required
 def create_trip(request):
     """
@@ -412,11 +425,20 @@ def generate_trip(request):
                 status=400,
             )
 
-        trip = GeminiTripGenerationService.generate_trip(body)
+        auth_user = request.auth_user
+        owner_uid = auth_user.get("uid")
+
+        generated_trip = GeminiTripGenerationService.generate_trip(body)
+        saved_trip = TripService.create_generated_trip(
+            owner_uid=owner_uid,
+            request_data=body,
+            itinerary=generated_trip,
+        )
         return JsonResponse(
             {
                 "message": "Trip itinerary generated successfully!",
-                "trip": trip,
+                "trip": generated_trip,
+                "savedTrip": saved_trip.to_dict(),
             },
             status=200,
         )

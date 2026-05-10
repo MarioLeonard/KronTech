@@ -9,19 +9,28 @@ import 'package:frontend/providers/auth_provider.dart';
 import 'package:provider/provider.dart';
 
 class TripCreationScreen extends StatelessWidget {
-  const TripCreationScreen({super.key});
+  const TripCreationScreen({super.key, this.onBack, this.onTripGenerated});
+
+  final VoidCallback? onBack;
+  final VoidCallback? onTripGenerated;
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (_) => TripCreationProvider(),
-      child: const _TripCreationView(),
+      child: _TripCreationView(
+        onBack: onBack,
+        onTripGenerated: onTripGenerated,
+      ),
     );
   }
 }
 
 class _TripCreationView extends StatelessWidget {
-  const _TripCreationView();
+  const _TripCreationView({this.onBack, this.onTripGenerated});
+
+  final VoidCallback? onBack;
+  final VoidCallback? onTripGenerated;
 
   @override
   Widget build(BuildContext context) {
@@ -42,12 +51,21 @@ class _TripCreationView extends StatelessWidget {
             if (isWide) {
               return SingleChildScrollView(
                 padding: const EdgeInsets.all(24),
-                child: Row(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SizedBox(width: 380, child: form),
-                    const SizedBox(width: 20),
-                    Expanded(child: result),
+                    if (onBack != null) ...[
+                      _BackToTripsButton(onPressed: onBack!),
+                      const SizedBox(height: 14),
+                    ],
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(width: 380, child: form),
+                        const SizedBox(width: 20),
+                        Expanded(child: result),
+                      ],
+                    ),
                   ],
                 ),
               );
@@ -57,7 +75,15 @@ class _TripCreationView extends StatelessWidget {
               padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [form, const SizedBox(height: 16), result],
+                children: [
+                  if (onBack != null) ...[
+                    _BackToTripsButton(onPressed: onBack!),
+                    const SizedBox(height: 14),
+                  ],
+                  form,
+                  const SizedBox(height: 16),
+                  result,
+                ],
               ),
             );
           },
@@ -66,7 +92,10 @@ class _TripCreationView extends StatelessWidget {
     );
   }
 
-  void _generate(BuildContext context, TripCreationRequest request) {
+  Future<void> _generate(
+    BuildContext context,
+    TripCreationRequest request,
+  ) async {
     final user = context.read<AuthProvider>().user;
     final idToken = user?.idToken;
     if (idToken == null || idToken.isEmpty) {
@@ -78,9 +107,31 @@ class _TripCreationView extends StatelessWidget {
       return;
     }
 
-    context.read<TripCreationProvider>().generateTrip(
+    await context.read<TripCreationProvider>().generateTrip(
       request: request,
       idToken: idToken,
+    );
+    if (!context.mounted) {
+      return;
+    }
+    if (context.read<TripCreationProvider>().status ==
+        TripCreationStatus.success) {
+      onTripGenerated?.call();
+    }
+  }
+}
+
+class _BackToTripsButton extends StatelessWidget {
+  const _BackToTripsButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: onPressed,
+      icon: const Icon(Icons.arrow_back_rounded),
+      label: const Text('Inapoi la tripurile mele'),
     );
   }
 }
