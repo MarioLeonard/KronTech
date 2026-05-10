@@ -104,10 +104,26 @@ class FakeFriendRepository:
         return friendship.copy()
 
 
+class FakeChatService:
+    def __init__(self):
+        self.ensure_calls = []
+
+    def ensure_conversation(self, user_id_1, user_id_2, created_at=None):
+        self.ensure_calls.append((user_id_1, user_id_2, created_at))
+        return {
+            "conversation_id": f"conv_{user_id_1}_{user_id_2}",
+            "participants": sorted([user_id_1, user_id_2]),
+        }, True
+
+
 class FriendServiceTest(TestCase):
     def setUp(self):
         self.repo = FakeFriendRepository()
-        self.service = FriendService(repository=self.repo)
+        self.chat_service = FakeChatService()
+        self.service = FriendService(
+            repository=self.repo,
+            chat_service=self.chat_service,
+        )
 
     def test_list_friends(self):
         request = self.service.send_request("alice", "bob")
@@ -154,6 +170,8 @@ class FriendServiceTest(TestCase):
         self.assertIn("alice", data["friendship"]["user_ids"])
         self.assertIn("bob", data["friendship"]["user_ids"])
         self.assertTrue(self.service.are_friends("alice", "bob"))
+        self.assertEqual(len(self.chat_service.ensure_calls), 1)
+        self.assertEqual(self.chat_service.ensure_calls[0][0:2], ("alice", "bob"))
 
     def test_decline_request(self):
         request = self.service.send_request("alice", "bob")

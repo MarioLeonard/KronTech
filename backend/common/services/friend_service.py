@@ -7,6 +7,7 @@ from typing import Dict, Iterable, List, Optional
 from google.cloud.firestore_v1.base_query import FieldFilter
 
 from common.firebase.database import FirestoreService
+from common.services.chat_service import ChatService
 
 
 class FriendServiceError(Exception):
@@ -199,8 +200,9 @@ class FirestoreFriendRepository:
 
 
 class FriendService:
-    def __init__(self, repository=None):
+    def __init__(self, repository=None, chat_service=None):
         self.repository = repository or FirestoreFriendRepository()
+        self.chat_service = chat_service or ChatService
 
     def list_friends(self, user_id: str, page: int = 1, limit: int = 20) -> dict:
         page, limit = self._normalize_pagination(page, limit)
@@ -213,6 +215,10 @@ class FriendService:
             profile = self.repository.get_user(friend_id)
             summary = _profile_summary(profile, friend_id)
             summary["friendship_id"] = ref.get("friendship_id")
+            summary["conversation_id"] = ChatService.generate_conversation_id(
+                user_id,
+                friend_id,
+            )
             summary["created_at"] = ref.get("created_at")
             friends.append(summary)
 
@@ -304,6 +310,11 @@ class FriendService:
         )
         existing = self.repository.get_friendship(friendship_id)
         if existing:
+            self.chat_service.ensure_conversation(
+                request["sender_id"],
+                request["receiver_id"],
+                created_at=existing.get("created_at"),
+            )
             updated_request = self.repository.update_request(
                 request_id,
                 {
@@ -320,6 +331,11 @@ class FriendService:
             "created_at": _now_iso(),
         }
         created_friendship = self.repository.create_friendship(friendship, request_id)
+        self.chat_service.ensure_conversation(
+            request["sender_id"],
+            request["receiver_id"],
+            created_at=friendship["created_at"],
+        )
         accepted_request = self.repository.get_request(request_id) or {
             **request,
             "status": "accepted",

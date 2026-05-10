@@ -53,7 +53,19 @@ class MessageListView(APIView):
         ).order_by("timestamp")
         
         if not messages.exists():
-            return error_response("Conversation not found", status.HTTP_404_NOT_FOUND)
+            if not ChatService.user_has_conversation_access(conversation_id, user_id):
+                return error_response("Conversation not found", status.HTTP_404_NOT_FOUND)
+
+            return success_response(
+                data={
+                    'messages': [],
+                    'count': 0,
+                    'total_pages': 0,
+                    'current_page': 1,
+                    'has_next': False,
+                },
+                message="Messages retrieved successfully",
+            )
 
         # Check if user is part of conversation
         if not messages.filter(Q(sender_id=user_id) | Q(receiver_id=user_id)).exists():

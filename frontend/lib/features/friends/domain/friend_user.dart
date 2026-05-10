@@ -30,6 +30,7 @@ class FriendUser {
     this.email,
     this.avatarUrl,
     this.friendshipId,
+    this.conversationId,
     this.createdAt,
   });
 
@@ -38,6 +39,7 @@ class FriendUser {
   final String? email;
   final String? avatarUrl;
   final String? friendshipId;
+  final String? conversationId;
   final DateTime? createdAt;
 
   factory FriendUser.fromJson(Map<String, dynamic> json) {
@@ -52,6 +54,7 @@ class FriendUser {
       email: json['email'] as String?,
       avatarUrl: json['avatar_url'] as String? ?? json['photo_url'] as String?,
       friendshipId: json['friendship_id'] as String?,
+      conversationId: json['conversation_id'] as String?,
       createdAt: _parseDate(json['created_at']),
     );
   }

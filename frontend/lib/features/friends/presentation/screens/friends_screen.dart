@@ -5,7 +5,9 @@ import 'package:frontend/features/friends/presentation/controllers/friends_provi
 import 'package:provider/provider.dart';
 
 class FriendsScreen extends StatefulWidget {
-  const FriendsScreen({super.key});
+  const FriendsScreen({this.onOpenChat, super.key});
+
+  final ValueChanged<String>? onOpenChat;
 
   @override
   State<FriendsScreen> createState() => _FriendsScreenState();
@@ -78,7 +80,10 @@ class _FriendsScreenState extends State<FriendsScreen>
               child: TabBarView(
                 controller: _tabController,
                 children: [
-                  _FriendsTab(scrollController: _scrollController),
+                  _FriendsTab(
+                    scrollController: _scrollController,
+                    onOpenChat: widget.onOpenChat,
+                  ),
                   const _RequestsTab(),
                 ],
               ),
@@ -105,9 +110,10 @@ class _FriendsScreenState extends State<FriendsScreen>
 }
 
 class _FriendsTab extends StatelessWidget {
-  const _FriendsTab({required this.scrollController});
+  const _FriendsTab({required this.scrollController, this.onOpenChat});
 
   final ScrollController scrollController;
+  final ValueChanged<String>? onOpenChat;
 
   @override
   Widget build(BuildContext context) {
@@ -153,13 +159,26 @@ class _FriendsTab extends StatelessWidget {
           final friend = provider.friends[index];
           return _PersonTile(
             user: friend,
-            trailing: Chip(
-              avatar: Icon(
-                Icons.check_circle_rounded,
-                color: theme.colorScheme.primary,
-                size: 18,
-              ),
-              label: const Text('Prieten'),
+            trailing: Wrap(
+              spacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Chip(
+                  avatar: Icon(
+                    Icons.check_circle_rounded,
+                    color: theme.colorScheme.primary,
+                    size: 18,
+                  ),
+                  label: const Text('Prieten'),
+                ),
+                IconButton.filledTonal(
+                  tooltip: 'Chat',
+                  onPressed: friend.conversationId == null || onOpenChat == null
+                      ? null
+                      : () => onOpenChat!(friend.conversationId!),
+                  icon: const Icon(Icons.chat_bubble_rounded),
+                ),
+              ],
             ),
           );
         },

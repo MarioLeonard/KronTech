@@ -39,14 +39,11 @@ class ChatService:
         conversation_id = conversation_id or expected_conversation_id
 
         if conversation_id != expected_conversation_id:
-            existing = Message.objects.filter(
-                conversation_id=conversation_id,
-            ).filter(
-                Q(sender_id=sender_id, receiver_id=receiver_id)
-                | Q(sender_id=receiver_id, receiver_id=sender_id)
-            )
-            if not existing.exists():
+            participants = ChatService.get_conversation_participants(conversation_id)
+            if sorted(participants) != sorted([sender_id, receiver_id]):
                 raise ValueError("Conversation does not match participants")
+
+        ChatService.ensure_conversation(sender_id, receiver_id)
         
         # Save to Django DB
         message = Message.objects.create(
@@ -60,6 +57,38 @@ class ChatService:
         ChatService._save_to_firestore(message, conversation_id)
         
         return message
+
+    @staticmethod
+    def ensure_conversation(
+        user_id_1: str,
+        user_id_2: str,
+        created_at: Optional[str] = None,
+    ) -> tuple[dict, bool]:
+        """Create a Firestore conversation document for two users if missing."""
+        conversation_id = ChatService.generate_conversation_id(user_id_1, user_id_2)
+        participants = sorted([user_id_1, user_id_2])
+        now = created_at or timezone.now().isoformat()
+
+        db = FirestoreService()._db
+        conversation_ref = db.collection("conversations").document(conversation_id)
+        existing = conversation_ref.get()
+        if existing.exists:
+            data = existing.to_dict() or {}
+            return {"id": existing.id, **data}, False
+
+        payload = {
+            "conversation_id": conversation_id,
+            "participants": participants,
+            "created_at": now,
+            "updated_at": now,
+            "last_message": "",
+            "last_message_id": None,
+            "last_message_sender_id": None,
+            "last_message_timestamp": None,
+            "unread_counts": {user_id_1: 0, user_id_2: 0},
+        }
+        conversation_ref.set(payload, merge=False)
+        return {"id": conversation_id, **payload}, True
 
     @staticmethod
     def _save_to_firestore(message: Message, conversation_id: str):
@@ -131,15 +160,39 @@ class ChatService:
     @staticmethod
     def get_user_conversations(user_id: str) -> list:
         """Get all conversations for a user"""
+        firestore_conversations = ChatService._get_firestore_conversations(user_id)
         messages = Message.objects.filter(
             Q(sender_id=user_id) | Q(receiver_id=user_id)
         ).order_by("-timestamp")
 
-        conversations = []
-        processed_convs = set()
+        conversations_by_id = {}
+
+        for conversation in firestore_conversations:
+            participants = conversation.get("participants") or []
+            if user_id not in participants:
+                continue
+            other_user = next(
+                (participant for participant in participants if participant != user_id),
+                None,
+            )
+            if not other_user:
+                continue
+            unread_counts = conversation.get("unread_counts") or {}
+            conversations_by_id[conversation["conversation_id"]] = {
+                "conversation_id": conversation["conversation_id"],
+                "other_user_id": other_user,
+                "other_user": ChatService.get_user_summary(other_user),
+                "last_message": conversation.get("last_message") or "",
+                "last_message_id": conversation.get("last_message_id"),
+                "last_message_sender_id": conversation.get("last_message_sender_id"),
+                "last_message_timestamp": conversation.get("last_message_timestamp")
+                or conversation.get("updated_at")
+                or conversation.get("created_at"),
+                "unread_count": unread_counts.get(user_id, 0),
+            }
 
         for msg in messages:
-            if msg.conversation_id not in processed_convs:
+            if msg.conversation_id not in conversations_by_id:
                 other_user = msg.receiver_id if msg.sender_id == user_id else msg.sender_id
                 
                 unread_count = Message.objects.filter(
@@ -148,7 +201,7 @@ class ChatService:
                     is_read=False
                 ).count()
                 
-                conversations.append({
+                conversations_by_id[msg.conversation_id] = {
                     'conversation_id': msg.conversation_id,
                     'other_user_id': other_user,
                     'other_user': ChatService.get_user_summary(other_user),
@@ -156,10 +209,25 @@ class ChatService:
                     'last_message_sender_id': msg.sender_id,
                     'last_message_timestamp': msg.timestamp,
                     'unread_count': unread_count
+                }
+            elif not conversations_by_id[msg.conversation_id].get("last_message_id"):
+                conversations_by_id[msg.conversation_id].update({
+                    "last_message": msg.content,
+                    "last_message_id": str(msg.id),
+                    "last_message_sender_id": msg.sender_id,
+                    "last_message_timestamp": msg.timestamp,
+                    "unread_count": Message.objects.filter(
+                        conversation_id=msg.conversation_id,
+                        receiver_id=user_id,
+                        is_read=False,
+                    ).count(),
                 })
-                processed_convs.add(msg.conversation_id)
 
-        return conversations
+        return sorted(
+            conversations_by_id.values(),
+            key=lambda item: item.get("last_message_timestamp") or "",
+            reverse=True,
+        )
 
     @staticmethod
     def mark_messages_as_read(conversation_id: str, user_id: str) -> int:
@@ -175,6 +243,10 @@ class ChatService:
     @staticmethod
     def user_has_conversation_access(conversation_id: str, user_id: str) -> bool:
         """Return whether a Firebase UID participates in a conversation."""
+        participants = ChatService.get_conversation_participants(conversation_id)
+        if participants:
+            return user_id in participants
+
         return Message.objects.filter(conversation_id=conversation_id).filter(
             Q(sender_id=user_id) | Q(receiver_id=user_id)
         ).exists()
@@ -182,10 +254,70 @@ class ChatService:
     @staticmethod
     def get_conversation_participants(conversation_id: str) -> Iterable[str]:
         """Return participant IDs known from local messages."""
+        conversation = ChatService.get_conversation(conversation_id)
+        if conversation:
+            return conversation.get("participants") or []
+
         message = Message.objects.filter(conversation_id=conversation_id).first()
         if not message:
             return []
         return sorted([message.sender_id, message.receiver_id])
+
+    @staticmethod
+    def get_conversation(conversation_id: str) -> Optional[dict]:
+        """Read one conversation document from Firestore if it exists."""
+        try:
+            doc = FirestoreService()._db.collection("conversations").document(
+                conversation_id,
+            ).get()
+            if doc.exists:
+                return {"id": doc.id, **(doc.to_dict() or {})}
+        except Exception:
+            logger.debug("Could not load conversation %s", conversation_id, exc_info=True)
+        return None
+
+    @staticmethod
+    def backfill_friend_conversations() -> dict:
+        """Ensure every friendship document has a corresponding conversation."""
+        db = FirestoreService()._db
+        created = 0
+        skipped = 0
+        invalid = 0
+        for doc in db.collection("friendships").stream():
+            data = doc.to_dict() or {}
+            user_ids = data.get("user_ids") or []
+            if len(user_ids) != 2:
+                invalid += 1
+                continue
+            _, was_created = ChatService.ensure_conversation(
+                user_ids[0],
+                user_ids[1],
+                created_at=data.get("created_at"),
+            )
+            if was_created:
+                created += 1
+            else:
+                skipped += 1
+
+        return {"created": created, "skipped": skipped, "invalid": invalid}
+
+    @staticmethod
+    def _get_firestore_conversations(user_id: str) -> list:
+        """Return conversation documents for a participant without composite indexes."""
+        try:
+            docs = (
+                FirestoreService()
+                ._db.collection("conversations")
+                .where(filter=FieldFilter("participants", "array_contains", user_id))
+                .stream()
+            )
+            return [
+                {"id": doc.id, **(doc.to_dict() or {})}
+                for doc in docs
+            ]
+        except Exception:
+            logger.debug("Could not list Firestore conversations", exc_info=True)
+            return []
 
     @staticmethod
     def get_user_summary(user_id: str) -> dict:

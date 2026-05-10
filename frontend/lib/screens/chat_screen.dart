@@ -7,7 +7,9 @@ import 'package:frontend/features/chat/presentation/controllers/chat_provider.da
 
 /// Legacy chat screen that wraps the new feature-based chat
 class ChatScreen extends StatelessWidget {
-  const ChatScreen({super.key});
+  const ChatScreen({this.initialConversationId, super.key});
+
+  final String? initialConversationId;
 
   @override
   Widget build(BuildContext context) {
@@ -17,8 +19,11 @@ class ChatScreen extends StatelessWidget {
     }
 
     return ChangeNotifierProvider(
-      create: (_) =>
-          ChatProvider(currentUserId: authUser.id, idToken: authUser.idToken),
+      create: (_) => ChatProvider(
+        currentUserId: authUser.id,
+        idToken: authUser.idToken,
+        initialConversationId: initialConversationId,
+      ),
       child: const chat_feature.ChatScreen(),
     );
   }

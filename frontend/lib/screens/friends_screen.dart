@@ -6,7 +6,9 @@ import 'package:frontend/providers/auth_provider.dart' as app_auth;
 import 'package:provider/provider.dart';
 
 class FriendsScreen extends StatelessWidget {
-  const FriendsScreen({super.key});
+  const FriendsScreen({this.onOpenChat, super.key});
+
+  final ValueChanged<String>? onOpenChat;
 
   @override
   Widget build(BuildContext context) {
@@ -17,7 +19,7 @@ class FriendsScreen extends StatelessWidget {
 
     return ChangeNotifierProvider(
       create: (_) => FriendsProvider(idToken: authUser.idToken)..init(),
-      child: const friends_feature.FriendsScreen(),
+      child: friends_feature.FriendsScreen(onOpenChat: onOpenChat),
     );
   }
 }

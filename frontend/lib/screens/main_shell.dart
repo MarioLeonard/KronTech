@@ -20,6 +20,7 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> {
   int _selectedIndex = 0;
+  String? _initialChatConversationId;
 
   @override
   Widget build(BuildContext context) {
@@ -42,12 +43,12 @@ class _MainShellState extends State<MainShell> {
       const _ShellDestination(
         label: 'Friends',
         icon: Icons.group_rounded,
-        content: FriendsScreen(),
+        content: SizedBox.shrink(),
       ),
-      const _ShellDestination(
+      _ShellDestination(
         label: 'Chat',
         icon: Icons.chat_bubble_rounded,
-        content: ChatScreen(),
+        content: ChatScreen(initialConversationId: _initialChatConversationId),
       ),
       const _ShellDestination(
         label: 'Settings',
@@ -59,7 +60,27 @@ class _MainShellState extends State<MainShell> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isWide = constraints.maxWidth >= 720;
-        final current = destinations[_selectedIndex];
+        final resolvedDestinations = [...destinations];
+        resolvedDestinations[3] = _ShellDestination(
+          label: 'Friends',
+          icon: Icons.group_rounded,
+          content: FriendsScreen(
+            onOpenChat: (conversationId) {
+              setState(() {
+                _initialChatConversationId = conversationId;
+                _selectedIndex = 4;
+              });
+            },
+          ),
+        );
+        resolvedDestinations[4] = _ShellDestination(
+          label: 'Chat',
+          icon: Icons.chat_bubble_rounded,
+          content: ChatScreen(
+            initialConversationId: _initialChatConversationId,
+          ),
+        );
+        final current = resolvedDestinations[_selectedIndex];
 
         return Scaffold(
           appBar: AppBar(

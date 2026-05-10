@@ -10,10 +10,12 @@ class ChatProvider extends ChangeNotifier {
   ChatProvider({
     required String currentUserId,
     required String idToken,
+    String? initialConversationId,
     ChatApiService? apiService,
     ChatWebSocketService? webSocketService,
   }) : _currentUserId = currentUserId,
        _idToken = idToken,
+       _initialConversationId = initialConversationId,
        _apiService = apiService ?? ChatApiService(),
        _webSocketService = webSocketService ?? ChatWebSocketService() {
     _socketSubscription = _webSocketService.events.listen(_handleSocketEvent);
@@ -21,6 +23,7 @@ class ChatProvider extends ChangeNotifier {
 
   final String _currentUserId;
   final String _idToken;
+  final String? _initialConversationId;
   final ChatApiService _apiService;
   final ChatWebSocketService _webSocketService;
 
@@ -81,7 +84,13 @@ class ChatProvider extends ChangeNotifier {
         currentUserId: _currentUserId,
       );
       if (_conversations.isNotEmpty) {
-        await selectConversation(_conversations.first.id);
+        final initialConversation = _initialConversationId;
+        final selectedId =
+            initialConversation != null &&
+                _conversations.any((item) => item.id == initialConversation)
+            ? initialConversation
+            : _conversations.first.id;
+        await selectConversation(selectedId);
       }
     } catch (error) {
       _errorMessage = error.toString();
