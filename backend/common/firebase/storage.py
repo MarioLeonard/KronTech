@@ -8,6 +8,8 @@ import mimetypes
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
+from urllib.parse import quote
+from uuid import uuid4
 
 import firebase_admin
 from firebase_admin import storage
@@ -91,13 +93,21 @@ class FirebaseStorageService:
                 content_type = content_type or "application/octet-stream"
 
             blob = self._bucket.blob(file_path)
+            download_token = str(uuid4())
+            blob.metadata = {
+                **(blob.metadata or {}),
+                "firebaseStorageDownloadTokens": download_token,
+            }
             blob.upload_from_string(
                 file_content,
                 content_type=content_type,
             )
 
-            # Generate public URL
-            public_url = f"https://firebasestorage.googleapis.com/v0/b/{self._bucket.name}/o/{blob.name.replace('/', '%2F')}?alt=media"
+            encoded_name = quote(blob.name, safe="")
+            public_url = (
+                f"https://firebasestorage.googleapis.com/v0/b/{self._bucket.name}"
+                f"/o/{encoded_name}?alt=media&token={download_token}"
+            )
 
             logger.info(f"File uploaded successfully to {file_path}")
             return public_url

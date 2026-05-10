@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../data/chat_websocket_service.dart';
 import '../controllers/chat_provider.dart';
 import '../../domain/chat_conversation.dart';
 import 'chat_message_bubble.dart';
@@ -128,13 +127,9 @@ class _ChatConversationViewState extends State<ChatConversationView> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      conversation.participant.isOnline
-                          ? 'Online'
-                          : _connectionLabel(chatProvider.connectionState),
+                      conversation.participant.presenceLabel,
                       style: theme.textTheme.labelSmall?.copyWith(
-                        color:
-                            chatProvider.connectionState ==
-                                ChatSocketConnectionState.connected
+                        color: conversation.participant.isOnline
                             ? Colors.green
                             : null,
                       ),
@@ -255,13 +250,5 @@ class _ChatConversationViewState extends State<ChatConversationView> {
         ),
       ],
     );
-  }
-
-  String _connectionLabel(ChatSocketConnectionState state) {
-    return switch (state) {
-      ChatSocketConnectionState.connected => 'Connected',
-      ChatSocketConnectionState.connecting => 'Connecting',
-      ChatSocketConnectionState.disconnected => 'Reconnecting',
-    };
   }
 }

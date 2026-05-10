@@ -2,6 +2,7 @@ import json
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
 from common.services.chat_service import ChatService
+from common.services.presence_service import PresenceService
 
 
 class ChatConsumer(AsyncWebsocketConsumer):
@@ -29,6 +30,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             self.room_group_name,
             self.channel_name
         )
+        presence = await self.mark_user_online(self.user_id)
         await self.accept()
         
         # Notify others that user connected
@@ -36,19 +38,22 @@ class ChatConsumer(AsyncWebsocketConsumer):
             self.room_group_name,
             {
                 'type': 'user_connected',
-                'user_id': self.user_id
+                'user_id': self.user_id,
+                **presence,
             }
         )
 
     async def disconnect(self, close_code):
         """Handle WebSocket disconnection"""
         if hasattr(self, 'room_group_name'):
+            presence = await self.mark_user_offline(self.user_id)
             # Notify others that user disconnected
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {
                     'type': 'user_disconnected',
-                    'user_id': self.user_id
+                    'user_id': self.user_id,
+                    **presence,
                 }
             )
             
@@ -106,6 +111,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     'type': 'chat_message_event',
                     **message,
                 }
+            )
+            await self.channel_layer.group_send(
+                f"user_notifications_{receiver_id}",
+                {
+                    "type": "chat_notification_event",
+                    **message,
+                },
             )
         else:
             await self.send_error("Could not save message")
@@ -170,7 +182,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
         if event['user_id'] != self.user_id:  # Don't send to self
             await self.send(text_data=json.dumps({
                 'type': 'user_connected',
-                'user_id': event['user_id']
+                'user_id': event['user_id'],
+                'status': event.get('status'),
+                'last_seen': event.get('last_seen'),
             }))
 
     async def user_disconnected(self, event):
@@ -178,7 +192,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
         if event['user_id'] != self.user_id:  # Don't send to self
             await self.send(text_data=json.dumps({
                 'type': 'user_disconnected',
-                'user_id': event['user_id']
+                'user_id': event['user_id'],
+                'status': event.get('status'),
+                'last_seen': event.get('last_seen'),
             }))
 
     # Database operations (sync to async)
@@ -203,6 +219,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 'id': str(message.id),
                 'conversation_id': message.conversation_id,
                 'sender_id': message.sender_id,
+                'sender_name': ChatService.get_user_summary(
+                    message.sender_id,
+                ).get("name") or message.sender_id,
                 'receiver_id': message.receiver_id,
                 'content': message.content,
                 'timestamp': message.timestamp.isoformat(),
@@ -236,9 +255,61 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 return participant
         return None
 
+    @database_sync_to_async
+    def mark_user_online(self, user_id: str):
+        return PresenceService.mark_online(user_id)
+
+    @database_sync_to_async
+    def mark_user_offline(self, user_id: str):
+        return PresenceService.mark_offline(user_id)
+
     async def send_error(self, message: str):
         """Send error message to client"""
         await self.send(text_data=json.dumps({
             'type': 'error',
             'message': message
         }))
+
+
+class ChatNotificationConsumer(AsyncWebsocketConsumer):
+    """User-level websocket for chat notifications across all conversations."""
+
+    async def connect(self):
+        self.user_id = self.scope['user'].get('uid') if self.scope.get('user') else None
+        if not self.user_id:
+            await self.close(code=4001)
+            return
+
+        self.group_name = f"user_notifications_{self.user_id}"
+        await self.channel_layer.group_add(self.group_name, self.channel_name)
+        await self.mark_user_online(self.user_id)
+        await self.accept()
+
+    async def disconnect(self, close_code):
+        if hasattr(self, "group_name"):
+            await self.channel_layer.group_discard(self.group_name, self.channel_name)
+            await self.mark_user_offline(self.user_id)
+
+    async def chat_notification_event(self, event):
+        if event.get("sender_id") == self.user_id:
+            return
+
+        await self.send(text_data=json.dumps({
+            "type": "chat_notification",
+            "message_id": event["message_id"],
+            "conversation_id": event["conversation_id"],
+            "sender_id": event["sender_id"],
+            "sender_name": event.get("sender_name") or event["sender_id"],
+            "receiver_id": event["receiver_id"],
+            "content": event["content"],
+            "timestamp": event["timestamp"],
+            "is_read": event["is_read"],
+        }))
+
+    @database_sync_to_async
+    def mark_user_online(self, user_id: str):
+        return PresenceService.mark_online(user_id)
+
+    @database_sync_to_async
+    def mark_user_offline(self, user_id: str):
+        return PresenceService.mark_offline(user_id)

@@ -11,6 +11,7 @@ from google.cloud.firestore_v1.base_query import FieldFilter
 from apps.core.models import UserProfile
 from apps.chat.models import Message
 from common.firebase.database import FirestoreService
+from common.services.presence_service import PresenceService
 
 logger = logging.getLogger(__name__)
 
@@ -343,6 +344,7 @@ class ChatService:
     @staticmethod
     def get_user_summary(user_id: str) -> dict:
         """Read lightweight participant profile data from Firestore if available."""
+        presence = PresenceService.get_presence(user_id)
         try:
             profile = UserProfile.get_by_uid(user_id)
             if profile:
@@ -360,6 +362,7 @@ class ChatService:
                     "id": user_id,
                     "name": display_name or user_id,
                     "avatar_url": data.get("profilePhotoUrl") or data.get("photo_url"),
+                    **presence,
                 }
         except Exception:
             logger.debug("Could not load chat profile for %s", user_id, exc_info=True)
@@ -368,6 +371,7 @@ class ChatService:
             "id": user_id,
             "name": user_id,
             "avatar_url": None,
+            **presence,
         }
 
     @staticmethod

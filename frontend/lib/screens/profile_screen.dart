@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/components/app_avatar.dart';
 import 'package:frontend/features/onboarding/presentation/widgets/profile_photo_picker_card.dart';
 import 'package:frontend/models/auth_user.dart';
 import 'package:frontend/models/user_profile.dart';
@@ -85,13 +86,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     await Future<void>.delayed(const Duration(milliseconds: 350));
 
-    final profile = widget.user.profile ??
+    final profile =
+        widget.user.profile ??
         UserProfile(uid: widget.user.id, email: widget.user.email);
 
     final updatedProfile = profile.copyWith(
       firstName: _firstNameController.text.trim(),
       lastName: _lastNameController.text.trim(),
-      displayName: '${_firstNameController.text.trim()} ${_lastNameController.text.trim()}'.trim(),
+      displayName:
+          '${_firstNameController.text.trim()} ${_lastNameController.text.trim()}'
+              .trim(),
       email: _emailController.text.trim(),
       gender: _genderController.text.trim(),
       country: _countryController.text.trim(),
@@ -172,22 +176,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   else
                     Row(
                       children: [
-                        CircleAvatar(
+                        AppAvatar(
                           radius: 36,
-                          backgroundColor: theme.colorScheme.secondary,
-                          backgroundImage: photoUrl == null
-                              ? null
-                              : NetworkImage(photoUrl),
-                          child: photoUrl == null
-                              ? const Icon(Icons.person_outline_rounded, size: 36)
-                              : null,
+                          imageUrl: photoUrl,
+                          icon: Icons.person_outline_rounded,
                         ),
                         const SizedBox(width: 16),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(displayName, style: theme.textTheme.titleLarge),
+                              Text(
+                                displayName,
+                                style: theme.textTheme.titleLarge,
+                              ),
                               const SizedBox(height: 4),
                               Text(widget.user.email ?? 'No email'),
                             ],
@@ -262,7 +264,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ? const SizedBox(
                                     height: 18,
                                     width: 18,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
                                   )
                                 : const Text('Save changes'),
                           ),
@@ -293,7 +297,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Row(
         children: [
           Expanded(
-            child: Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
+            child: Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
           ),
           Expanded(child: Text(displayValue)),
         ],

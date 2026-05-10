@@ -1,4 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:frontend/features/chat/data/browser_chat_notifications.dart';
+import 'package:frontend/features/chat/data/chat_api_service.dart';
+import 'package:frontend/features/chat/data/chat_notification_service.dart';
 import 'package:frontend/features/trips/presentation/screens/my_trips_screen.dart';
 import 'package:frontend/models/auth_user.dart';
 import 'package:frontend/providers/auth_provider.dart';
@@ -19,8 +24,101 @@ class MainShell extends StatefulWidget {
 }
 
 class _MainShellState extends State<MainShell> {
+  final ChatNotificationService _chatNotificationService =
+      ChatNotificationService();
+  final BrowserChatNotifications _browserNotifications =
+      BrowserChatNotifications();
+
   int _selectedIndex = 0;
   String? _initialChatConversationId;
+  StreamSubscription<ChatNotificationEvent>? _notificationSubscription;
+  Timer? _notificationReconnectTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _browserNotifications.requestPermission();
+      _connectNotifications();
+    });
+  }
+
+  @override
+  void didUpdateWidget(MainShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.user.idToken != widget.user.idToken) {
+      _connectNotifications();
+    }
+  }
+
+  @override
+  void dispose() {
+    _notificationReconnectTimer?.cancel();
+    _notificationSubscription?.cancel();
+    _chatNotificationService.dispose();
+    super.dispose();
+  }
+
+  void _connectNotifications() {
+    _notificationReconnectTimer?.cancel();
+    _notificationSubscription?.cancel();
+    _notificationSubscription = _chatNotificationService.events.listen(
+      _handleChatNotification,
+    );
+    _chatNotificationService.connect(
+      uri: ChatApiService().notificationWebsocketUri(
+        idToken: widget.user.idToken,
+      ),
+      onDisconnected: _scheduleNotificationReconnect,
+    );
+  }
+
+  void _scheduleNotificationReconnect() {
+    _notificationReconnectTimer?.cancel();
+    _notificationReconnectTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted) {
+        _connectNotifications();
+      }
+    });
+  }
+
+  void _handleChatNotification(ChatNotificationEvent event) {
+    if (!mounted) return;
+
+    final title = 'Mesaj nou';
+    final senderName = event.senderName.trim().isEmpty
+        ? event.senderId
+        : event.senderName.trim();
+    final body = event.content.isEmpty
+        ? '$senderName: Ai primit un mesaj nou.'
+        : '$senderName: ${event.content}';
+    _browserNotifications.show(
+      title: title,
+      body: body,
+      onClick: () => _openChatConversation(event.conversationId),
+    );
+
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(
+        duration: const Duration(seconds: 5),
+        content: Text(body),
+        action: SnackBarAction(
+          label: 'Deschide',
+          onPressed: () => _openChatConversation(event.conversationId),
+        ),
+      ),
+    );
+  }
+
+  void _openChatConversation(String conversationId) {
+    if (!mounted) return;
+    setState(() {
+      _initialChatConversationId = conversationId;
+      _selectedIndex = 4;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -66,10 +164,7 @@ class _MainShellState extends State<MainShell> {
           icon: Icons.group_rounded,
           content: FriendsScreen(
             onOpenChat: (conversationId) {
-              setState(() {
-                _initialChatConversationId = conversationId;
-                _selectedIndex = 4;
-              });
+              _openChatConversation(conversationId);
             },
           ),
         );

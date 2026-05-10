@@ -87,6 +87,15 @@ class ChatApiService {
     );
   }
 
+  Uri notificationWebsocketUri({required String idToken}) {
+    final scheme = _baseUri.scheme == 'https' ? 'wss' : 'ws';
+    return _baseUri.replace(
+      scheme: scheme,
+      path: '/ws/notifications/',
+      queryParameters: {'token': idToken},
+    );
+  }
+
   Map<String, String> _headers(String idToken) {
     return {
       'Authorization': 'Bearer $idToken',

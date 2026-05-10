@@ -2,6 +2,8 @@ from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework.pagination import PageNumberPagination
 from django.db.models import Q
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 from .models import Message
 from .serializers import MessageSerializer
 from common.api.responses import success_response, error_response
@@ -111,6 +113,27 @@ class SendMessageView(APIView):
             return error_response(str(error), status.HTTP_400_BAD_REQUEST)
 
         serializer = MessageSerializer(message)
+        sender_name = (
+            ChatService.get_user_summary(message.sender_id).get("name")
+            or message.sender_id
+        )
+        channel_layer = get_channel_layer()
+        if channel_layer is not None:
+            async_to_sync(channel_layer.group_send)(
+                f"user_notifications_{receiver_id}",
+                {
+                    "type": "chat_notification_event",
+                    "message_id": str(message.id),
+                    "id": str(message.id),
+                    "conversation_id": message.conversation_id,
+                    "sender_id": message.sender_id,
+                    "sender_name": sender_name,
+                    "receiver_id": message.receiver_id,
+                    "content": message.content,
+                    "timestamp": message.timestamp.isoformat(),
+                    "is_read": message.is_read,
+                },
+            )
         return success_response(
             data=serializer.data,
             message="Message sent successfully",

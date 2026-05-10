@@ -257,6 +257,36 @@ class ChatProvider extends ChangeNotifier {
     if (event.type == 'error') {
       _errorMessage = event.error ?? 'Chat connection error.';
       notifyListeners();
+      return;
+    }
+
+    if (event.type == 'user_connected' || event.type == 'user_disconnected') {
+      _updateParticipantPresence(event);
+      notifyListeners();
+    }
+  }
+
+  void _updateParticipantPresence(ChatSocketEvent event) {
+    final userId = event.userId;
+    if (userId == null || userId.isEmpty || userId == _currentUserId) {
+      return;
+    }
+
+    ChatConversation updateConversation(ChatConversation conversation) {
+      if (conversation.participant.id != userId) {
+        return conversation;
+      }
+      return conversation.copyWith(
+        participant: conversation.participant.copyWith(
+          status: event.status,
+          lastSeen: event.lastSeen,
+        ),
+      );
+    }
+
+    _conversations = _conversations.map(updateConversation).toList();
+    if (_selectedConversation != null) {
+      _selectedConversation = updateConversation(_selectedConversation!);
     }
   }
 

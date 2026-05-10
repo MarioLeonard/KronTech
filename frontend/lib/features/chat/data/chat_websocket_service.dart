@@ -11,12 +11,16 @@ class ChatSocketEvent {
     required this.type,
     this.message,
     this.userId,
+    this.status,
+    this.lastSeen,
     this.error,
   });
 
   final String type;
   final ChatMessage? message;
   final String? userId;
+  final String? status;
+  final DateTime? lastSeen;
   final String? error;
 }
 
@@ -34,16 +38,28 @@ class ChatWebSocketService {
     required VoidCallback onDisconnected,
   }) {
     disconnect();
-    _channel = WebSocketChannel.connect(uri);
-    _subscription = _channel!.stream.listen(
-      (event) => _handleEvent(event, currentUserId),
-      onError: (Object error) {
+    final channel = WebSocketChannel.connect(uri);
+    var didReportDisconnect = false;
+
+    void reportDisconnected([Object? error]) {
+      if (_channel != channel || didReportDisconnect) {
+        return;
+      }
+      didReportDisconnect = true;
+      if (error != null && !_eventsController.isClosed) {
         _eventsController.add(
           ChatSocketEvent(type: 'error', error: error.toString()),
         );
-        onDisconnected();
-      },
-      onDone: onDisconnected,
+      }
+      onDisconnected();
+    }
+
+    _channel = channel;
+    unawaited(channel.ready.catchError(reportDisconnected));
+    _subscription = channel.stream.listen(
+      (event) => _handleEvent(event, currentUserId),
+      onError: reportDisconnected,
+      onDone: reportDisconnected,
       cancelOnError: true,
     );
   }
@@ -101,9 +117,18 @@ class ChatWebSocketService {
       ChatSocketEvent(
         type: type,
         userId: decoded['user_id'] as String?,
+        status: decoded['status'] as String?,
+        lastSeen: _parseDate(decoded['last_seen']),
         error: decoded['message'] as String?,
       ),
     );
+  }
+
+  DateTime? _parseDate(dynamic value) {
+    if (value is String && value.isNotEmpty) {
+      return DateTime.tryParse(value)?.toLocal();
+    }
+    return null;
   }
 }
 

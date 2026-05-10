@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/components/app_avatar.dart';
 import 'package:provider/provider.dart';
 import '../controllers/chat_provider.dart';
 import '../../domain/chat_conversation.dart';
@@ -157,13 +158,9 @@ class _ConversationTile extends StatelessWidget {
               /// Avatar
               Stack(
                 children: [
-                  CircleAvatar(
+                  AppAvatar(
+                    imageUrl: conversation.participant.avatarUrl,
                     radius: 24,
-                    backgroundColor: theme.colorScheme.secondary,
-                    child: Icon(
-                      Icons.person_rounded,
-                      color: theme.colorScheme.primary,
-                    ),
                   ),
 
                   /// Online indicator

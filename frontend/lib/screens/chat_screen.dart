@@ -19,6 +19,7 @@ class ChatScreen extends StatelessWidget {
     }
 
     return ChangeNotifierProvider(
+      key: ValueKey(initialConversationId),
       create: (_) => ChatProvider(
         currentUserId: authUser.id,
         idToken: authUser.idToken,

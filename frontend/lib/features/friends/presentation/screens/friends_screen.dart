@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/components/app_avatar.dart';
 import 'package:frontend/features/friends/domain/friend_request.dart';
 import 'package:frontend/features/friends/domain/friend_user.dart';
 import 'package:frontend/features/friends/presentation/controllers/friends_provider.dart';
@@ -334,12 +335,7 @@ class _PersonTile extends StatelessWidget {
     final theme = Theme.of(context);
 
     final tile = ListTile(
-      leading: CircleAvatar(
-        backgroundImage: user.avatarUrl == null
-            ? null
-            : NetworkImage(user.avatarUrl!),
-        child: user.avatarUrl == null ? const Icon(Icons.person_rounded) : null,
-      ),
+      leading: AppAvatar(imageUrl: user.avatarUrl, radius: 20),
       title: Text(user.name, style: theme.textTheme.titleSmall),
       subtitle: user.email == null ? null : Text(user.email!),
       trailing: trailing,
