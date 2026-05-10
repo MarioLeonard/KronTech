@@ -589,6 +589,16 @@ class UserProfileModelTest(TestCase):
 class SignupEndpointTests(TestCase):
     """Test signup endpoint that creates users in Firestore."""
 
+    def setUp(self):
+        self.auth_user = {
+            "uid": "test-user-123",
+            "email": "testuser@example.com",
+            "email_verified": True,
+            "display_name": "Test User",
+            "photo_url": None,
+            "custom_claims": {},
+        }
+
     def test_signup_endpoint_exists(self):
         """Test that signup endpoint exists and requires auth."""
         response = self.client.post(reverse("core:signup"))

@@ -99,10 +99,11 @@ class BackendApiService {
 
   static String _readBackendBaseUrl() {
     final baseUrl = dotenv.env['BACKEND_BASE_URL'];
-    if (baseUrl == null || baseUrl.isEmpty) {
-      throw StateError('BACKEND_BASE_URL is missing from frontend/.env.');
+    if (baseUrl != null && baseUrl.isNotEmpty) {
+      return baseUrl;
     }
 
-    return baseUrl;
+    // Provide a sensible default based on the environment
+    return 'http://localhost:8000';
   }
 }

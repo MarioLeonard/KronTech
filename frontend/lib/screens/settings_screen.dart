@@ -63,7 +63,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       setState(() => _tripNotifications = value);
                     },
                     title: const Text('Trip notifications'),
-                    subtitle: const Text('Updates when routes change or a trip starts.'),
+                    subtitle: const Text(
+                      'Updates when routes change or a trip starts.',
+                    ),
                   ),
                   SwitchListTile.adaptive(
                     value: _autoSaveDrafts,
@@ -71,11 +73,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       setState(() => _autoSaveDrafts = value);
                     },
                     title: const Text('Auto-save drafts'),
-                    subtitle: const Text('Keep unfinished trips ready for later.'),
+                    subtitle: const Text(
+                      'Keep unfinished trips ready for later.',
+                    ),
                   ),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
-                    value: _distanceUnit,
+                    initialValue: _distanceUnit,
                     items: const [
                       DropdownMenuItem(value: 'km', child: Text('Kilometers')),
                       DropdownMenuItem(value: 'mi', child: Text('Miles')),
@@ -125,7 +129,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       setState(() => _showBuildings = value);
                     },
                     title: const Text('3D buildings'),
-                    subtitle: const Text('Display building extrusions where available.'),
+                    subtitle: const Text(
+                      'Display building extrusions where available.',
+                    ),
                   ),
                   SwitchListTile.adaptive(
                     value: _showCompass,
@@ -141,7 +147,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       setState(() => _rotateGestures = value);
                     },
                     title: const Text('Rotate gestures'),
-                    subtitle: const Text('Allow map rotation with two fingers.'),
+                    subtitle: const Text(
+                      'Allow map rotation with two fingers.',
+                    ),
                   ),
                   SwitchListTile.adaptive(
                     value: _tiltGestures,
@@ -153,16 +161,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
-                    value: _mapType,
+                    initialValue: _mapType,
                     items: const [
                       DropdownMenuItem(
                         value: 'standard',
                         child: Text('Standard'),
                       ),
-                      DropdownMenuItem(
-                        value: 'hybrid',
-                        child: Text('Hybrid'),
-                      ),
+                      DropdownMenuItem(value: 'hybrid', child: Text('Hybrid')),
                       DropdownMenuItem(
                         value: 'satellite',
                         child: Text('Satellite'),
@@ -178,9 +183,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       }
                       setState(() => _mapType = value);
                     },
-                    decoration: const InputDecoration(
-                      labelText: 'Map type',
-                    ),
+                    decoration: const InputDecoration(labelText: 'Map type'),
                   ),
                 ],
               ),

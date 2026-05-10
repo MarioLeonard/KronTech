@@ -1,20 +1,34 @@
 """Firebase Cloud Storage integration for file uploads."""
 
+import base64
+import binascii
 import io
 import logging
 import mimetypes
-from typing import Optional
+from dataclasses import dataclass
 from datetime import datetime
+from typing import Optional
 
 import firebase_admin
 from firebase_admin import storage
+from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
 
 class FirebaseStorageError(Exception):
-    """Custom exception for Firebase Storage errors."""
-    pass
+    """Raised when Firebase Storage validation or upload fails."""
+
+
+@dataclass(frozen=True)
+class UploadedProfilePhoto:
+    """Metadata returned after a successful Firebase Storage upload."""
+
+    path: str
+    url: str
+
+
+UploadedStorageFile = UploadedProfilePhoto
 
 
 class FirebaseStorageService:
@@ -40,13 +54,16 @@ class FirebaseStorageService:
         try:
             if not firebase_admin._apps:
                 raise Exception("Firebase Admin SDK not initialized")
-            FirebaseStorageService._bucket = storage.bucket(
-                "krontech-7fbdb.appspot.com"
+            bucket_name = getattr(
+                settings,
+                "FIREBASE_STORAGE_BUCKET",
+                "krontech-7fbdb.appspot.com",
             )
+            FirebaseStorageService._bucket = storage.bucket(bucket_name)
             logger.info("Firebase Storage client initialized successfully")
         except Exception as e:
             logger.error(f"Failed to initialize Firebase Storage: {e}")
-            raise
+            raise FirebaseStorageError(f"Storage initialization failed: {e}") from e
 
     def upload_file(
         self,
@@ -66,7 +83,7 @@ class FirebaseStorageService:
             Public URL of the uploaded file
 
         Raises:
-            Exception: If upload fails
+            FirebaseStorageError: If upload fails
         """
         try:
             if content_type is None:
@@ -87,7 +104,85 @@ class FirebaseStorageService:
 
         except Exception as e:
             logger.error(f"Failed to upload file to {file_path}: {e}")
-            raise Exception(f"File upload failed: {e}")
+            raise FirebaseStorageError(f"File upload failed: {e}") from e
+
+    @staticmethod
+    def upload_profile_photo(uid: str, data_url: str) -> UploadedProfilePhoto:
+        """
+        Upload a base64 data URL profile photo to Firebase Cloud Storage.
+
+        Args:
+            uid: Firebase UID
+            data_url: Image data URL from the client
+
+        Returns:
+            Uploaded file metadata including URL and storage path
+
+        Raises:
+            FirebaseStorageError: If validation or upload fails
+        """
+        content_type, file_content = FirebaseStorageService._parse_image_data_url(
+            data_url
+        )
+        extension = FirebaseStorageService._extension_for_content_type(content_type)
+        filename = f"profile_photo.{extension}"
+
+        storage_service = FirebaseStorageService()
+        storage_path = storage_service.generate_storage_path(
+            uid,
+            filename,
+            "profile",
+        )
+        url = storage_service.upload_file(
+            storage_path,
+            file_content,
+            content_type,
+        )
+
+        return UploadedProfilePhoto(path=storage_path, url=url)
+
+    @staticmethod
+    def _parse_image_data_url(data_url: str) -> tuple:
+        """Decode and validate an image data URL."""
+        if not data_url or not isinstance(data_url, str):
+            raise FirebaseStorageError("Profile photo is required.")
+
+        header, separator, encoded_data = data_url.partition(",")
+        if separator != "," or not header.startswith("data:image/"):
+            raise FirebaseStorageError("Invalid profile photo data URL.")
+        if ";base64" not in header:
+            raise FirebaseStorageError("Profile photo must be base64 encoded.")
+
+        content_type = header[5:].split(";", 1)[0].lower()
+        allowed_types = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+        if content_type not in allowed_types:
+            raise FirebaseStorageError(
+                f"Invalid file type. Allowed types: {', '.join(sorted(allowed_types))}"
+            )
+
+        try:
+            file_content = base64.b64decode(encoded_data, validate=True)
+        except (binascii.Error, ValueError) as e:
+            raise FirebaseStorageError("Invalid profile photo encoding.") from e
+
+        if not file_content:
+            raise FirebaseStorageError("Profile photo is empty.")
+
+        max_size = 5 * 1024 * 1024
+        if len(file_content) > max_size:
+            raise FirebaseStorageError("File size exceeds 5MB limit.")
+
+        return content_type, file_content
+
+    @staticmethod
+    def _extension_for_content_type(content_type: str) -> str:
+        """Return a stable file extension for supported image MIME types."""
+        return {
+            "image/jpeg": "jpg",
+            "image/png": "png",
+            "image/webp": "webp",
+            "image/gif": "gif",
+        }[content_type]
 
     def delete_file(self, file_path: str) -> bool:
         """
