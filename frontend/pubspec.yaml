@@ -41,6 +41,7 @@ dependencies:
   google_fonts: ^8.1.0
   http: ^1.6.0
   uuid: ^4.5.3
+  web_socket_channel: ^3.0.3
 
   # Local Persistence
   hive: ^2.2.3

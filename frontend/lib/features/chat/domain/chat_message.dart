@@ -18,6 +18,31 @@ class ChatMessage {
     this.status = MessageStatus.delivered,
   });
 
+  factory ChatMessage.fromJson(
+    Map<String, dynamic> json, {
+    required String currentUserId,
+  }) {
+    final senderId = json['sender_id'] as String? ?? '';
+    final timestampValue = json['timestamp'];
+    final isRead = json['is_read'] as bool? ?? false;
+
+    return ChatMessage(
+      id:
+          (json['id'] ??
+                  json['message_id'] ??
+                  DateTime.now().microsecondsSinceEpoch)
+              .toString(),
+      senderId: senderId,
+      senderName: senderId == currentUserId ? 'You' : senderId,
+      content: json['content'] as String? ?? '',
+      timestamp: timestampValue is String
+          ? DateTime.tryParse(timestampValue)?.toLocal() ?? DateTime.now()
+          : DateTime.now(),
+      isCurrentUser: senderId == currentUserId,
+      status: isRead ? MessageStatus.read : MessageStatus.delivered,
+    );
+  }
+
   /// Create a copy with modified fields
   ChatMessage copyWith({
     String? id,

@@ -1,7 +1,6 @@
 import json
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
-from apps.chat.models import Message
 from common.services.chat_service import ChatService
 
 
@@ -16,6 +15,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
         # Validate user authentication
         if not self.user_id:
             await self.close(code=4001)  # Unauthorized
+            return
+
+        if not await self.user_has_access(self.conversation_id, self.user_id):
+            await self.close(code=4003)
             return
 
         # Create room group name
@@ -73,10 +76,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def handle_chat_message(self, data):
         """Handle incoming chat message"""
         content = data.get('content', '').strip()
-        receiver_id = data.get('receiver_id')
+        receiver_id = data.get('receiver_id') or await self.get_other_participant()
         
         if not content:
             await self.send_error("Message content cannot be empty")
+            return
+
+        if not receiver_id:
+            await self.send_error("Message receiver is required")
             return
         
         if len(content) > 5000:
@@ -84,7 +91,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return
 
         # Save message to database
-        message = await self.save_message(self.user_id, receiver_id, content)
+        message = await self.save_message(
+            self.user_id,
+            receiver_id,
+            content,
+            self.conversation_id,
+        )
         
         if message:
             # Broadcast message to group
@@ -92,14 +104,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 self.room_group_name,
                 {
                     'type': 'chat_message_event',
-                    'message_id': message.id,
-                    'sender_id': message.sender_id,
-                    'receiver_id': message.receiver_id,
-                    'content': message.content,
-                    'timestamp': message.timestamp.isoformat(),
-                    'is_read': message.is_read
+                    **message,
                 }
             )
+        else:
+            await self.send_error("Could not save message")
 
     async def handle_typing(self, data):
         """Handle typing indicator"""
@@ -174,10 +183,31 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     # Database operations (sync to async)
     @database_sync_to_async
-    def save_message(self, sender_id: str, receiver_id: str, content: str):
+    def save_message(
+        self,
+        sender_id: str,
+        receiver_id: str,
+        content: str,
+        conversation_id: str,
+    ):
         """Save message to database asynchronously"""
         try:
-            return ChatService.create_message(sender_id, receiver_id, content)
+            message = ChatService.create_message(
+                sender_id,
+                receiver_id,
+                content,
+                conversation_id=conversation_id,
+            )
+            return {
+                'message_id': str(message.id),
+                'id': str(message.id),
+                'conversation_id': message.conversation_id,
+                'sender_id': message.sender_id,
+                'receiver_id': message.receiver_id,
+                'content': message.content,
+                'timestamp': message.timestamp.isoformat(),
+                'is_read': message.is_read,
+            }
         except Exception as e:
             print(f"Error saving message: {str(e)}")
             return None
@@ -189,6 +219,22 @@ class ChatConsumer(AsyncWebsocketConsumer):
             ChatService.mark_messages_as_read(conversation_id, user_id)
         except Exception as e:
             print(f"Error marking messages as read: {str(e)}")
+
+    @database_sync_to_async
+    def user_has_access(self, conversation_id: str, user_id: str):
+        """Check conversation membership."""
+        return ChatService.user_has_conversation_access(conversation_id, user_id)
+
+    @database_sync_to_async
+    def get_other_participant(self):
+        """Find the other participant from local conversation history."""
+        participants = ChatService.get_conversation_participants(
+            self.conversation_id,
+        )
+        for participant in participants:
+            if participant != self.user_id:
+                return participant
+        return None
 
     async def send_error(self, message: str):
         """Send error message to client"""

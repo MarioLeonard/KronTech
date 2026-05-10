@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../data/chat_websocket_service.dart';
 import '../controllers/chat_provider.dart';
 import '../../domain/chat_conversation.dart';
 import 'chat_message_bubble.dart';
@@ -71,8 +72,13 @@ class _ChatConversationViewState extends State<ChatConversationView> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final chatProvider = context.watch<ChatProvider>();
+    final conversation =
+        chatProvider.selectedConversation?.id == widget.conversation?.id
+        ? chatProvider.selectedConversation
+        : widget.conversation;
 
-    if (widget.conversation == null) {
+    if (conversation == null) {
       return Center(
         child: Text(
           'Select a conversation to start chatting',
@@ -114,7 +120,7 @@ class _ChatConversationViewState extends State<ChatConversationView> {
                     GestureDetector(
                       onTap: widget.onParticipantTap,
                       child: Text(
-                        widget.conversation!.participant.name,
+                        conversation.participant.name,
                         style: theme.textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w600,
                         ),
@@ -122,11 +128,13 @@ class _ChatConversationViewState extends State<ChatConversationView> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      widget.conversation!.participant.isOnline
+                      conversation.participant.isOnline
                           ? 'Online'
-                          : 'Offline',
+                          : _connectionLabel(chatProvider.connectionState),
                       style: theme.textTheme.labelSmall?.copyWith(
-                        color: widget.conversation!.participant.isOnline
+                        color:
+                            chatProvider.connectionState ==
+                                ChatSocketConnectionState.connected
                             ? Colors.green
                             : null,
                       ),
@@ -150,7 +158,25 @@ class _ChatConversationViewState extends State<ChatConversationView> {
         Expanded(
           child: Consumer<ChatProvider>(
             builder: (context, chatProvider, _) {
-              final messages = widget.conversation!.messages;
+              final activeConversation =
+                  chatProvider.selectedConversation?.id == conversation.id
+                  ? chatProvider.selectedConversation!
+                  : conversation;
+              final messages = activeConversation.messages;
+
+              if (chatProvider.isLoadingMessages) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              final error = chatProvider.errorMessage;
+              if (error != null && messages.isEmpty) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Text(error, style: theme.textTheme.bodyMedium),
+                  ),
+                );
+              }
 
               if (messages.isEmpty) {
                 return Center(
@@ -165,6 +191,9 @@ class _ChatConversationViewState extends State<ChatConversationView> {
                 controller: _scrollController,
                 itemCount: messages.length,
                 itemBuilder: (context, index) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    _scrollToBottom();
+                  });
                   return ChatMessageBubble(
                     message: messages[index],
                     onAvatarTap: !messages[index].isCurrentUser
@@ -192,6 +221,7 @@ class _ChatConversationViewState extends State<ChatConversationView> {
               Expanded(
                 child: TextField(
                   controller: _messageController,
+                  enabled: !chatProvider.isSending,
                   decoration: InputDecoration(
                     hintText: 'Type a message...',
                     prefixIcon: Icon(
@@ -211,13 +241,27 @@ class _ChatConversationViewState extends State<ChatConversationView> {
               const SizedBox(width: 12),
               FloatingActionButton(
                 mini: true,
-                onPressed: _sendMessage,
-                child: const Icon(Icons.send_rounded),
+                onPressed: chatProvider.isSending ? null : _sendMessage,
+                child: chatProvider.isSending
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.send_rounded),
               ),
             ],
           ),
         ),
       ],
     );
+  }
+
+  String _connectionLabel(ChatSocketConnectionState state) {
+    return switch (state) {
+      ChatSocketConnectionState.connected => 'Connected',
+      ChatSocketConnectionState.connecting => 'Connecting',
+      ChatSocketConnectionState.disconnected => 'Reconnecting',
+    };
   }
 }

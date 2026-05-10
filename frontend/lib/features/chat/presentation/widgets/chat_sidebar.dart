@@ -87,7 +87,21 @@ class ChatSidebar extends StatelessWidget {
 
             /// Conversations list
             Expanded(
-              child: chatProvider.filteredConversations.isEmpty
+              child: chatProvider.isLoadingConversations
+                  ? const Center(child: CircularProgressIndicator())
+                  : chatProvider.errorMessage != null &&
+                        chatProvider.filteredConversations.isEmpty
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Text(
+                          chatProvider.errorMessage!,
+                          style: theme.textTheme.bodyMedium,
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    )
+                  : chatProvider.filteredConversations.isEmpty
                   ? Center(
                       child: Text(
                         'No conversations',

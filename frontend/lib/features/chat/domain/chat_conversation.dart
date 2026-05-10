@@ -17,6 +17,47 @@ class ChatConversation {
     this.unreadCount = 0,
   });
 
+  factory ChatConversation.fromJson(
+    Map<String, dynamic> json, {
+    required String currentUserId,
+  }) {
+    final otherUserJson = json['other_user'];
+    final otherUserId = json['other_user_id'] as String? ?? '';
+    final lastMessage = json['last_message'] as String?;
+    final lastMessageTimestamp = _parseDate(json['last_message_timestamp']);
+    final previewMessage = lastMessage == null || lastMessage.isEmpty
+        ? <ChatMessage>[]
+        : [
+            ChatMessage(
+              id: '${json['conversation_id']}-last',
+              senderId:
+                  json['last_message_sender_id'] as String? ?? otherUserId,
+              senderName: otherUserId,
+              content: lastMessage,
+              timestamp: lastMessageTimestamp,
+              isCurrentUser:
+                  (json['last_message_sender_id'] as String?) == currentUserId,
+            ),
+          ];
+
+    return ChatConversation(
+      id: json['conversation_id'] as String? ?? '',
+      participant: otherUserJson is Map<String, dynamic>
+          ? ChatUser.fromJson(otherUserJson)
+          : ChatUser(id: otherUserId, name: otherUserId),
+      messages: previewMessage,
+      lastMessageTime: lastMessageTimestamp,
+      unreadCount: json['unread_count'] as int? ?? 0,
+    );
+  }
+
+  static DateTime _parseDate(dynamic value) {
+    if (value is String) {
+      return DateTime.tryParse(value)?.toLocal() ?? DateTime.now();
+    }
+    return DateTime.now();
+  }
+
   /// Get the last message in the conversation
   ChatMessage? get lastMessage => messages.isNotEmpty ? messages.last : null;
 

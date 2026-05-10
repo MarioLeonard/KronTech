@@ -17,6 +17,20 @@ class ChatUser {
   /// Check if user is online
   bool get isOnline => status?.toLowerCase() == 'online';
 
+  factory ChatUser.fromJson(Map<String, dynamic> json) {
+    final id = json['id'] as String? ?? json['uid'] as String? ?? '';
+    return ChatUser(
+      id: id,
+      name:
+          json['name'] as String? ??
+          json['display_name'] as String? ??
+          json['email'] as String? ??
+          id,
+      avatarUrl: json['avatar_url'] as String? ?? json['photo_url'] as String?,
+      status: json['status'] as String?,
+    );
+  }
+
   /// Hardcoded sample chat users for development
   static final List<ChatUser> sampleUsers = [
     const ChatUser(
