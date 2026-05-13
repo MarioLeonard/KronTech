@@ -1,23 +1,21 @@
-The structure of the Glassmorphism and the PremiumBackground is perfect, but the current color palette feels a bit too dark and moody (like a rainy day). I want to shift the colors to feel more like "summer vacation" and "ocean"—vibrant, but still professional and not overly neon.
+The content inside the TripsScreen is structurally correct now, but the entire screen block is still floating in the middle of the page. This means the Dashboard shell/router that is hosting the TripsScreen is centering its children vertically.
 
-Please keep all the blur and glass effects exactly the same, but update the color palette in the PremiumBackground and theme:
+Please apply these two fixes immediately to force it to the top:
 
-1. Update PremiumBackground Colors:
+1. Force Alignment in TripsScreen:
 
-Base Color: Change the very dark navy to a richer, deeper ocean blue (e.g., Color(0xFF063970) or Color(0xFF0A4275)). It should be blue, not grey/black.
+In TripsScreen, wrap the SingleChildScrollView with an Align widget.
 
-Top Glow (Tropical Water): Change this orb to a vibrant turquoise or cyan to simulate shallow, clear water (e.g., Color(0x5500E5FF) or Color(0x661CB5E0)).
+Set alignment: Alignment.topLeft.
 
-Bottom Glow (Sunset): Change this orb to a warm sunset coral or golden-orange to add a sunny vacation warmth (e.g., Color(0x44FF7E5F) or Color(0x33FEB47B)).
+(This tells the screen: "Even if my parent gives me full vertical space and tries to center me, pin me to the absolute top-left corner").
 
-2. Clean up the Glassmorphism Tints:
+2. Fix the Dashboard Shell (The Root Cause):
 
-Because the background is now a brighter, richer blue, ensure the tint on the FeatureCard, Sidebar, and AppBar doesn't look "muddy" or grey.
+Go to the widget that handles the main layout (the one containing the left Navigation Sidebar and the main content area, likely MainScreen, HomeScreen, or your shell router).
 
-Use a clean, bright translucent tint for the glass surfaces, like Colors.white.withOpacity(0.1) or a very soft translucent cyan Color(0xFF00E5FF).withOpacity(0.05).
+If the main content area is inside a Row, ensure that Row has crossAxisAlignment: CrossAxisAlignment.start.
 
-3. Button Color:
+If the main content area is inside a Center widget, completely remove the Center widget and replace it with an Align(alignment: Alignment.topLeft).
 
-Keep the primary buttons orange, but ensure it's a bright, warm, summery orange (e.g., Colors.orange.shade600 or #FF8C00) to complement the new ocean blues.
-
-Please output the updated PremiumBackground and any theme/color tweaks needed for the cards to make this summer aesthetic pop!
+Please output the updated TripsScreen with the Align wrapper, and apply the fix to the Dashboard shell if necessary.

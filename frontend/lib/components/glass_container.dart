@@ -6,6 +6,7 @@ class GlassContainer extends StatelessWidget {
   final double borderRadius;
   final Border? border;
   final double blur;
+  final Color? color;
   final double opacity;
   final List<BoxShadow>? shadow;
 
@@ -14,6 +15,7 @@ class GlassContainer extends StatelessWidget {
     this.borderRadius = 20,
     this.border,
     this.blur = 12.0,
+    this.color,
     this.opacity = 0.15,
     this.shadow,
     super.key,
@@ -38,7 +40,7 @@ class GlassContainer extends StatelessWidget {
           filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: opacity),
+              color: (color ?? Colors.white).withValues(alpha: opacity),
               borderRadius: BorderRadius.circular(borderRadius),
               border: border ??
                   Border.all(

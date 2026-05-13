@@ -187,6 +187,7 @@ class _MainShellState extends State<MainShell> {
             ),
             body: isWide
                 ? Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _GlassNavigationRail(
                         selectedIndex: _selectedIndex,
