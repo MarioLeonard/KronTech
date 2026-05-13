@@ -1,23 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
   AppTheme._();
 
   static const _lightBackground = Color(0xFFF8F9FA);
-  static const _darkBackground = Color(0xFF03045E);
-  static const _primaryBlue = Color(0xFF0077B6);
-  static const _darkCard = Color(0xFF023E8A);
+  static const _primaryBlue = Color(0xFF00E5FF); // Tropical Cyan/Turquoise
   static const _chip = Color(0xFFCAF0F8);
-  static const _accentOrange = Color(0xFFFF8500);
+  static const _accentOrange = Color(0xFFFF8C00); // Bright, warm summery orange
   static const _lightText = Color(0xFF0B1324);
   static const _darkText = Color(0xFFCAF0F8);
 
   static ThemeData get light {
     final colorScheme = ColorScheme.fromSeed(
-      seedColor: _primaryBlue,
+      seedColor: const Color(0xFF00E5FF),
       brightness: Brightness.light,
       surface: Colors.white,
-      primary: _primaryBlue,
+      primary: const Color(0xFF0077B6),
       secondary: _chip,
       tertiary: _accentOrange,
     );
@@ -28,22 +27,22 @@ class AppTheme {
       scaffoldBackgroundColor: _lightBackground,
       colorScheme: colorScheme,
       appBarTheme: const AppBarTheme(
-        backgroundColor: _primaryBlue,
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
+        foregroundColor: _lightText,
         centerTitle: false,
         elevation: 0,
       ),
       cardTheme: CardThemeData(
-        color: Colors.white,
+        color: Colors.white.withValues(alpha: 0.15),
         elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: _primaryBlue,
+          backgroundColor: const Color(0xFF0077B6),
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          textStyle: const TextStyle(fontWeight: FontWeight.w700),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          textStyle: GoogleFonts.poppins(fontWeight: FontWeight.w700),
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(
@@ -52,39 +51,25 @@ class AppTheme {
           foregroundColor: Colors.white,
           disabledBackgroundColor: const Color(0xFFE4E7EB),
           disabledForegroundColor: const Color(0xFF667085),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          textStyle: const TextStyle(fontWeight: FontWeight.w800),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          textStyle: GoogleFonts.poppins(fontWeight: FontWeight.w800),
         ),
       ),
       chipTheme: ChipThemeData(
-        backgroundColor: _chip,
-        selectedColor: _primaryBlue,
-        labelStyle: const TextStyle(color: _lightText),
-        secondaryLabelStyle: const TextStyle(color: Colors.white),
+        backgroundColor: _chip.withValues(alpha: 0.2),
+        selectedColor: const Color(0xFF0077B6),
+        labelStyle: GoogleFonts.poppins(color: _lightText),
+        secondaryLabelStyle: GoogleFonts.poppins(color: Colors.white),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
-      checkboxTheme: CheckboxThemeData(
-        checkColor: WidgetStateProperty.all(Colors.white),
-      ),
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: Colors.white,
-        indicatorColor: _chip,
+        backgroundColor: Colors.transparent,
+        indicatorColor: const Color(0xFF0077B6).withValues(alpha: 0.2),
         labelTextStyle: WidgetStateProperty.all(
-          const TextStyle(color: _lightText, fontWeight: FontWeight.w600),
-        ),
-        iconTheme: WidgetStateProperty.all(
-          const IconThemeData(color: _primaryBlue),
+          GoogleFonts.poppins(color: _lightText, fontWeight: FontWeight.w600),
         ),
       ),
-      inputDecorationTheme: _inputDecorationTheme(
-        fillColor: Colors.white,
-        borderColor: Colors.white,
-        focusedColor: Colors.white,
-        labelColor: const Color(0xFF475467),
-        hintColor: const Color(0xFF98A2B3),
-        iconColor: _primaryBlue,
-      ),
-      textTheme: _textTheme(_lightText),
+      textTheme: GoogleFonts.poppinsTextTheme(_textTheme(_lightText)),
     );
   }
 
@@ -92,34 +77,44 @@ class AppTheme {
     final colorScheme = ColorScheme.fromSeed(
       seedColor: _primaryBlue,
       brightness: Brightness.dark,
-      surface: _darkCard,
-      primary: _chip,
-      secondary: _primaryBlue,
+      surface: const Color(0xFF00E5FF).withValues(alpha: 0.05), // Brighter translucent cyan tint
+      primary: _primaryBlue,
+      secondary: const Color(0xFF00B4D8),
       tertiary: _accentOrange,
     );
 
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
-      scaffoldBackgroundColor: _darkBackground,
+      scaffoldBackgroundColor: Colors.transparent,
       colorScheme: colorScheme,
       appBarTheme: const AppBarTheme(
-        backgroundColor: _darkCard,
+        backgroundColor: Colors.transparent,
         foregroundColor: _darkText,
         centerTitle: false,
         elevation: 0,
       ),
       cardTheme: CardThemeData(
-        color: _darkCard,
+        color: Colors.white.withValues(alpha: 0.1),
         elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: const Color(0xFF063970).withValues(alpha: 0.85),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      ),
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: const Color(0xFF063970).withValues(alpha: 0.85),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: _primaryBlue,
+          backgroundColor: const Color(0xFF00B4D8),
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          textStyle: const TextStyle(fontWeight: FontWeight.w700),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          textStyle: GoogleFonts.poppins(fontWeight: FontWeight.w700),
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(
@@ -128,77 +123,25 @@ class AppTheme {
           foregroundColor: Colors.white,
           disabledBackgroundColor: const Color(0xFF335C93),
           disabledForegroundColor: const Color(0xFFB8D8E0),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          textStyle: const TextStyle(fontWeight: FontWeight.w800),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          textStyle: GoogleFonts.poppins(fontWeight: FontWeight.w800),
         ),
       ),
       chipTheme: ChipThemeData(
-        backgroundColor: _chip,
+        backgroundColor: _primaryBlue.withValues(alpha: 0.1),
         selectedColor: _accentOrange,
-        labelStyle: const TextStyle(color: _darkBackground),
-        secondaryLabelStyle: const TextStyle(color: Colors.white),
+        labelStyle: GoogleFonts.poppins(color: _darkText),
+        secondaryLabelStyle: GoogleFonts.poppins(color: Colors.white),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
-      checkboxTheme: CheckboxThemeData(
-        checkColor: WidgetStateProperty.all(Colors.white),
-      ),
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: _darkCard,
-        indicatorColor: _primaryBlue,
+        backgroundColor: Colors.transparent,
+        indicatorColor: _primaryBlue.withValues(alpha: 0.3),
         labelTextStyle: WidgetStateProperty.all(
-          const TextStyle(color: _darkText, fontWeight: FontWeight.w600),
-        ),
-        iconTheme: WidgetStateProperty.all(
-          const IconThemeData(color: _darkText),
+          GoogleFonts.poppins(color: _darkText, fontWeight: FontWeight.w600),
         ),
       ),
-      inputDecorationTheme: _inputDecorationTheme(
-        fillColor: const Color(0xFF064A9E),
-        borderColor: Colors.white,
-        focusedColor: Colors.white,
-        labelColor: _darkText,
-        hintColor: const Color(0xFF9BDCEB),
-        iconColor: _chip,
-      ),
-      textTheme: _textTheme(_darkText),
-    );
-  }
-
-  static InputDecorationTheme _inputDecorationTheme({
-    required Color fillColor,
-    required Color borderColor,
-    required Color focusedColor,
-    required Color labelColor,
-    required Color hintColor,
-    required Color iconColor,
-  }) {
-    final enabledBorder = OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8),
-      borderSide: BorderSide(color: borderColor),
-    );
-
-    return InputDecorationTheme(
-      filled: true,
-      fillColor: fillColor,
-      prefixIconColor: iconColor,
-      suffixIconColor: iconColor,
-      labelStyle: TextStyle(color: labelColor),
-      hintStyle: TextStyle(color: hintColor),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
-      border: enabledBorder,
-      enabledBorder: enabledBorder,
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(color: focusedColor, width: 1.6),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: Color(0xFFFFB4AB)),
-      ),
-      focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: Color(0xFFFFB4AB), width: 1.6),
-      ),
+      textTheme: GoogleFonts.poppinsTextTheme(_textTheme(_darkText)),
     );
   }
 
