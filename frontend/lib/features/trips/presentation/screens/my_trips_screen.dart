@@ -66,65 +66,68 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
               child: Padding(
                 padding: const EdgeInsets.all(32.0),
                 child: Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header Row
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'My Trips',
-                        style: theme.textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: -0.5,
-                        ),
-                      ),
-                      FilledButton.icon(
-                        onPressed: _showCreate,
-                        icon: const Icon(Icons.add_rounded, size: 20),
-                        label: const Text('Add Trip'),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: Colors.orange.shade600,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 12,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header Row
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'My Trips',
+                          style: theme.textTheme.headlineMedium?.copyWith(
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.5,
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  // Subtitle
-                  Text(
-                    'Generated itineraries are saved here and can be deleted anytime.',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: Colors.white.withValues(alpha: 0.7),
+                        FilledButton.icon(
+                          onPressed: _showCreate,
+                          icon: const Icon(Icons.add_rounded, size: 20),
+                          label: const Text('Add Trip'),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: Colors.orange.shade600,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 12,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 32),
-                  // Main Content
-                  switch (provider.status) {
-                    SavedTripsStatus.idle ||
-                    SavedTripsStatus.loading => const _TripsLoadingCard(),
-                    SavedTripsStatus.error => _TripsErrorCard(
+                    const SizedBox(height: 8),
+                    // Subtitle
+                    Text(
+                      'Generated itineraries are saved here and can be deleted anytime.',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: Colors.white.withValues(alpha: 0.7),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    // Main Content
+                    switch (provider.status) {
+                      SavedTripsStatus.idle ||
+                      SavedTripsStatus.loading => const _TripsLoadingCard(),
+                      SavedTripsStatus.error => _TripsErrorCard(
                         message:
-                            provider.errorMessage ?? 'Could not load saved trips.',
+                            provider.errorMessage ??
+                            'Could not load saved trips.',
                         onRetry: () => _reload(context),
                       ),
-                    SavedTripsStatus.success => provider.trips.isEmpty
-                        ? _TripsEmptyCard(onAddTrip: _showCreate)
-                        : _TripsGrid(trips: provider.trips),
-                  },
-                ],
-              ),
-            ),
-          );
+                      SavedTripsStatus.success =>
+                        provider.trips.isEmpty
+                            ? _TripsEmptyCard(onAddTrip: _showCreate)
+                            : _TripsGrid(trips: provider.trips),
+                    },
+                  ],
+                ), // Closes Column
+              ), // Closes Padding
+            ), // Closes SingleChildScrollView
+          ); // Closes Align (THIS WAS THE MISSING ONE!)
         },
       ),
     );
@@ -213,10 +216,7 @@ class _SavedTripCard extends StatelessWidget {
       opacity: 0.05,
       blur: 12,
       borderRadius: 24,
-      border: Border.all(
-        color: Colors.white.withValues(alpha: 0.15),
-        width: 1,
-      ),
+      border: Border.all(color: Colors.white.withValues(alpha: 0.15), width: 1),
       child: InkWell(
         borderRadius: BorderRadius.circular(24),
         onTap: () => _openTripDetails(context, trip),
@@ -364,7 +364,10 @@ class _SavedTripCard extends StatelessWidget {
       builder: (context) {
         return AlertDialog(
           backgroundColor: const Color(0xFF063970),
-          title: const Text('Delete trip?', style: TextStyle(color: Colors.white)), // 2. Translate Text
+          title: const Text(
+            'Delete trip?',
+            style: TextStyle(color: Colors.white),
+          ), // 2. Translate Text
           content: Text(
             'Trip "${trip.title}" will be deleted from your list.', // 2. Translate Text
             style: const TextStyle(color: Colors.white70),
@@ -372,11 +375,20 @@ class _SavedTripCard extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel', style: TextStyle(color: Colors.white60)), // 2. Translate Text
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: Colors.white60),
+              ), // 2. Translate Text
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Delete', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)), // 2. Translate Text
+              child: const Text(
+                'Delete',
+                style: TextStyle(
+                  color: Colors.redAccent,
+                  fontWeight: FontWeight.bold,
+                ),
+              ), // 2. Translate Text
             ),
           ],
         );
@@ -413,11 +425,15 @@ class _MissingItineraryDetails extends StatelessWidget {
       children: [
         Text(
           trip.title,
-          style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+          style: theme.textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
         ),
         const SizedBox(height: 16),
         Text(
-          trip.summary.isEmpty ? 'Details unavailable.' : trip.summary, // 2. Translate Text
+          trip.summary.isEmpty
+              ? 'Details unavailable.'
+              : trip.summary, // 2. Translate Text
           style: const TextStyle(color: Colors.white70, fontSize: 16),
         ),
       ],
@@ -442,13 +458,19 @@ class _TripsLoadingCard extends StatelessWidget {
             SizedBox(
               width: 24,
               height: 24,
-              child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+              child: CircularProgressIndicator(
+                strokeWidth: 2.5,
+                color: Colors.white,
+              ),
             ),
             SizedBox(width: 20),
             Expanded(
               child: Text(
                 'Loading saved trips...', // 2. Translate Text
-                style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ],
@@ -476,13 +498,18 @@ class _TripsErrorCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(message, style: const TextStyle(color: Colors.white, fontSize: 15)),
+            Text(
+              message,
+              style: const TextStyle(color: Colors.white, fontSize: 15),
+            ),
             const SizedBox(height: 16),
             TextButton.icon(
               onPressed: onRetry,
               icon: const Icon(Icons.refresh_rounded, size: 20),
               label: const Text('Retry'), // 2. Translate Text
-              style: TextButton.styleFrom(foregroundColor: Colors.orange.shade400),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.orange.shade400,
+              ),
             ),
           ],
         ),
@@ -548,7 +575,10 @@ class _TripsEmptyCard extends StatelessWidget {
               style: FilledButton.styleFrom(
                 backgroundColor: theme.colorScheme.primary,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 14,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),

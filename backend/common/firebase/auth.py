@@ -1,6 +1,7 @@
 """Firebase Auth integration placeholders."""
 
 import logging
+import time
 from threading import Lock
 from typing import Optional
 
@@ -105,8 +106,19 @@ class FirebaseAuthService:
             if token.startswith("Bearer "):
                 token = token[7:]
 
-            # Verify and decode token
-            decoded_token = auth.verify_id_token(token)
+            try:
+                # Verify and decode token
+                decoded_token = auth.verify_id_token(token)
+            except Exception as e:
+                # Fallback retry logic for clock skew if token is "used too early"
+                if "Token used too early" in str(e):
+                    logger.warning(
+                        f"Token used too early ({e}), retrying after 1.5s delay..."
+                    )
+                    time.sleep(1.5)
+                    decoded_token = auth.verify_id_token(token)
+                else:
+                    raise
 
             # Extract user information
             user_info: AuthenticatedUser = {

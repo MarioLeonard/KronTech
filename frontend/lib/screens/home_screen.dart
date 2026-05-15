@@ -81,7 +81,43 @@ class HomeScreen extends StatelessWidget {
                     'Have some friends you want to go out into the world with? Add them and start chatting with them right here!',
               ),
             ),
-            const SizedBox(height: 100),
+            const SizedBox(height: 64),
+
+            // Footer Section
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  '© 2026 Krontech',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.white.withValues(alpha: 0.5),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  child: Text(
+                    '•',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.white.withValues(alpha: 0.5),
+                    ),
+                  ),
+                ),
+                InkWell(
+                  onTap: () => debugPrint('Navigate to Terms'),
+                  child: Text(
+                    'Terms & Conditions',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.white.withValues(alpha: 0.7),
+                      decoration: TextDecoration.underline,
+                      decorationColor: Colors.white.withValues(alpha: 0.7),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),
