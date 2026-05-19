@@ -4,6 +4,7 @@ class BrowserChatNotifications {
   void show({
     required String title,
     required String body,
+    String? iconUrl,
     required void Function() onClick,
   }) {}
 }

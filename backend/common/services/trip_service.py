@@ -6,7 +6,7 @@ from typing import Optional, List
 from datetime import datetime
 
 from apps.core.models import Trip
-from common.firebase.types import AuthenticatedUser
+from common.services.friend_service import FriendService, _profile_summary
 
 logger = logging.getLogger(__name__)
 
@@ -216,6 +216,8 @@ class TripService:
             "distance": distance,
             "duration": duration,
             "status": status,
+            "sharedWith": [],
+            "friends": [],
             "createdAt": now,
             "updatedAt": now,
         }
@@ -262,6 +264,8 @@ class TripService:
             "endDate": itinerary.get("endDate") or request_data.get("endDate"),
             "currency": itinerary.get("currency") or request_data.get("currency") or "EUR",
             "status": status,
+            "sharedWith": [],
+            "friends": [],
             "request": request_data,
             "itinerary": itinerary,
             "createdAt": now,
@@ -288,7 +292,7 @@ class TripService:
         Raises:
             Exception: If retrieval fails
         """
-        return Trip.get_by_owner(owner_uid)
+        return Trip.get_accessible_by_user(owner_uid)
 
     @staticmethod
     def get_trip(trip_id: str, owner_uid: str) -> Optional[Trip]:
@@ -310,11 +314,86 @@ class TripService:
         if not trip:
             return None
 
-        if trip.owner_uid != owner_uid:
+        if not trip.is_accessible_by(owner_uid):
             raise PermissionError(
                 f"User {owner_uid} does not have access to trip {trip_id}"
             )
 
+        return trip
+
+    @staticmethod
+    def list_trip_friends(trip_id: str, user_id: str) -> List[dict]:
+        trip = TripService.get_trip(trip_id, user_id)
+        if not trip:
+            raise ValueError(f"Trip {trip_id} not found")
+        friends = trip.data.get("friends", [])
+        return friends if isinstance(friends, list) else []
+
+    @staticmethod
+    def add_trip_friend(trip_id: str, owner_uid: str, friend_id: str) -> Trip:
+        if not friend_id:
+            raise ValueError("friend_id is required")
+        if owner_uid == friend_id:
+            raise ValueError("You are already the owner of this trip")
+
+        trip = Trip.get_by_id(trip_id)
+        if not trip:
+            raise ValueError(f"Trip {trip_id} not found")
+        if trip.owner_uid != owner_uid:
+            raise PermissionError(f"User {owner_uid} cannot modify trip {trip_id}")
+
+        friend_service = FriendService()
+        if not friend_service.are_friends(owner_uid, friend_id):
+            raise PermissionError("Only friends can be added to a trip")
+
+        shared_with = [
+            item for item in trip.shared_with if isinstance(item, str) and item
+        ]
+        if friend_id not in shared_with:
+            shared_with.append(friend_id)
+
+        friends = [
+            item for item in trip.data.get("friends", []) if isinstance(item, dict)
+        ]
+        profile = friend_service.repository.get_user(friend_id)
+        friend_summary = _profile_summary(profile, friend_id)
+        friends = [item for item in friends if item.get("id") != friend_id]
+        friends.append(friend_summary)
+
+        trip.update(
+            {
+                "sharedWith": shared_with,
+                "friends": friends,
+                "updatedAt": datetime.utcnow().isoformat() + "Z",
+            }
+        )
+        return trip
+
+    @staticmethod
+    def remove_trip_friend(trip_id: str, owner_uid: str, friend_id: str) -> Trip:
+        if not friend_id:
+            raise ValueError("friend_id is required")
+
+        trip = Trip.get_by_id(trip_id)
+        if not trip:
+            raise ValueError(f"Trip {trip_id} not found")
+        if trip.owner_uid != owner_uid:
+            raise PermissionError(f"User {owner_uid} cannot modify trip {trip_id}")
+
+        shared_with = [item for item in trip.shared_with if item != friend_id]
+        friends = [
+            item
+            for item in trip.data.get("friends", [])
+            if isinstance(item, dict) and item.get("id") != friend_id
+        ]
+
+        trip.update(
+            {
+                "sharedWith": shared_with,
+                "friends": friends,
+                "updatedAt": datetime.utcnow().isoformat() + "Z",
+            }
+        )
         return trip
 
     @staticmethod
@@ -343,10 +422,12 @@ class TripService:
         if not trip:
             raise ValueError(f"Trip {trip_id} not found")
 
-        if trip.owner_uid != owner_uid:
+        if not trip.is_accessible_by(owner_uid):
             raise PermissionError(
                 f"User {owner_uid} cannot modify trip {trip_id}"
             )
+        if trip.owner_uid != owner_uid and set(data.keys()) != {"itinerary"}:
+            raise PermissionError("Shared users can only update visited places")
 
         # Filter to only allowed fields
         filtered_data = {

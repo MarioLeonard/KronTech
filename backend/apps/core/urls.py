@@ -13,6 +13,8 @@ from apps.core.views import (
     generate_trip,
     get_trip,
     update_trip,
+    trip_friends,
+    trip_friend_detail,
     delete_trip,
 )
 
@@ -33,4 +35,10 @@ urlpatterns = [
     path("trips/<str:trip_id>/", get_trip, name="get-trip"),
     path("trips/<str:trip_id>/", update_trip, name="update-trip"),
     path("trips/<str:trip_id>/", delete_trip, name="delete-trip"),
+    path("trips/<str:trip_id>/friends/", trip_friends, name="trip-friends"),
+    path(
+        "trips/<str:trip_id>/friends/<str:friend_id>/",
+        trip_friend_detail,
+        name="trip-friend-detail",
+    ),
 ]

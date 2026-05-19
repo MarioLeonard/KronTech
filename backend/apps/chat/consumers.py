@@ -214,14 +214,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 content,
                 conversation_id=conversation_id,
             )
+            sender_summary = ChatService.get_user_summary(message.sender_id)
             return {
                 'message_id': str(message.id),
                 'id': str(message.id),
                 'conversation_id': message.conversation_id,
                 'sender_id': message.sender_id,
-                'sender_name': ChatService.get_user_summary(
-                    message.sender_id,
-                ).get("name") or message.sender_id,
+                'sender_name': sender_summary.get("name") or message.sender_id,
+                'sender_avatar_url': sender_summary.get("avatar_url"),
                 'receiver_id': message.receiver_id,
                 'content': message.content,
                 'timestamp': message.timestamp.isoformat(),
@@ -300,6 +300,7 @@ class ChatNotificationConsumer(AsyncWebsocketConsumer):
             "conversation_id": event["conversation_id"],
             "sender_id": event["sender_id"],
             "sender_name": event.get("sender_name") or event["sender_id"],
+            "sender_avatar_url": event.get("sender_avatar_url"),
             "receiver_id": event["receiver_id"],
             "content": event["content"],
             "timestamp": event["timestamp"],

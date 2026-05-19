@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/components/app_avatar.dart';
 import 'package:frontend/components/glass_container.dart';
+import 'package:frontend/features/friends/data/friends_api_service.dart';
+import 'package:frontend/features/friends/domain/friend_user.dart';
 import 'package:frontend/features/trips/domain/generated_trip.dart';
 import 'package:frontend/features/trips/domain/saved_trip.dart';
 import 'package:frontend/features/trips/domain/trip_activity.dart';
@@ -104,7 +107,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
   }
 
   Widget _buildSelectedSection(BuildContext context, GeneratedTrip? itinerary) {
-    if (itinerary == null) {
+    if (itinerary == null && _selectedSection != 1) {
       return _DetailPanel(
         icon: Icons.travel_explore_rounded,
         title: 'Trip details',
@@ -121,18 +124,35 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
       );
     }
 
+    if (_selectedSection == 1) {
+      return _TripFriendsSection(
+        trip: _trip,
+        onAddFriend: _addTripFriend,
+        onRemoveFriend: _removeTripFriend,
+      );
+    }
+
+    if (itinerary == null) {
+      return _DetailPanel(
+        icon: Icons.group_rounded,
+        title: 'Friends',
+        subtitle: 'People added to this trip',
+        child: const _EmptySection(message: 'Trip details are unavailable.'),
+      );
+    }
+
     return switch (_selectedSection) {
       0 => _OverviewSection(trip: _trip, itinerary: itinerary),
-      1 => _AccommodationSection(itinerary: itinerary),
-      2 => _PlacesSection(
+      2 => _AccommodationSection(itinerary: itinerary),
+      3 => _PlacesSection(
         itinerary: itinerary,
         onVisitedChanged: _updatePlaceVisited,
       ),
-      3 => _EditableScheduleSection(
+      4 => _EditableScheduleSection(
         itinerary: itinerary,
         controllers: _dayPlanControllers,
       ),
-      4 => _RestaurantsSection(itinerary: itinerary),
+      5 => _RestaurantsSection(itinerary: itinerary),
       _ => _NotesSection(itinerary: itinerary),
     };
   }
@@ -156,6 +176,36 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
       idToken: idToken,
       userId: userId,
     );
+    if (updatedTrip != null && mounted) {
+      setState(() => _trip = updatedTrip);
+    }
+  }
+
+  Future<bool> _addTripFriend(FriendUser friend) async {
+    final user = context.read<AuthProvider>().user;
+    final updatedTrip = await context.read<SavedTripsProvider>().addTripFriend(
+      tripId: _trip.id,
+      friendId: friend.id,
+      idToken: user?.idToken ?? '',
+      userId: user?.id ?? '',
+    );
+    if (updatedTrip != null && mounted) {
+      setState(() => _trip = updatedTrip);
+      return true;
+    }
+    return false;
+  }
+
+  Future<void> _removeTripFriend(FriendUser friend) async {
+    final user = context.read<AuthProvider>().user;
+    final updatedTrip = await context
+        .read<SavedTripsProvider>()
+        .removeTripFriend(
+          tripId: _trip.id,
+          friendId: friend.id,
+          idToken: user?.idToken ?? '',
+          userId: user?.id ?? '',
+        );
     if (updatedTrip != null && mounted) {
       setState(() => _trip = updatedTrip);
     }
@@ -486,6 +536,7 @@ class _SectionToggles extends StatelessWidget {
 
   static const _items = [
     _ToggleItem(Icons.dashboard_rounded, 'Overview'),
+    _ToggleItem(Icons.group_rounded, 'Friends'),
     _ToggleItem(Icons.hotel_rounded, 'Accommodation'),
     _ToggleItem(Icons.place_rounded, 'Places'),
     _ToggleItem(Icons.edit_calendar_rounded, 'Schedule'),
@@ -861,6 +912,426 @@ class _AccommodationSection extends StatelessWidget {
                   ),
               ],
             ),
+    );
+  }
+}
+
+class _TripFriendsSection extends StatelessWidget {
+  const _TripFriendsSection({
+    required this.trip,
+    required this.onAddFriend,
+    required this.onRemoveFriend,
+  });
+
+  final SavedTrip trip;
+  final Future<bool> Function(FriendUser friend) onAddFriend;
+  final Future<void> Function(FriendUser friend) onRemoveFriend;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final authUser = context.watch<AuthProvider>().user;
+    final isOwner = authUser?.id == trip.ownerUid || trip.ownerUid == null;
+    final isBusy = context.watch<SavedTripsProvider>().sharingTripId == trip.id;
+
+    return _DetailPanel(
+      icon: Icons.group_rounded,
+      title: 'Friends',
+      subtitle: 'People who can see this trip in their Trips page',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (trip.friends.isEmpty)
+            const _EmptySection(message: 'No friends have been added yet.')
+          else
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                for (final friend in trip.friends)
+                  _TripFriendTile(
+                    friend: friend,
+                    isBusy: isBusy,
+                    canRemove: isOwner,
+                    onRemove: () => onRemoveFriend(friend),
+                  ),
+              ],
+            ),
+          if (isOwner) ...[
+            const SizedBox(height: 18),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: ElevatedButton.icon(
+                onPressed: isBusy
+                    ? null
+                    : () => _showAddTripFriendSheet(
+                        context: context,
+                        trip: trip,
+                        onAddFriend: onAddFriend,
+                      ),
+                icon: isBusy
+                    ? const SizedBox.square(
+                        dimension: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.person_add_alt_1_rounded),
+                label: Text(isBusy ? 'Updating...' : 'Add friends'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: theme.colorScheme.tertiary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 14,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _TripFriendTile extends StatelessWidget {
+  const _TripFriendTile({
+    required this.friend,
+    required this.isBusy,
+    required this.canRemove,
+    required this.onRemove,
+  });
+
+  final FriendUser friend;
+  final bool isBusy;
+  final bool canRemove;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final maxWidth = screenWidth < 560 ? screenWidth - 64 : 360.0;
+
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: maxWidth.clamp(260.0, 360.0)),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AppAvatar(imageUrl: friend.avatarUrl, radius: 22),
+              const SizedBox(width: 12),
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      friend.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    if (friend.email?.isNotEmpty == true) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        friend.email!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: Colors.white.withValues(alpha: 0.56),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              if (canRemove) ...[
+                const SizedBox(width: 6),
+                IconButton(
+                  onPressed: isBusy ? null : onRemove,
+                  tooltip: 'Remove from trip',
+                  icon: const Icon(Icons.close_rounded),
+                  color: Colors.white.withValues(alpha: 0.72),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+Future<void> _showAddTripFriendSheet({
+  required BuildContext context,
+  required SavedTrip trip,
+  required Future<bool> Function(FriendUser friend) onAddFriend,
+}) {
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: false,
+    backgroundColor: Colors.transparent,
+    barrierColor: Colors.black.withValues(alpha: 0.34),
+    builder: (_) => _AddTripFriendSheet(trip: trip, onAddFriend: onAddFriend),
+  );
+}
+
+class _AddTripFriendSheet extends StatefulWidget {
+  const _AddTripFriendSheet({required this.trip, required this.onAddFriend});
+
+  final SavedTrip trip;
+  final Future<bool> Function(FriendUser friend) onAddFriend;
+
+  @override
+  State<_AddTripFriendSheet> createState() => _AddTripFriendSheetState();
+}
+
+class _AddTripFriendSheetState extends State<_AddTripFriendSheet> {
+  final FriendsApiService _friendsService = FriendsApiService();
+  late Future<List<FriendUser>> _friendsFuture;
+  String? _addingFriendId;
+
+  @override
+  void initState() {
+    super.initState();
+    _friendsFuture = _loadFriends();
+  }
+
+  Future<List<FriendUser>> _loadFriends() async {
+    final user = context.read<AuthProvider>().user;
+    final idToken = user?.idToken ?? '';
+    if (idToken.isEmpty) {
+      return const [];
+    }
+
+    final page = await _friendsService.fetchFriends(
+      idToken: idToken,
+      page: 1,
+      limit: 50,
+    );
+    final addedIds = widget.trip.friends.map((friend) => friend.id).toSet();
+    return page.friends
+        .where((friend) => !addedIds.contains(friend.id))
+        .toList();
+  }
+
+  Future<void> _addFriend(FriendUser friend) async {
+    setState(() => _addingFriendId = friend.id);
+    final didAdd = await widget.onAddFriend(friend);
+    if (mounted) {
+      if (didAdd) {
+        Navigator.of(context).pop();
+      } else {
+        setState(() => _addingFriendId = null);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+
+    return SafeArea(
+      top: false,
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(16, 16, 16, bottomInset + 16),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 460),
+            child: GlassContainer(
+              color: const Color(0xFF0E5A90),
+              opacity: 0.22,
+              blur: 16,
+              borderRadius: 24,
+              border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
+              child: Padding(
+                padding: const EdgeInsets.all(22),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 46,
+                        height: 5,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.34),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    _TripSheetCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Add friends',
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Only people from your friends list can be added.',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: Colors.white.withValues(alpha: 0.62),
+                              fontWeight: FontWeight.w600,
+                              height: 1.35,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _TripSheetCard(
+                      child: FutureBuilder<List<FriendUser>>(
+                        future: _friendsFuture,
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState !=
+                              ConnectionState.done) {
+                            return const SizedBox(
+                              height: 180,
+                              child: Center(child: CircularProgressIndicator()),
+                            );
+                          }
+
+                          final friends = snapshot.data ?? const [];
+                          if (friends.isEmpty) {
+                            return const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 26),
+                              child: _EmptySection(
+                                message:
+                                    'There are no friends available to add.',
+                              ),
+                            );
+                          }
+
+                          return ConstrainedBox(
+                            constraints: const BoxConstraints(maxHeight: 420),
+                            child: ListView.separated(
+                              shrinkWrap: true,
+                              itemCount: friends.length,
+                              separatorBuilder: (_, _) => Divider(
+                                color: Colors.white.withValues(alpha: 0.08),
+                                height: 1,
+                              ),
+                              itemBuilder: (context, index) {
+                                final friend = friends[index];
+                                final isAdding = _addingFriendId == friend.id;
+                                return _FriendPickerRow(
+                                  friend: friend,
+                                  isAdding: isAdding,
+                                  onTap: _addingFriendId == null
+                                      ? () => _addFriend(friend)
+                                      : null,
+                                );
+                              },
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TripSheetCard extends StatelessWidget {
+  const _TripSheetCard({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.075),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+        ),
+        child: Padding(padding: const EdgeInsets.all(14), child: child),
+      ),
+    );
+  }
+}
+
+class _FriendPickerRow extends StatelessWidget {
+  const _FriendPickerRow({
+    required this.friend,
+    required this.isAdding,
+    required this.onTap,
+  });
+
+  final FriendUser friend;
+  final bool isAdding;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return MouseRegion(
+      cursor: onTap == null ? MouseCursor.defer : SystemMouseCursors.click,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Row(
+            children: [
+              AppAvatar(imageUrl: friend.avatarUrl, radius: 22),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  friend.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              if (isAdding)
+                const SizedBox.square(
+                  dimension: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              else
+                Icon(
+                  Icons.add_circle_outline_rounded,
+                  color: theme.colorScheme.tertiary,
+                ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

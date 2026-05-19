@@ -23,6 +23,7 @@ class BackendSavedTripsService {
 
   final http.Client _client;
   final Uri _baseUri;
+  static const Duration _cacheMaxAge = Duration(minutes: 5);
 
   Future<List<SavedTrip>> fetchTrips({
     required String idToken,
@@ -151,6 +152,82 @@ class BackendSavedTripsService {
     }
   }
 
+  Future<SavedTrip> addTripFriend({
+    required String idToken,
+    required String userId,
+    required String tripId,
+    required String friendId,
+  }) async {
+    try {
+      final response = await _client
+          .post(
+            _resolve('/api/trips/$tripId/friends/'),
+            headers: {
+              'Authorization': 'Bearer $idToken',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode({'friend_id': friendId}),
+          )
+          .timeout(const Duration(seconds: 30));
+
+      final body = _decodeResponse(response.body);
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw SavedTripsException(_readErrorMessage(body));
+      }
+
+      final tripJson = body['trip'];
+      if (tripJson is! Map) {
+        throw const SavedTripsException('The updated trip was missing.');
+      }
+      final trip = SavedTrip.fromJson(Map<String, dynamic>.from(tripJson));
+      await updateCachedTrip(userId: userId, trip: trip);
+      return trip;
+    } on TimeoutException {
+      throw const SavedTripsException('Adding this friend took too long.');
+    } on SavedTripsException {
+      rethrow;
+    } catch (error, stackTrace) {
+      _log('Unexpected add trip friend error: $error\n$stackTrace');
+      throw const SavedTripsException('We could not add this friend.');
+    }
+  }
+
+  Future<SavedTrip> removeTripFriend({
+    required String idToken,
+    required String userId,
+    required String tripId,
+    required String friendId,
+  }) async {
+    try {
+      final response = await _client
+          .delete(
+            _resolve('/api/trips/$tripId/friends/$friendId/'),
+            headers: {'Authorization': 'Bearer $idToken'},
+          )
+          .timeout(const Duration(seconds: 30));
+
+      final body = _decodeResponse(response.body);
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw SavedTripsException(_readErrorMessage(body));
+      }
+
+      final tripJson = body['trip'];
+      if (tripJson is! Map) {
+        throw const SavedTripsException('The updated trip was missing.');
+      }
+      final trip = SavedTrip.fromJson(Map<String, dynamic>.from(tripJson));
+      await updateCachedTrip(userId: userId, trip: trip);
+      return trip;
+    } on TimeoutException {
+      throw const SavedTripsException('Removing this friend took too long.');
+    } on SavedTripsException {
+      rethrow;
+    } catch (error, stackTrace) {
+      _log('Unexpected remove trip friend error: $error\n$stackTrace');
+      throw const SavedTripsException('We could not remove this friend.');
+    }
+  }
+
   Future<void> updateCachedTrip({
     required String userId,
     required SavedTrip trip,
@@ -180,6 +257,13 @@ class BackendSavedTripsService {
     final cacheEntry = _readCacheEntry(userId);
     final tripsJson = cacheEntry['trips'];
     if (tripsJson is! List) {
+      return null;
+    }
+    final updatedAt = cacheEntry['updatedAt'];
+    final cachedAt = updatedAt is String ? DateTime.tryParse(updatedAt) : null;
+    if (cachedAt == null ||
+        DateTime.now().difference(cachedAt) > _cacheMaxAge) {
+      _log('Saved trips cache is stale. Refreshing from backend.');
       return null;
     }
     if (_hasOutdatedTripSchema(tripsJson)) {

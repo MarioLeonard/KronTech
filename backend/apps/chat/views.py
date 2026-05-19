@@ -113,10 +113,8 @@ class SendMessageView(APIView):
             return error_response(str(error), status.HTTP_400_BAD_REQUEST)
 
         serializer = MessageSerializer(message)
-        sender_name = (
-            ChatService.get_user_summary(message.sender_id).get("name")
-            or message.sender_id
-        )
+        sender_summary = ChatService.get_user_summary(message.sender_id)
+        sender_name = sender_summary.get("name") or message.sender_id
         channel_layer = get_channel_layer()
         if channel_layer is not None:
             async_to_sync(channel_layer.group_send)(
@@ -128,6 +126,7 @@ class SendMessageView(APIView):
                     "conversation_id": message.conversation_id,
                     "sender_id": message.sender_id,
                     "sender_name": sender_name,
+                    "sender_avatar_url": sender_summary.get("avatar_url"),
                     "receiver_id": message.receiver_id,
                     "content": message.content,
                     "timestamp": message.timestamp.isoformat(),

@@ -703,6 +703,84 @@ def update_trip(request, trip_id):
         )
 
 
+@csrf_exempt
+@firebase_required
+def trip_friends(request, trip_id):
+    """List or add friends shared on a trip."""
+    if request.method not in {"GET", "POST"}:
+        return JsonResponse(
+            {"error": "Method not allowed. Use GET or POST."},
+            status=405,
+        )
+
+    try:
+        user_id = request.auth_user.get("uid")
+        if request.method == "GET":
+            friends = TripService.list_trip_friends(trip_id, user_id)
+            return JsonResponse(
+                {
+                    "message": "Trip friends retrieved successfully!",
+                    "friends": friends,
+                },
+                status=200,
+            )
+
+        try:
+            body = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Invalid JSON in request body"}, status=400)
+
+        friend_id = (body.get("friend_id") or "").strip()
+        trip = TripService.add_trip_friend(trip_id, user_id, friend_id)
+        return JsonResponse(
+            {
+                "message": "Friend added to trip successfully!",
+                "trip": trip.to_dict(),
+            },
+            status=200,
+        )
+    except PermissionError as e:
+        return JsonResponse({"error": str(e)}, status=403)
+    except ValueError as e:
+        return JsonResponse({"error": str(e)}, status=400)
+    except Exception as e:
+        return JsonResponse(
+            {"error": f"Failed to update trip friends: {str(e)}"},
+            status=500,
+        )
+
+
+@csrf_exempt
+@firebase_required
+def trip_friend_detail(request, trip_id, friend_id):
+    """Remove a friend from a trip."""
+    if request.method != "DELETE":
+        return JsonResponse(
+            {"error": "Method not allowed. Use DELETE."},
+            status=405,
+        )
+
+    try:
+        user_id = request.auth_user.get("uid")
+        trip = TripService.remove_trip_friend(trip_id, user_id, friend_id)
+        return JsonResponse(
+            {
+                "message": "Friend removed from trip successfully!",
+                "trip": trip.to_dict(),
+            },
+            status=200,
+        )
+    except PermissionError as e:
+        return JsonResponse({"error": str(e)}, status=403)
+    except ValueError as e:
+        return JsonResponse({"error": str(e)}, status=400)
+    except Exception as e:
+        return JsonResponse(
+            {"error": f"Failed to update trip friends: {str(e)}"},
+            status=500,
+        )
+
+
 @firebase_required
 def delete_trip(request, trip_id):
     """

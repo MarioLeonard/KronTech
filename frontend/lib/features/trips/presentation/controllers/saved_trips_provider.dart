@@ -16,6 +16,7 @@ class SavedTripsProvider extends ChangeNotifier {
   List<SavedTrip> _trips = const [];
   String? _errorMessage;
   String? _deletingTripId;
+  String? _sharingTripId;
   String? _cacheUserId;
   bool _isDisposed = false;
   int _loadRequestId = 0;
@@ -26,6 +27,7 @@ class SavedTripsProvider extends ChangeNotifier {
   List<SavedTrip> get trips => _trips;
   String? get errorMessage => _errorMessage;
   String? get deletingTripId => _deletingTripId;
+  String? get sharingTripId => _sharingTripId;
   bool get isLoading => _status == SavedTripsStatus.loading;
 
   Future<void> loadTrips({
@@ -136,6 +138,89 @@ class SavedTripsProvider extends ChangeNotifier {
     _scheduleRemoteSync(trip: updatedTrip, idToken: idToken, userId: userId);
     _notifyIfActive();
     return updatedTrip;
+  }
+
+  Future<SavedTrip?> addTripFriend({
+    required String tripId,
+    required String friendId,
+    required String idToken,
+    required String userId,
+  }) async {
+    _cacheUserId = userId;
+    _sharingTripId = tripId;
+    _errorMessage = null;
+    _notifyIfActive();
+
+    try {
+      final updatedTrip = await _tripsService.addTripFriend(
+        idToken: idToken,
+        userId: userId,
+        tripId: tripId,
+        friendId: friendId,
+      );
+      if (_isDisposed) {
+        return null;
+      }
+      _replaceTrip(updatedTrip);
+      return updatedTrip;
+    } on SavedTripsException catch (error) {
+      if (!_isDisposed) {
+        _errorMessage = error.message;
+      }
+    } catch (_) {
+      if (!_isDisposed) {
+        _errorMessage = 'We could not add this friend.';
+      }
+    } finally {
+      _sharingTripId = null;
+      _notifyIfActive();
+    }
+    return null;
+  }
+
+  Future<SavedTrip?> removeTripFriend({
+    required String tripId,
+    required String friendId,
+    required String idToken,
+    required String userId,
+  }) async {
+    _cacheUserId = userId;
+    _sharingTripId = tripId;
+    _errorMessage = null;
+    _notifyIfActive();
+
+    try {
+      final updatedTrip = await _tripsService.removeTripFriend(
+        idToken: idToken,
+        userId: userId,
+        tripId: tripId,
+        friendId: friendId,
+      );
+      if (_isDisposed) {
+        return null;
+      }
+      _replaceTrip(updatedTrip);
+      return updatedTrip;
+    } on SavedTripsException catch (error) {
+      if (!_isDisposed) {
+        _errorMessage = error.message;
+      }
+    } catch (_) {
+      if (!_isDisposed) {
+        _errorMessage = 'We could not remove this friend.';
+      }
+    } finally {
+      _sharingTripId = null;
+      _notifyIfActive();
+    }
+    return null;
+  }
+
+  void _replaceTrip(SavedTrip updatedTrip) {
+    _trips = [
+      for (final trip in _trips)
+        if (trip.id == updatedTrip.id) updatedTrip else trip,
+    ];
   }
 
   SavedTrip _copyTripWithVisitedPlace({

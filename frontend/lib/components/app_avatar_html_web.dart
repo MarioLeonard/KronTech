@@ -35,7 +35,11 @@ Widget buildHtmlAvatarImage(String url, VoidCallback? onTap) {
       ..children.add(image);
 
     if (onTap != null) {
-      element.onClick.listen((_) => onTap());
+      element.onClick.listen((event) {
+        event.preventDefault();
+        event.stopPropagation();
+        onTap();
+      });
     }
 
     return element;

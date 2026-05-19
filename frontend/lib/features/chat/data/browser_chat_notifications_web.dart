@@ -16,6 +16,7 @@ class BrowserChatNotifications {
   void show({
     required String title,
     required String body,
+    String? iconUrl,
     required void Function() onClick,
   }) {
     if (!html.Notification.supported ||
@@ -23,7 +24,7 @@ class BrowserChatNotifications {
       return;
     }
 
-    final notification = html.Notification(title, body: body);
+    final notification = html.Notification(title, body: body, icon: iconUrl);
     Timer(const Duration(seconds: 5), notification.close);
     notification.onClick.listen((_) {
       notification.close();

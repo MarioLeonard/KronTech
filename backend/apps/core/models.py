@@ -299,6 +299,16 @@ class Trip:
         """Get trip last update timestamp."""
         return self.data.get("updatedAt")
 
+    @property
+    def shared_with(self) -> list:
+        """Get user ids this trip is shared with."""
+        value = self.data.get("sharedWith", [])
+        return value if isinstance(value, list) else []
+
+    def is_accessible_by(self, user_id: str) -> bool:
+        """Return whether a user can view this trip."""
+        return self.owner_uid == user_id or user_id in self.shared_with
+
     def to_dict(self) -> dict:
         """
         Convert trip to dictionary.
@@ -398,3 +408,33 @@ class Trip:
         except Exception as e:
             raise Exception(f"Failed to get trips for owner {owner_uid}: {e}")
 
+    @classmethod
+    def get_accessible_by_user(cls, user_id: str) -> list:
+        """
+        Get trips owned by a user and trips shared with that user.
+
+        Args:
+            user_id: Firebase UID
+
+        Returns:
+            List of Trip instances
+        """
+        try:
+            firestore = FirestoreService()
+            owned = firestore.get_documents(
+                cls.COLLECTION,
+                filters=[("ownerUid", "==", user_id)],
+            )
+            shared = firestore.get_documents(
+                cls.COLLECTION,
+                filters=[("sharedWith", "array_contains", user_id)],
+            )
+
+            by_id = {}
+            for doc in [*owned, *shared]:
+                trip_id = doc.get("id")
+                if trip_id:
+                    by_id[trip_id] = doc
+            return [cls(trip_id, doc) for trip_id, doc in by_id.items()]
+        except Exception as e:
+            raise Exception(f"Failed to get accessible trips for user {user_id}: {e}")
