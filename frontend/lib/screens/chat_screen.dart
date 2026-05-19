@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/components/premium_background.dart';
 import 'package:frontend/features/chat/presentation/screens/chat_screen.dart'
     as chat_feature;
 import 'package:frontend/providers/auth_provider.dart' as app_auth;
@@ -15,7 +16,20 @@ class ChatScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final authUser = context.watch<app_auth.AuthProvider>().user;
     if (authUser == null) {
-      return const Center(child: Text('Sign in to use chat'));
+      return PremiumBackground(
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          body: Center(
+            child: Text(
+              'Sign in to use chat',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ),
+      );
     }
 
     return ChangeNotifierProvider(

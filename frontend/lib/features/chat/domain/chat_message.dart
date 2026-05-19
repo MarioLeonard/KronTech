@@ -80,7 +80,21 @@ class ChatMessage {
     } else if (messageDate == yesterday) {
       return 'Yesterday';
     } else {
-      return '${timestamp.month}/${timestamp.day}';
+      const months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
+      return '${timestamp.day} ${months[timestamp.month - 1]}';
     }
   }
 }

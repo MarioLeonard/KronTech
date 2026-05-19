@@ -158,6 +158,51 @@ def get_profile(request):
 
 
 @csrf_exempt
+@firebase_required
+def get_public_profile(request, user_id):
+    """GET /api/profile/{uid}/ - Retrieve a lightweight user profile."""
+    if request.method != "GET":
+        return JsonResponse(
+            {"error": "Method not allowed. Use GET."},
+            status=405,
+        )
+
+    try:
+        user_profile = ProfileService.get_profile(user_id)
+        if not user_profile:
+            return JsonResponse({"error": "Profile not found"}, status=404)
+
+        data = user_profile.to_dict()
+        public_profile = {
+            "uid": user_profile.uid,
+            "email": data.get("email"),
+            "display_name": data.get("display_name"),
+            "photo_url": data.get("photo_url"),
+            "profilePhotoUrl": data.get("profilePhotoUrl"),
+            "firstName": data.get("firstName"),
+            "lastName": data.get("lastName"),
+            "dateOfBirth": data.get("dateOfBirth"),
+            "gender": data.get("gender"),
+            "country": data.get("country"),
+            "city": data.get("city"),
+            "street": data.get("street"),
+        }
+
+        return JsonResponse(
+            {
+                "message": "Successfully retrieved profile!",
+                "profile": public_profile,
+            },
+            status=200,
+        )
+    except Exception as e:
+        return JsonResponse(
+            {"error": f"Failed to retrieve profile: {str(e)}"},
+            status=500,
+        )
+
+
+@csrf_exempt
 def profile(request):
     """Dispatch profile requests by HTTP method."""
     if request.method == "GET":

@@ -82,6 +82,34 @@ class BackendApiService {
     return UserProfile.fromJson(profile);
   }
 
+  Future<UserProfile> fetchUserProfile({
+    required String idToken,
+    required String userId,
+  }) async {
+    final response = await _client.get(
+      _resolve('/api/profile/$userId/'),
+      headers: {'Authorization': 'Bearer $idToken'},
+    );
+
+    final responseBody = _decodeResponse(response.body);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw AuthException(
+        code: 'profile_fetch_failed',
+        message: _readErrorMessage(responseBody),
+      );
+    }
+
+    final profile = responseBody['profile'];
+    if (profile is! Map<String, dynamic>) {
+      throw const AuthException(
+        code: 'invalid_backend_profile',
+        message: 'The backend did not return a valid profile.',
+      );
+    }
+
+    return UserProfile.fromJson(profile);
+  }
+
   Future<UserProfile> completeOnboarding({
     required String idToken,
     required UserModel user,

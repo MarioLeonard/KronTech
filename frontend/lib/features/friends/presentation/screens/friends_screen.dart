@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:frontend/components/app_avatar.dart';
 import 'package:frontend/components/glass_container.dart';
 import 'package:frontend/components/premium_background.dart';
+import 'package:frontend/components/user_profile_sheet.dart';
 import 'package:frontend/features/friends/domain/friend_request.dart';
 import 'package:frontend/features/friends/domain/friend_user.dart';
 import 'package:frontend/features/friends/presentation/controllers/friends_provider.dart';
@@ -849,12 +850,21 @@ class _PersonTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    void openProfile() {
+      showUserProfileSheet(
+        context,
+        name: user.name,
+        avatarUrl: user.avatarUrl,
+        email: user.email,
+        userId: user.id,
+      );
+    }
 
     final tile = Padding(
       padding: const EdgeInsets.all(14),
       child: Row(
         children: [
-          AppAvatar(imageUrl: user.avatarUrl, radius: 23),
+          AppAvatar(imageUrl: user.avatarUrl, radius: 23, onTap: openProfile),
           const SizedBox(width: 14),
           Expanded(
             child: Column(

@@ -6,6 +6,7 @@ from apps.core.views import (
     complete_onboarding,
     profile,
     get_profile,
+    get_public_profile,
     update_profile,
     upload_profile_photo,
     trips,
@@ -25,6 +26,7 @@ urlpatterns = [
     path("profile/", get_profile, name="get-profile"),
     path("profile/", update_profile, name="update-profile"),
     path("profile/photo/", upload_profile_photo, name="upload-profile-photo"),
+    path("profile/<str:user_id>/", get_public_profile, name="public-profile"),
     # Trip endpoints
     path("trips/generate/", generate_trip, name="generate-trip"),
     path("trips/", trips, name="trips"),

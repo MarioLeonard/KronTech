@@ -64,7 +64,54 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (isoDate == null || isoDate.isEmpty) return '';
     final date = DateTime.tryParse(isoDate);
     if (date == null) return '';
-    return '${date.day.toString().padLeft(2, '0')}-${date.month.toString().padLeft(2, '0')}-${date.year}';
+    return _formatDisplayDate(date);
+  }
+
+  String _formatDisplayDate(DateTime date) {
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    return '${date.day.toString().padLeft(2, '0')} ${months[date.month - 1]} ${date.year}';
+  }
+
+  DateTime? _parseDisplayDate(String value) {
+    final parts = value.trim().split(RegExp(r'\s+'));
+    if (parts.length != 3) {
+      return null;
+    }
+
+    const months = {
+      'jan': 1,
+      'feb': 2,
+      'mar': 3,
+      'apr': 4,
+      'may': 5,
+      'jun': 6,
+      'jul': 7,
+      'aug': 8,
+      'sep': 9,
+      'oct': 10,
+      'nov': 11,
+      'dec': 12,
+    };
+    final day = int.tryParse(parts[0]);
+    final month = months[parts[1].toLowerCase()];
+    final year = int.tryParse(parts[2]);
+    if (day == null || month == null || year == null) {
+      return null;
+    }
+    return DateTime(year, month, day);
   }
 
   void _resetForm() {
@@ -89,14 +136,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // Parse back the date if possible
     String? isoDate = profile.dateOfBirth;
     if (_birthDateController.text.isNotEmpty) {
-      final parts = _birthDateController.text.split('-');
-      if (parts.length == 3) {
-        final day = int.tryParse(parts[0]);
-        final month = int.tryParse(parts[1]);
-        final year = int.tryParse(parts[2]);
-        if (day != null && month != null && year != null) {
-          isoDate = DateTime(year, month, day).toIso8601String();
-        }
+      final parsedDate = _parseDisplayDate(_birthDateController.text);
+      if (parsedDate != null) {
+        isoDate = parsedDate.toIso8601String();
       }
     }
 
@@ -243,11 +285,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _pickDate() async {
     DateTime initial = DateTime(2000);
     if (_birthDateController.text.isNotEmpty) {
-      final parts = _birthDateController.text.split('-');
-      if (parts.length == 3) {
-        initial =
-            DateTime.tryParse('${parts[2]}-${parts[1]}-${parts[0]}') ?? initial;
-      }
+      initial = _parseDisplayDate(_birthDateController.text) ?? initial;
     }
 
     final DateTime? picked = await _showCupertinoDatePicker(
@@ -259,8 +297,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (picked != null) {
       setState(() {
-        _birthDateController.text =
-            '${picked.day.toString().padLeft(2, '0')}-${picked.month.toString().padLeft(2, '0')}-${picked.year}';
+        _birthDateController.text = _formatDisplayDate(picked);
       });
     }
   }

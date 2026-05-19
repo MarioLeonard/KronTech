@@ -1,16 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/components/app_avatar.dart';
 import '../../domain/chat_message.dart';
 
 /// Reusable widget for displaying a single chat message
 class ChatMessageBubble extends StatelessWidget {
   final ChatMessage message;
+  final String? senderAvatarUrl;
   final VoidCallback? onAvatarTap;
 
-  const ChatMessageBubble({required this.message, this.onAvatarTap, super.key});
+  const ChatMessageBubble({
+    required this.message,
+    this.senderAvatarUrl,
+    this.onAvatarTap,
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final isCurrentUser = message.isCurrentUser;
 
     return Padding(
@@ -22,17 +30,10 @@ class ChatMessageBubble extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isCurrentUser) ...[
-            GestureDetector(
+            AppAvatar(
+              imageUrl: senderAvatarUrl,
+              radius: 18,
               onTap: onAvatarTap,
-              child: CircleAvatar(
-                radius: 18,
-                backgroundColor: theme.colorScheme.secondary,
-                child: Icon(
-                  Icons.person_rounded,
-                  color: theme.colorScheme.primary,
-                  size: 20,
-                ),
-              ),
             ),
             const SizedBox(width: 8),
           ],
@@ -45,13 +46,18 @@ class ChatMessageBubble extends StatelessWidget {
                 Container(
                   decoration: BoxDecoration(
                     color: isCurrentUser
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.surface,
+                        ? colorScheme.primary
+                        : Colors.white.withValues(alpha: 0.08),
+                    border: Border.all(
+                      color: isCurrentUser
+                          ? colorScheme.primary.withValues(alpha: 0.34)
+                          : Colors.white.withValues(alpha: 0.1),
+                    ),
                     borderRadius: BorderRadius.only(
-                      topLeft: const Radius.circular(16),
-                      topRight: const Radius.circular(16),
-                      bottomLeft: Radius.circular(isCurrentUser ? 16 : 0),
-                      bottomRight: Radius.circular(isCurrentUser ? 0 : 16),
+                      topLeft: const Radius.circular(18),
+                      topRight: const Radius.circular(18),
+                      bottomLeft: Radius.circular(isCurrentUser ? 18 : 5),
+                      bottomRight: Radius.circular(isCurrentUser ? 5 : 18),
                     ),
                   ),
                   padding: const EdgeInsets.symmetric(
@@ -61,29 +67,28 @@ class ChatMessageBubble extends StatelessWidget {
                   child: Text(
                     message.content,
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: isCurrentUser ? Colors.white : null,
+                      color: Colors.white.withValues(
+                        alpha: isCurrentUser ? 1 : 0.88,
+                      ),
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   message.formattedTime,
-                  style: theme.textTheme.bodySmall?.copyWith(fontSize: 11),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.44),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),
           ),
           if (isCurrentUser) ...[
             const SizedBox(width: 8),
-            CircleAvatar(
-              radius: 18,
-              backgroundColor: theme.colorScheme.primary,
-              child: const Icon(
-                Icons.person_rounded,
-                color: Colors.white,
-                size: 20,
-              ),
-            ),
+            AppAvatar(imageUrl: senderAvatarUrl, radius: 18),
           ],
         ],
       ),

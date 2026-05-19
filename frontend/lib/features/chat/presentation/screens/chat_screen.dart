@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/components/glass_container.dart';
+import 'package:frontend/components/premium_background.dart';
+import 'package:frontend/components/user_profile_sheet.dart';
 import 'package:provider/provider.dart';
+import '../../domain/chat_user.dart';
 import '../controllers/chat_provider.dart';
 import '../widgets/chat_conversation_view.dart';
 import '../widgets/chat_sidebar.dart';
@@ -23,14 +27,13 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
-  /// Navigate to participant's profile (placeholder for now)
-  void _navigateToProfile(String participantName) {
-    debugPrint('Navigating to profile of: $participantName');
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Profile: $participantName'),
-        duration: const Duration(seconds: 1),
-      ),
+  Future<void> _showParticipantProfile(ChatUser participant) {
+    return showUserProfileSheet(
+      context,
+      name: participant.name,
+      avatarUrl: participant.avatarUrl,
+      status: participant.presenceLabel,
+      userId: participant.id,
     );
   }
 
@@ -43,20 +46,34 @@ class _ChatScreenState extends State<ChatScreen> {
 
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => Scaffold(
-          appBar: AppBar(
-            title: Text(conversation.participant.name),
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back_rounded),
-              onPressed: () => Navigator.pop(context),
+        builder: (context) => PremiumBackground(
+          child: Scaffold(
+            backgroundColor: Colors.transparent,
+            body: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                child: GlassContainer(
+                  color: Colors.white,
+                  opacity: 0.055,
+                  blur: 18,
+                  borderRadius: 26,
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.14),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(26),
+                    child: ChatConversationView(
+                      conversation: conversation,
+                      onBack: () => Navigator.pop(context),
+                      onParticipantTap: () {
+                        Navigator.pop(context);
+                        _showParticipantProfile(conversation.participant);
+                      },
+                    ),
+                  ),
+                ),
+              ),
             ),
-          ),
-          body: ChatConversationView(
-            conversation: conversation,
-            onParticipantTap: () {
-              Navigator.pop(context);
-              _navigateToProfile(conversation.participant.name);
-            },
           ),
         ),
       ),
@@ -72,62 +89,213 @@ class _ChatScreenState extends State<ChatScreen> {
       builder: (context, chatProvider, _) {
         if (isLargeScreen) {
           /// Split view for large screens
-          return Scaffold(
-            body: Row(
-              children: [
-                /// Sidebar
-                SizedBox(
-                  width: 320,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      border: Border(
-                        right: BorderSide(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.outline.withValues(alpha: 0.1),
-                        ),
+          return PremiumBackground(
+            child: Scaffold(
+              backgroundColor: Colors.transparent,
+              body: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 1180),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _MessagesHeader(
+                            unreadCount: chatProvider.totalUnreadCount,
+                          ),
+                          const SizedBox(height: 24),
+                          Expanded(
+                            child: Row(
+                              children: [
+                                SizedBox(
+                                  width: 336,
+                                  child: GlassContainer(
+                                    color: const Color(0xFF0E5A90),
+                                    opacity: 0.16,
+                                    blur: 18,
+                                    borderRadius: 26,
+                                    border: Border.all(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.14,
+                                      ),
+                                    ),
+                                    child: ChatSidebar(
+                                      selectedConversationId:
+                                          chatProvider.selectedConversation?.id,
+                                      onConversationSelected: (conversationId) {
+                                        chatProvider.selectConversation(
+                                          conversationId,
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 18),
+                                Expanded(
+                                  child: GlassContainer(
+                                    color: Colors.white,
+                                    opacity: 0.055,
+                                    blur: 18,
+                                    borderRadius: 26,
+                                    border: Border.all(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.14,
+                                      ),
+                                    ),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(26),
+                                      child: ChatConversationView(
+                                        conversation:
+                                            chatProvider.selectedConversation,
+                                        onParticipantTap: () {
+                                          if (chatProvider
+                                                  .selectedConversation !=
+                                              null) {
+                                            _showParticipantProfile(
+                                              chatProvider
+                                                  .selectedConversation!
+                                                  .participant,
+                                            );
+                                          }
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    child: ChatSidebar(
-                      selectedConversationId:
-                          chatProvider.selectedConversation?.id,
-                      onConversationSelected: (conversationId) {
-                        chatProvider.selectConversation(conversationId);
-                      },
-                    ),
                   ),
                 ),
-
-                /// Main conversation view
-                Expanded(
-                  child: ChatConversationView(
-                    conversation: chatProvider.selectedConversation,
-                    onParticipantTap: () {
-                      if (chatProvider.selectedConversation != null) {
-                        _navigateToProfile(
-                          chatProvider.selectedConversation!.participant.name,
-                        );
-                      }
-                    },
-                  ),
-                ),
-              ],
+              ),
             ),
           );
         } else {
           /// Mobile layout - showing sidebar with navigation
-          return Scaffold(
-            appBar: AppBar(title: const Text('Messages'), centerTitle: false),
-            body: ChatSidebar(
-              selectedConversationId: chatProvider.selectedConversation?.id,
-              onConversationSelected: (conversationId) {
-                chatProvider.selectConversation(conversationId);
-                _showConversationDetail(context);
-              },
+          return PremiumBackground(
+            child: Scaffold(
+              backgroundColor: Colors.transparent,
+              body: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _MessagesHeader(
+                        unreadCount: chatProvider.totalUnreadCount,
+                      ),
+                      const SizedBox(height: 20),
+                      Expanded(
+                        child: GlassContainer(
+                          color: const Color(0xFF0E5A90),
+                          opacity: 0.16,
+                          blur: 18,
+                          borderRadius: 26,
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.14),
+                          ),
+                          child: ChatSidebar(
+                            selectedConversationId:
+                                chatProvider.selectedConversation?.id,
+                            onConversationSelected: (conversationId) {
+                              chatProvider.selectConversation(conversationId);
+                              _showConversationDetail(context);
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
           );
         }
       },
+    );
+  }
+}
+
+class _MessagesHeader extends StatelessWidget {
+  const _MessagesHeader({required this.unreadCount});
+
+  final int unreadCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'MESSAGES',
+                style: theme.textTheme.labelLarge?.copyWith(
+                  letterSpacing: 4,
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.primary,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                'Keep every trip conversation close.',
+                style: theme.textTheme.displaySmall?.copyWith(
+                  fontWeight: FontWeight.w900,
+                  color: colorScheme.onSurface,
+                  height: 1.2,
+                ),
+              ),
+              const SizedBox(height: 12),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 620),
+                child: Text(
+                  'Chat with friends, coordinate plans, and pick up every conversation right where it left off.',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: colorScheme.onSurface.withValues(alpha: 0.68),
+                    fontWeight: FontWeight.w500,
+                    height: 1.45,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 22),
+              Container(
+                height: 4,
+                width: 80,
+                decoration: BoxDecoration(
+                  color: colorScheme.primary,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (unreadCount > 0)
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: colorScheme.tertiary,
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              child: Text(
+                '$unreadCount unread',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
