@@ -43,6 +43,21 @@ class StayOption {
       ),
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'city': city,
+      'area': area,
+      'type': type,
+      'estimatedNightlyCost': estimatedNightlyCost,
+      'source': source,
+      'bookingSearchUrl': bookingSearchUrl,
+      'airbnbSearchUrl': airbnbSearchUrl,
+      'isSearchSuggestion': isSearchSuggestion,
+      'note': note,
+    };
+  }
 }
 
 num _readNum(Map<String, dynamic> json, String key) {

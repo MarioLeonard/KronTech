@@ -10,6 +10,7 @@ class TripActivity {
     required this.travelTimeFromPrevious,
     required this.transportMode,
     required this.tags,
+    required this.isVisited,
   });
 
   final String timeRange;
@@ -22,6 +23,7 @@ class TripActivity {
   final String travelTimeFromPrevious;
   final String transportMode;
   final List<String> tags;
+  final bool isVisited;
 
   factory TripActivity.fromJson(Map<String, dynamic> json) {
     return TripActivity(
@@ -39,7 +41,40 @@ class TripActivity {
       ),
       transportMode: _readString(json, 'transportMode', 'other'),
       tags: _readStringList(json['tags']),
+      isVisited: _readBool(json, 'isVisited'),
     );
+  }
+
+  TripActivity copyWith({bool? isVisited}) {
+    return TripActivity(
+      timeRange: timeRange,
+      title: title,
+      location: location,
+      description: description,
+      estimatedCost: estimatedCost,
+      costNote: costNote,
+      distanceFromPreviousKm: distanceFromPreviousKm,
+      travelTimeFromPrevious: travelTimeFromPrevious,
+      transportMode: transportMode,
+      tags: tags,
+      isVisited: isVisited ?? this.isVisited,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'timeRange': timeRange,
+      'title': title,
+      'location': location,
+      'description': description,
+      'estimatedCost': estimatedCost,
+      'costNote': costNote,
+      'distanceFromPreviousKm': distanceFromPreviousKm,
+      'travelTimeFromPrevious': travelTimeFromPrevious,
+      'transportMode': transportMode,
+      'tags': tags,
+      'isVisited': isVisited,
+    };
   }
 }
 
@@ -71,4 +106,15 @@ List<String> _readStringList(Object? value) {
       .map((item) => item.trim())
       .where((item) => item.isNotEmpty)
       .toList();
+}
+
+bool _readBool(Map<String, dynamic> json, String key) {
+  final value = json[key];
+  if (value is bool) {
+    return value;
+  }
+  if (value is String) {
+    return value.toLowerCase() == 'true';
+  }
+  return false;
 }

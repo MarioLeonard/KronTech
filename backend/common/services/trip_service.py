@@ -23,6 +23,7 @@ class TripService:
         "distance",
         "duration",
         "status",
+        "itinerary",
     }
 
     VALID_STATUSES = {"planned", "in_progress", "completed", "cancelled"}

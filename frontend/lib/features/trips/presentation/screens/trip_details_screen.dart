@@ -4,9 +4,12 @@ import 'package:frontend/features/trips/domain/generated_trip.dart';
 import 'package:frontend/features/trips/domain/saved_trip.dart';
 import 'package:frontend/features/trips/domain/trip_activity.dart';
 import 'package:frontend/features/trips/domain/trip_day.dart';
+import 'package:frontend/features/trips/presentation/controllers/saved_trips_provider.dart';
 import 'package:frontend/features/trips/presentation/widgets/accommodation_card.dart';
 import 'package:frontend/features/trips/presentation/widgets/restaurant_card.dart';
 import 'package:frontend/features/trips/presentation/widgets/trip_metric_chip.dart';
+import 'package:frontend/providers/auth_provider.dart';
+import 'package:provider/provider.dart';
 
 class TripDetailsScreen extends StatefulWidget {
   const TripDetailsScreen({required this.trip, this.onBack, super.key});
@@ -20,13 +23,15 @@ class TripDetailsScreen extends StatefulWidget {
 
 class _TripDetailsScreenState extends State<TripDetailsScreen> {
   final Map<int, TextEditingController> _dayPlanControllers = {};
+  late SavedTrip _trip;
   int _selectedSection = 0;
 
-  GeneratedTrip? get _itinerary => widget.trip.itinerary;
+  GeneratedTrip? get _itinerary => _trip.itinerary;
 
   @override
   void initState() {
     super.initState();
+    _trip = widget.trip;
     final days = _itinerary?.days ?? const <TripDay>[];
     for (final day in days) {
       _dayPlanControllers[day.dayNumber] = TextEditingController(
@@ -65,7 +70,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _DetailsHero(
-                    trip: widget.trip,
+                    trip: _trip,
                     itinerary: itinerary,
                     onBack:
                         widget.onBack ?? () => Navigator.of(context).maybePop(),
@@ -105,9 +110,9 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
         title: 'Trip details',
         subtitle: 'Saved trip overview',
         child: Text(
-          widget.trip.summary.isEmpty
+          _trip.summary.isEmpty
               ? 'Details are unavailable for this saved trip.'
-              : widget.trip.summary,
+              : _trip.summary,
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
             color: Colors.white.withValues(alpha: 0.76),
             height: 1.6,
@@ -117,9 +122,12 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
     }
 
     return switch (_selectedSection) {
-      0 => _OverviewSection(trip: widget.trip, itinerary: itinerary),
+      0 => _OverviewSection(trip: _trip, itinerary: itinerary),
       1 => _AccommodationSection(itinerary: itinerary),
-      2 => _PlacesSection(itinerary: itinerary),
+      2 => _PlacesSection(
+        itinerary: itinerary,
+        onVisitedChanged: _updatePlaceVisited,
+      ),
       3 => _EditableScheduleSection(
         itinerary: itinerary,
         controllers: _dayPlanControllers,
@@ -127,6 +135,30 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
       4 => _RestaurantsSection(itinerary: itinerary),
       _ => _NotesSection(itinerary: itinerary),
     };
+  }
+
+  void _updatePlaceVisited(_PlaceItem place, bool isVisited) {
+    final user = context.read<AuthProvider>().user;
+    final idToken = user?.idToken;
+    final userId = user?.id;
+    if (idToken == null ||
+        idToken.isEmpty ||
+        userId == null ||
+        userId.isEmpty) {
+      return;
+    }
+
+    final updatedTrip = context.read<SavedTripsProvider>().updatePlaceVisited(
+      tripId: _trip.id,
+      dayNumber: place.dayNumber,
+      activityIndex: place.activityIndex,
+      isVisited: isVisited,
+      idToken: idToken,
+      userId: userId,
+    );
+    if (updatedTrip != null && mounted) {
+      setState(() => _trip = updatedTrip);
+    }
   }
 }
 
@@ -834,37 +866,55 @@ class _AccommodationSection extends StatelessWidget {
 }
 
 class _PlacesSection extends StatelessWidget {
-  const _PlacesSection({required this.itinerary});
+  const _PlacesSection({
+    required this.itinerary,
+    required this.onVisitedChanged,
+  });
 
   final GeneratedTrip itinerary;
+  final void Function(_PlaceItem place, bool isVisited) onVisitedChanged;
 
   @override
   Widget build(BuildContext context) {
     final places = [
       for (final day in itinerary.days)
-        for (final activity in day.activities)
+        for (var index = 0; index < day.activities.length; index++)
           _PlaceItem(
-            title: activity.title,
-            location: activity.location,
-            dayLabel: 'Day ${day.dayNumber}',
-            description: activity.description,
+            title: day.activities[index].title,
+            location: day.activities[index].location,
+            description: day.activities[index].description,
+            dayNumber: day.dayNumber,
+            activityIndex: index,
+            isVisited: day.activities[index].isVisited,
           ),
     ];
 
     return _DetailPanel(
       icon: Icons.place_rounded,
       title: 'Places to visit',
-      subtitle: 'Activities and stops extracted from the daily plan',
+      subtitle: 'Tourist objectives saved for this trip',
       child: places.isEmpty
           ? const _EmptySection(message: 'There are no saved places.')
           : _ResponsiveCardList(
-              children: [for (final place in places) _PlaceCard(place: place)],
+              maxColumns: 1,
+              children: [
+                for (var index = 0; index < places.length; index++)
+                  _StaggeredSectionItem(
+                    index: index,
+                    child: _PlaceCard(
+                      place: places[index],
+                      onVisitedChanged: (isVisited) {
+                        onVisitedChanged(places[index], isVisited);
+                      },
+                    ),
+                  ),
+              ],
             ),
     );
   }
 }
 
-class _EditableScheduleSection extends StatelessWidget {
+class _EditableScheduleSection extends StatefulWidget {
   const _EditableScheduleSection({
     required this.itinerary,
     required this.controllers,
@@ -874,28 +924,59 @@ class _EditableScheduleSection extends StatelessWidget {
   final Map<int, TextEditingController> controllers;
 
   @override
+  State<_EditableScheduleSection> createState() =>
+      _EditableScheduleSectionState();
+}
+
+class _EditableScheduleSectionState extends State<_EditableScheduleSection> {
+  int _selectedDayIndex = 0;
+
+  @override
+  void didUpdateWidget(covariant _EditableScheduleSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_selectedDayIndex >= widget.itinerary.days.length) {
+      _selectedDayIndex = 0;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final days = widget.itinerary.days;
+    final selectedDay = days.isEmpty ? null : days[_selectedDayIndex];
+
     return _DetailPanel(
       icon: Icons.edit_calendar_rounded,
       title: 'Daily schedule',
-      subtitle: 'Editable plan with activities, costs, and transit',
-      trailing: _SmallPill(
-        label: 'Editable',
-        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
-      ),
-      child: itinerary.days.isEmpty
+      subtitle: 'Plan separated by day',
+      child: days.isEmpty || selectedDay == null
           ? const _EmptySection(message: 'There is no daily schedule.')
           : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                for (final day in itinerary.days)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 14),
-                    child: _EditableDayCard(
-                      day: day,
-                      currency: itinerary.currency,
-                      controller: controllers[day.dayNumber]!,
-                    ),
+                _ScheduleDayPicker(
+                  days: days,
+                  selectedIndex: _selectedDayIndex,
+                  onSelected: (index) {
+                    setState(() => _selectedDayIndex = index);
+                  },
+                ),
+                const SizedBox(height: 24),
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 260),
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeInCubic,
+                  layoutBuilder: (currentChild, previousChildren) {
+                    return currentChild ?? const SizedBox.shrink();
+                  },
+                  transitionBuilder: (child, animation) =>
+                      FadeTransition(opacity: animation, child: child),
+                  child: _ScheduleDayView(
+                    key: ValueKey(selectedDay.dayNumber),
+                    day: selectedDay,
+                    currency: widget.itinerary.currency,
+                    controller: widget.controllers[selectedDay.dayNumber],
                   ),
+                ),
               ],
             ),
     );
@@ -933,33 +1014,35 @@ class _NotesSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final notes = [...itinerary.assumptions, ...itinerary.warnings];
+    final hasCostNote = itinerary.costSummary.note.isNotEmpty;
+    final hasDistanceNote = itinerary.distanceSummary.note.isNotEmpty;
+    final hasNotes = hasCostNote || hasDistanceNote || notes.isNotEmpty;
 
     return _DetailPanel(
       icon: Icons.notes_rounded,
-      title: 'Note',
-      subtitle: 'Costs, distances, and limitations saved with the trip',
-      child: notes.isEmpty
+      title: 'Notes',
+      subtitle: 'Costs, distances, assumptions, and trip limitations',
+      child: !hasNotes
           ? const _EmptySection(message: 'There are no notes for this trip.')
           : Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (itinerary.costSummary.note.isNotEmpty)
+                if (hasCostNote)
                   _NoteBlock(
                     icon: Icons.payments_rounded,
-                    title: 'Costuri',
+                    title: 'Cost estimate',
                     text: itinerary.costSummary.note,
+                    color: const Color(0xFF7DD3FC),
                   ),
-                if (itinerary.distanceSummary.note.isNotEmpty)
+                if (hasDistanceNote)
                   _NoteBlock(
                     icon: Icons.route_rounded,
-                    title: 'Distante',
+                    title: 'Distance estimate',
                     text: itinerary.distanceSummary.note,
+                    color: const Color(0xFFA7F3D0),
                   ),
-                for (final note in notes)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: _NoteLine(text: note),
-                  ),
+                for (var index = 0; index < notes.length; index++)
+                  _NoteLine(text: notes[index], index: index),
               ],
             ),
     );
@@ -972,14 +1055,12 @@ class _DetailPanel extends StatelessWidget {
     required this.title,
     required this.child,
     this.subtitle,
-    this.trailing,
   });
 
   final IconData icon;
   final String title;
   final Widget child;
   final String? subtitle;
-  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -1047,7 +1128,6 @@ class _DetailPanel extends StatelessWidget {
                     ],
                   ),
                 ),
-                if (trailing != null) ...[const SizedBox(width: 12), trailing!],
               ],
             ),
             const SizedBox(height: 22),
@@ -1092,8 +1172,123 @@ class _ResponsiveCardList extends StatelessWidget {
   }
 }
 
-class _EditableDayCard extends StatelessWidget {
-  const _EditableDayCard({
+class _StaggeredSectionItem extends StatefulWidget {
+  const _StaggeredSectionItem({required this.index, required this.child});
+
+  final int index;
+  final Widget child;
+
+  @override
+  State<_StaggeredSectionItem> createState() => _StaggeredSectionItemState();
+}
+
+class _StaggeredSectionItemState extends State<_StaggeredSectionItem>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 420),
+    );
+    Future<void>.delayed(Duration(milliseconds: widget.index * 45), () {
+      if (mounted) {
+        _controller.forward();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        final progress = Curves.easeOutCubic.transform(_controller.value);
+
+        return ClipRect(
+          child: Align(
+            alignment: Alignment.topCenter,
+            heightFactor: progress,
+            child: Opacity(
+              opacity: progress,
+              child: Transform.translate(
+                offset: Offset(0, 12 * (1 - progress)),
+                child: child,
+              ),
+            ),
+          ),
+        );
+      },
+      child: widget.child,
+    );
+  }
+}
+
+class _ScheduleDayPicker extends StatelessWidget {
+  const _ScheduleDayPicker({
+    required this.days,
+    required this.selectedIndex,
+    required this.onSelected,
+  });
+
+  final List<TripDay> days;
+  final int selectedIndex;
+  final ValueChanged<int> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final items = [
+      for (final day in days)
+        _ToggleItem(
+          Icons.calendar_today_rounded,
+          'Day ${day.dayNumber == 0 ? '?' : day.dayNumber}',
+        ),
+    ];
+
+    return SizedBox(
+      width: double.infinity,
+      child: GlassContainer(
+        color: Colors.white,
+        opacity: 0.06,
+        blur: 14,
+        borderRadius: 20,
+        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              if (constraints.maxWidth < 620 && items.length > 3) {
+                return _ToggleGrid(
+                  items: items,
+                  selectedIndex: selectedIndex,
+                  onSelected: onSelected,
+                );
+              }
+
+              return _ToggleRow(
+                items: items,
+                selectedIndex: selectedIndex,
+                onSelected: onSelected,
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ScheduleDayView extends StatelessWidget {
+  const _ScheduleDayView({
+    super.key,
     required this.day,
     required this.currency,
     required this.controller,
@@ -1101,150 +1296,308 @@ class _EditableDayCard extends StatelessWidget {
 
   final TripDay day;
   final String currency;
-  final TextEditingController controller;
+  final TextEditingController? controller;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.07),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                CircleAvatar(
-                  backgroundColor: theme.colorScheme.tertiary,
-                  child: Text(
-                    day.dayNumber == 0 ? '?' : day.dayNumber.toString(),
-                    style: const TextStyle(
+            Container(
+              width: 46,
+              height: 46,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary.withValues(alpha: 0.18),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.36),
+                ),
+              ),
+              child: Text(
+                day.dayNumber == 0 ? '?' : day.dayNumber.toString(),
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    day.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.headlineSmall?.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.w900,
+                      height: 1.08,
                     ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        day.title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w900,
-                          height: 1.18,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        '${day.date} · ${day.city}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.62),
-                          height: 1.3,
-                        ),
-                      ),
-                    ],
+                  const SizedBox(height: 7),
+                  Text(
+                    '${day.date} · ${day.city}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: Colors.white.withValues(alpha: 0.58),
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                TripMetricChip(
-                  icon: Icons.payments_rounded,
-                  label: 'Cost',
-                  value: '${_number(day.estimatedCost)} $currency',
-                ),
-                TripMetricChip(
-                  icon: Icons.route_rounded,
-                  label: 'Distance',
-                  value: '${_number(day.estimatedDistanceKm)} km',
-                ),
-                TripMetricChip(
-                  icon: Icons.schedule_rounded,
-                  label: 'Transit',
-                  value: day.estimatedTransitDuration,
-                ),
-              ],
-            ),
-            if (day.summary.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              Text(
-                day.summary,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: Colors.white.withValues(alpha: 0.74),
-                  height: 1.5,
-                ),
-              ),
-            ],
-            if (day.activities.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              _SubsectionLabel(
-                icon: Icons.local_activity_rounded,
-                label: 'Activities',
-              ),
-              const SizedBox(height: 10),
-              _DayActivityPreviewList(day: day, currency: currency),
-            ],
-            const SizedBox(height: 16),
-            _SubsectionLabel(
-              icon: Icons.edit_note_rounded,
-              label: 'Editable plan',
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: controller,
-              minLines: 6,
-              maxLines: null,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: Colors.white,
-                height: 1.55,
-              ),
-              cursorColor: theme.colorScheme.primary,
-              decoration: InputDecoration(
-                filled: true,
-                fillColor: const Color(0xFF042B55).withValues(alpha: 0.44),
-                hintText: 'Edit day plan',
-                hintStyle: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.46),
-                ),
-                contentPadding: const EdgeInsets.all(16),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide(
-                    color: Colors.white.withValues(alpha: 0.12),
-                  ),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide(
-                    color: Colors.white.withValues(alpha: 0.12),
-                  ),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide(color: theme.colorScheme.primary),
-                ),
+                ],
               ),
             ),
           ],
         ),
+        const SizedBox(height: 18),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            _ScheduleStat(
+              icon: Icons.payments_rounded,
+              label: 'Cost',
+              value: '${_number(day.estimatedCost)} $currency',
+              color: const Color(0xFF7DD3FC),
+            ),
+            _ScheduleStat(
+              icon: Icons.route_rounded,
+              label: 'Distance',
+              value: '${_number(day.estimatedDistanceKm)} km',
+              color: const Color(0xFFA7F3D0),
+            ),
+            _ScheduleStat(
+              icon: Icons.schedule_rounded,
+              label: 'Transit',
+              value: day.estimatedTransitDuration,
+              color: const Color(0xFFFDE68A),
+            ),
+          ],
+        ),
+        if (day.summary.isNotEmpty) ...[
+          const SizedBox(height: 20),
+          Text(
+            day.summary,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: Colors.white.withValues(alpha: 0.74),
+              height: 1.55,
+            ),
+          ),
+        ],
+        if (day.activities.isNotEmpty) ...[
+          const SizedBox(height: 24),
+          _ScheduleTimeline(day: day, currency: currency),
+        ],
+      ],
+    );
+  }
+}
+
+class _ScheduleStat extends StatelessWidget {
+  const _ScheduleStat({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 15, color: color),
+            const SizedBox(width: 7),
+            Text(
+              '$label · $value',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.78),
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                height: 1.2,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ScheduleTimeline extends StatelessWidget {
+  const _ScheduleTimeline({required this.day, required this.currency});
+
+  final TripDay day;
+  final String currency;
+
+  static const _colors = [
+    Color(0xFF7DD3FC),
+    Color(0xFFA7F3D0),
+    Color(0xFFFDE68A),
+    Color(0xFFF0ABFC),
+    Color(0xFFFCA5A5),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        for (var index = 0; index < day.activities.length; index++)
+          _ScheduleTimelineItem(
+            activity: day.activities[index],
+            currency: currency,
+            color: _colors[index % _colors.length],
+            isLast: index == day.activities.length - 1,
+          ),
+      ],
+    );
+  }
+}
+
+class _ScheduleTimelineItem extends StatelessWidget {
+  const _ScheduleTimelineItem({
+    required this.activity,
+    required this.currency,
+    required this.color,
+    required this.isLast,
+  });
+
+  final TripActivity activity;
+  final String currency;
+  final Color color;
+  final bool isLast;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 30,
+            child: Column(
+              children: [
+                Container(
+                  width: 14,
+                  height: 14,
+                  margin: const EdgeInsets.only(top: 4),
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: color.withValues(alpha: 0.34),
+                        blurRadius: 14,
+                      ),
+                    ],
+                  ),
+                ),
+                if (!isLast)
+                  Expanded(
+                    child: Container(
+                      width: 2,
+                      margin: const EdgeInsets.symmetric(vertical: 8),
+                      color: color.withValues(alpha: 0.22),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(bottom: isLast ? 0 : 22),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      _SmallPill(
+                        label: activity.timeRange,
+                        color: color.withValues(alpha: 0.18),
+                      ),
+                      _TinyMetric(
+                        icon: Icons.payments_rounded,
+                        label: _money(activity.estimatedCost, currency),
+                      ),
+                      if (activity.travelTimeFromPrevious.isNotEmpty)
+                        _TinyMetric(
+                          icon: Icons.schedule_rounded,
+                          label: activity.travelTimeFromPrevious,
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    activity.title,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      height: 1.15,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    activity.location,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: color,
+                      fontWeight: FontWeight.w800,
+                      height: 1.3,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    activity.description,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: Colors.white.withValues(alpha: 0.7),
+                      height: 1.48,
+                    ),
+                  ),
+                  if (activity.transportMode.isNotEmpty) ...[
+                    const SizedBox(height: 9),
+                    Text(
+                      activity.transportMode.replaceAll('_', ' '),
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: Colors.white.withValues(alpha: 0.46),
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1275,160 +1628,6 @@ class _InfoGrid extends StatelessWidget {
           ],
         );
       },
-    );
-  }
-}
-
-class _SubsectionLabel extends StatelessWidget {
-  const _SubsectionLabel({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Row(
-      children: [
-        Icon(icon, size: 17, color: theme.colorScheme.primary),
-        const SizedBox(width: 7),
-        Flexible(
-          child: Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.labelLarge?.copyWith(
-              color: Colors.white.withValues(alpha: 0.88),
-              fontWeight: FontWeight.w900,
-              height: 1.2,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _DayActivityPreviewList extends StatelessWidget {
-  const _DayActivityPreviewList({required this.day, required this.currency});
-
-  final TripDay day;
-  final String currency;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final useColumns = constraints.maxWidth >= 820;
-        final gap = useColumns ? 12.0 : 10.0;
-        final width = useColumns
-            ? (constraints.maxWidth - gap) / 2
-            : constraints.maxWidth;
-
-        return Wrap(
-          spacing: gap,
-          runSpacing: gap,
-          children: [
-            for (final activity in day.activities)
-              SizedBox(
-                width: width,
-                child: _ActivityPreviewCard(
-                  activity: activity,
-                  currency: currency,
-                ),
-              ),
-          ],
-        );
-      },
-    );
-  }
-}
-
-class _ActivityPreviewCard extends StatelessWidget {
-  const _ActivityPreviewCard({required this.activity, required this.currency});
-
-  final TripActivity activity;
-  final String currency;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.055),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _SmallPill(
-                label: activity.timeRange,
-                color: theme.colorScheme.tertiary.withValues(alpha: 0.2),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  activity.title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                    height: 1.22,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            activity.location,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.primary,
-              fontWeight: FontWeight.w800,
-              height: 1.3,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            activity.description,
-            maxLines: 3,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: Colors.white.withValues(alpha: 0.68),
-              height: 1.45,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 7,
-            runSpacing: 7,
-            children: [
-              _TinyMetric(
-                icon: Icons.payments_rounded,
-                label: _money(activity.estimatedCost, currency),
-              ),
-              _TinyMetric(
-                icon: Icons.commute_rounded,
-                label: activity.transportMode,
-              ),
-              _TinyMetric(
-                icon: Icons.schedule_rounded,
-                label: activity.travelTimeFromPrevious,
-              ),
-            ],
-          ),
-        ],
-      ),
     );
   }
 }
@@ -1532,9 +1731,10 @@ class _InfoTile extends StatelessWidget {
 }
 
 class _PlaceCard extends StatelessWidget {
-  const _PlaceCard({required this.place});
+  const _PlaceCard({required this.place, required this.onVisitedChanged});
 
   final _PlaceItem place;
+  final ValueChanged<bool> onVisitedChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -1550,66 +1750,118 @@ class _PlaceCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: theme.colorScheme.tertiary.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              Icons.place_rounded,
-              color: theme.colorScheme.tertiary,
-              size: 19,
-            ),
+          _VisitedCheckbox(
+            isVisited: place.isVisited,
+            onChanged: onVisitedChanged,
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        place.title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w900,
-                          height: 1.18,
-                        ),
-                      ),
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 220),
+              opacity: place.isVisited ? 0.68 : 1,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    place.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      height: 1.18,
+                      decoration: place.isVisited
+                          ? TextDecoration.lineThrough
+                          : TextDecoration.none,
+                      decorationColor: Colors.white.withValues(alpha: 0.62),
                     ),
-                    const SizedBox(width: 10),
-                    _SmallPill(label: place.dayLabel),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  place.location,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.64),
-                    height: 1.3,
                   ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  place.description,
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.72),
-                    height: 1.48,
+                  const SizedBox(height: 6),
+                  Text(
+                    place.location,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.64),
+                      height: 1.3,
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 10),
+                  Text(
+                    place.description,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.72),
+                      height: 1.48,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _VisitedCheckbox extends StatelessWidget {
+  const _VisitedCheckbox({required this.isVisited, required this.onChanged});
+
+  final bool isVisited;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Semantics(
+      button: true,
+      checked: isVisited,
+      label: isVisited ? 'Mark as not visited' : 'Mark as visited',
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => onChanged(!isVisited),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic,
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: isVisited
+                  ? theme.colorScheme.tertiary
+                  : theme.colorScheme.tertiary.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isVisited
+                    ? Colors.white.withValues(alpha: 0.32)
+                    : theme.colorScheme.tertiary.withValues(alpha: 0.28),
+              ),
+              boxShadow: [
+                if (isVisited)
+                  BoxShadow(
+                    color: theme.colorScheme.tertiary.withValues(alpha: 0.26),
+                    blurRadius: 16,
+                    offset: const Offset(0, 8),
+                  ),
+              ],
+            ),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 180),
+              child: isVisited
+                  ? const Icon(
+                      Icons.check_rounded,
+                      key: ValueKey('visited'),
+                      color: Colors.white,
+                      size: 21,
+                    )
+                  : const SizedBox(key: ValueKey('not-visited')),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -1620,52 +1872,59 @@ class _NoteBlock extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.text,
+    required this.color,
   });
 
   final IconData icon;
   final String title;
   final String text;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.only(bottom: 16),
+      child: DecoratedBox(
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.07),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.11)),
+          border: Border(
+            left: BorderSide(color: color.withValues(alpha: 0.9), width: 3),
+          ),
         ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: Theme.of(context).colorScheme.tertiary),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        child: Padding(
+          padding: const EdgeInsets.only(left: 13),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                 children: [
-                  Text(
-                    title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    text,
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.72),
-                      height: 1.42,
+                  Icon(icon, color: color, size: 18),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        height: 1.18,
+                      ),
                     ),
                   ),
                 ],
               ),
-            ),
-          ],
+              const SizedBox(height: 7),
+              Text(
+                text,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: Colors.white.withValues(alpha: 0.68),
+                  height: 1.5,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1673,26 +1932,47 @@ class _NoteBlock extends StatelessWidget {
 }
 
 class _NoteLine extends StatelessWidget {
-  const _NoteLine({required this.text});
+  const _NoteLine({required this.text, required this.index});
 
   final String text;
+  final int index;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: Colors.white.withValues(alpha: 0.74),
-          height: 1.42,
-        ),
+    final colors = [
+      const Color(0xFFFDE68A),
+      const Color(0xFFF0ABFC),
+      const Color(0xFFFCA5A5),
+    ];
+    final color = colors[index % colors.length];
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 24,
+            height: 24,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.13),
+              shape: BoxShape.circle,
+              border: Border.all(color: color.withValues(alpha: 0.24)),
+            ),
+            child: Icon(Icons.priority_high_rounded, color: color, size: 15),
+          ),
+          const SizedBox(width: 11),
+          Expanded(
+            child: Text(
+              text,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Colors.white.withValues(alpha: 0.72),
+                height: 1.5,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1877,14 +2157,18 @@ class _PlaceItem {
   const _PlaceItem({
     required this.title,
     required this.location,
-    required this.dayLabel,
     required this.description,
+    required this.dayNumber,
+    required this.activityIndex,
+    required this.isVisited,
   });
 
   final String title;
   final String location;
-  final String dayLabel;
   final String description;
+  final int dayNumber;
+  final int activityIndex;
+  final bool isVisited;
 }
 
 String _editablePlanFor(TripDay day) {

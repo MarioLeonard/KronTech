@@ -104,6 +104,74 @@ class BackendSavedTripsService {
     }
   }
 
+  Future<SavedTrip> updateTripItinerary({
+    required String idToken,
+    required String userId,
+    required SavedTrip trip,
+  }) async {
+    final itinerary = trip.itinerary;
+    if (itinerary == null) {
+      throw const SavedTripsException('This trip has no itinerary to update.');
+    }
+
+    try {
+      final response = await _client
+          .patch(
+            _resolve('/api/trips/${trip.id}/'),
+            headers: {
+              'Authorization': 'Bearer $idToken',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode({'itinerary': itinerary.toJson()}),
+          )
+          .timeout(const Duration(seconds: 30));
+
+      _log(
+        'Update trip response. status=${response.statusCode}, body=${_truncate(response.body)}',
+      );
+
+      final body = _decodeResponse(response.body);
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw SavedTripsException(_readErrorMessage(body));
+      }
+
+      final tripJson = body['trip'];
+      final updatedTrip = tripJson is Map
+          ? SavedTrip.fromJson(Map<String, dynamic>.from(tripJson))
+          : trip;
+      await updateCachedTrip(userId: userId, trip: updatedTrip);
+      return updatedTrip;
+    } on TimeoutException {
+      throw const SavedTripsException('Updating the trip took too long.');
+    } on SavedTripsException {
+      rethrow;
+    } catch (error, stackTrace) {
+      _log('Unexpected update trip error: $error\n$stackTrace');
+      throw const SavedTripsException('We could not update the trip.');
+    }
+  }
+
+  Future<void> updateCachedTrip({
+    required String userId,
+    required SavedTrip trip,
+  }) async {
+    final cacheEntry = _readCacheEntry(userId);
+    final tripsJson = cacheEntry['trips'];
+    final nextTrips = tripsJson is List
+        ? tripsJson
+              .whereType<Map>()
+              .map((item) => Map<String, dynamic>.from(item))
+              .map((item) => item['id'] == trip.id ? trip.toJson() : item)
+              .toList()
+        : <Map<String, dynamic>>[trip.toJson()];
+
+    if (!nextTrips.any((item) => item['id'] == trip.id)) {
+      nextTrips.add(trip.toJson());
+    }
+
+    await _writeCachedTrips(userId: userId, tripsJson: nextTrips);
+  }
+
   List<SavedTrip> readCachedTrips(String userId) {
     return _readCachedTripsOrNull(userId) ?? const [];
   }
@@ -112,6 +180,10 @@ class BackendSavedTripsService {
     final cacheEntry = _readCacheEntry(userId);
     final tripsJson = cacheEntry['trips'];
     if (tripsJson is! List) {
+      return null;
+    }
+    if (_hasOutdatedTripSchema(tripsJson)) {
+      _log('Saved trips cache is outdated. Refreshing from backend.');
       return null;
     }
     return _parseTrips(tripsJson);
@@ -163,6 +235,31 @@ class BackendSavedTripsService {
         .where((trip) => trip['id'] != tripId)
         .toList();
     await _writeCachedTrips(userId: userId, tripsJson: nextTrips);
+  }
+
+  bool _hasOutdatedTripSchema(List<dynamic> tripsJson) {
+    for (final trip in tripsJson.whereType<Map>()) {
+      final itinerary = trip['itinerary'];
+      if (itinerary is! Map) {
+        continue;
+      }
+      final days = itinerary['days'];
+      if (days is! List) {
+        continue;
+      }
+      for (final day in days.whereType<Map>()) {
+        final activities = day['activities'];
+        if (activities is! List) {
+          continue;
+        }
+        for (final activity in activities.whereType<Map>()) {
+          if (activity['isVisited'] is! bool) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
   }
 
   String _cacheKey(String userId) {

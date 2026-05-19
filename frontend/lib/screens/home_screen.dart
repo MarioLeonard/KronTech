@@ -327,7 +327,7 @@ class _AppStoryPage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Text(
-                'From idea to itinerary, without losing the group chat.',
+                'From idea to itinerary, in a second',
                 textAlign: TextAlign.center,
                 style: theme.textTheme.displaySmall?.copyWith(
                   color: colorScheme.onSurface,

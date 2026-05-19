@@ -251,6 +251,7 @@ User request JSON:
 Important requirements:
 - Organize the itinerary by day.
 - Include recommended activities with approximate time ranges.
+- The day activities are also used as the app's "Places to visit" list. Include only tourist attractions, landmarks, museums, viewpoints, parks, cultural sites, beaches, neighborhoods worth visiting, or similar visit-worthy places. Do not include accommodation, hotel check-in/check-out, airport/train transfers, transit steps, meals, restaurants, shopping errands, rest periods, or administrative tasks as activities.
 - Include approximate cost for each activity and each day.
 - Include approximate distances in kilometers between objectives.
 - Include approximate travel duration between locations.
@@ -299,15 +300,16 @@ JSON schema:
       "activities": [
         {{
           "timeRange": "string",
-          "title": "string",
-          "location": "string",
-          "description": "string",
+          "title": "tourist objective or place to visit only",
+          "location": "specific attraction/place name or address area",
+          "description": "why this tourist objective is worth visiting, without check-in, accommodation, meal, or transit instructions",
           "estimatedCost": 0,
           "costNote": "string",
           "distanceFromPreviousKm": 0,
           "travelTimeFromPrevious": "string",
           "transportMode": "walking/public_transport/taxi/car/train/other",
-          "tags": ["string"]
+          "tags": ["string"],
+          "isVisited": false
         }}
       ],
       "mealSuggestions": ["string"]

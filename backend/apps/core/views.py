@@ -604,6 +604,7 @@ def update_trip(request, trip_id):
     - distance
     - duration
     - status
+    - itinerary
 
     Returns:
         JSON with updated trip

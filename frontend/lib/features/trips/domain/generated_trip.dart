@@ -60,6 +60,44 @@ class GeneratedTrip {
   bool get hasUsefulContent {
     return days.isNotEmpty && days.any((day) => day.activities.isNotEmpty);
   }
+
+  GeneratedTrip copyWith({List<TripDay>? days}) {
+    return GeneratedTrip(
+      title: title,
+      summary: summary,
+      cities: cities,
+      startDate: startDate,
+      endDate: endDate,
+      currency: currency,
+      destinationImageUrl: destinationImageUrl,
+      costSummary: costSummary,
+      distanceSummary: distanceSummary,
+      days: days ?? this.days,
+      accommodations: accommodations,
+      restaurants: restaurants,
+      assumptions: assumptions,
+      warnings: warnings,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'title': title,
+      'summary': summary,
+      'cities': cities,
+      'startDate': startDate,
+      'endDate': endDate,
+      'currency': currency,
+      'destinationImageUrl': destinationImageUrl,
+      'costSummary': costSummary.toJson(),
+      'distanceSummary': distanceSummary.toJson(),
+      'days': days.map((day) => day.toJson()).toList(),
+      'accommodations': accommodations.map((stay) => stay.toJson()).toList(),
+      'restaurants': restaurants.map((option) => option.toJson()).toList(),
+      'assumptions': assumptions,
+      'warnings': warnings,
+    };
+  }
 }
 
 Map<String, dynamic>? _readMap(Object? value) {

@@ -25,6 +25,16 @@ class TripCostSummary {
       note: _readString(json, 'note', 'Costurile sunt estimative.'),
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'estimatedTotal': estimatedTotal,
+      'estimatedActivitiesTotal': estimatedActivitiesTotal,
+      'estimatedFoodTotal': estimatedFoodTotal,
+      'estimatedAccommodationTotal': estimatedAccommodationTotal,
+      'note': note,
+    };
+  }
 }
 
 class TripDistanceSummary {
@@ -48,6 +58,14 @@ class TripDistanceSummary {
       ),
       note: _readString(json, 'note', 'Distantele sunt aproximative.'),
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'estimatedTotalKm': estimatedTotalKm,
+      'estimatedTotalTransitDuration': estimatedTotalTransitDuration,
+      'note': note,
+    };
   }
 }
 

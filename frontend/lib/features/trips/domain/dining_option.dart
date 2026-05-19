@@ -28,6 +28,18 @@ class DiningOption {
       note: _readString(json, 'note', 'Cost estimativ per persoana.'),
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'city': city,
+      'area': area,
+      'cuisine': cuisine,
+      'recommendedFor': recommendedFor,
+      'estimatedMealCost': estimatedMealCost,
+      'note': note,
+    };
+  }
 }
 
 num _readNum(Map<String, dynamic> json, String key) {

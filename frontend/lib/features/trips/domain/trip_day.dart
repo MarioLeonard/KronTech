@@ -43,6 +43,36 @@ class TripDay {
       mealSuggestions: _readStringList(json['mealSuggestions']),
     );
   }
+
+  TripDay copyWith({List<TripActivity>? activities}) {
+    return TripDay(
+      dayNumber: dayNumber,
+      date: date,
+      title: title,
+      city: city,
+      summary: summary,
+      estimatedCost: estimatedCost,
+      estimatedDistanceKm: estimatedDistanceKm,
+      estimatedTransitDuration: estimatedTransitDuration,
+      activities: activities ?? this.activities,
+      mealSuggestions: mealSuggestions,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'dayNumber': dayNumber,
+      'date': date,
+      'title': title,
+      'city': city,
+      'summary': summary,
+      'estimatedCost': estimatedCost,
+      'estimatedDistanceKm': estimatedDistanceKm,
+      'estimatedTransitDuration': estimatedTransitDuration,
+      'activities': activities.map((activity) => activity.toJson()).toList(),
+      'mealSuggestions': mealSuggestions,
+    };
+  }
 }
 
 List<TripActivity> _readActivities(Object? value) {

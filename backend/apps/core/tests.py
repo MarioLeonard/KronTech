@@ -1226,6 +1226,7 @@ class TripServiceModelIntegrationTest(TestCase):
             "distance",
             "duration",
             "status",
+            "itinerary",
         }
         
         self.assertEqual(TripService.ALLOWED_UPDATE_FIELDS, expected_fields)

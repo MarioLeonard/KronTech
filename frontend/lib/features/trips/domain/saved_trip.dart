@@ -40,6 +40,34 @@ class SavedTrip {
           : null,
     );
   }
+
+  SavedTrip copyWith({GeneratedTrip? itinerary}) {
+    return SavedTrip(
+      id: id,
+      title: title,
+      summary: summary,
+      cities: cities,
+      startDate: startDate,
+      endDate: endDate,
+      status: status,
+      createdAt: createdAt,
+      itinerary: itinerary ?? this.itinerary,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'summary': summary,
+      'cities': cities,
+      'startDate': startDate,
+      'endDate': endDate,
+      'status': status,
+      'createdAt': createdAt,
+      if (itinerary != null) 'itinerary': itinerary!.toJson(),
+    };
+  }
 }
 
 String _readString(Map<String, dynamic> json, String key, String fallback) {
