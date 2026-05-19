@@ -98,11 +98,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     context.read<AuthProvider>().updateProfile(updatedProfile);
     await Future<void>.delayed(const Duration(milliseconds: 500));
 
-    FocusScope.of(context).unfocus();
-
-    if (mounted) {
-      _showSuccessSnackBar(context);
+    if (!mounted) {
+      return;
     }
+
+    FocusScope.of(context).unfocus();
+    _showSuccessSnackBar(context);
   }
 
   void _showSuccessSnackBar(BuildContext context) {
@@ -252,14 +253,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         children: [
                           Text(
                             'Select Country',
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(
                                   fontWeight: FontWeight.bold,
                                   color: Colors.white,
                                 ),
                           ),
                           IconButton(
                             onPressed: () => Navigator.pop(context),
-                            icon: const Icon(Icons.close_rounded, color: Colors.white),
+                            icon: const Icon(
+                              Icons.close_rounded,
+                              color: Colors.white,
+                            ),
                           ),
                         ],
                       ),
@@ -316,14 +321,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         children: [
                           Text(
                             'Select City',
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(
                                   fontWeight: FontWeight.bold,
                                   color: Colors.white,
                                 ),
                           ),
                           IconButton(
                             onPressed: () => Navigator.pop(context),
-                            icon: const Icon(Icons.close_rounded, color: Colors.white),
+                            icon: const Icon(
+                              Icons.close_rounded,
+                              color: Colors.white,
+                            ),
                           ),
                         ],
                       ),
@@ -355,10 +364,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final profile = widget.user.profile;
-    final displayName =
-        profile?.fullName.isNotEmpty == true
-            ? profile!.fullName
-            : (widget.user.displayName ?? 'Traveler');
+    final displayName = profile?.fullName.isNotEmpty == true
+        ? profile!.fullName
+        : (widget.user.displayName ?? 'Traveler');
     final photoUrl = profile?.photoUrl ?? widget.user.effectivePhotoUrl;
 
     return PremiumBackground(
@@ -433,6 +441,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           alpha: 0.6,
                         ),
                         fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    OutlinedButton.icon(
+                      onPressed: () => context.read<AuthProvider>().signOut(),
+                      icon: const Icon(Icons.logout_rounded, size: 18),
+                      label: const Text('Sign out'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.24),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 18,
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                     ),
                   ],
@@ -598,15 +625,14 @@ class InlineEditRow extends StatelessWidget {
                   color: Colors.white.withValues(alpha: 0.3),
                   fontWeight: FontWeight.w500,
                 ),
-                focusedBorder:
-                    readOnly
-                        ? InputBorder.none
-                        : UnderlineInputBorder(
-                          borderSide: BorderSide(
-                            color: Colors.white.withValues(alpha: 0.3),
-                            width: 0.5,
-                          ),
+                focusedBorder: readOnly
+                    ? InputBorder.none
+                    : UnderlineInputBorder(
+                        borderSide: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.3),
+                          width: 0.5,
                         ),
+                      ),
               ),
             ),
           ),

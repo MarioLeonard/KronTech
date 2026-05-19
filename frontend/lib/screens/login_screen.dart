@@ -104,7 +104,10 @@ class _LoginScreenState extends State<LoginScreen> {
           child: LayoutBuilder(
             builder: (context, constraints) {
               return SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 20,
+                ),
                 child: ConstrainedBox(
                   constraints: BoxConstraints(
                     minHeight: constraints.maxHeight - 40,
@@ -243,8 +246,9 @@ class _AuthPanel extends StatelessWidget {
     final colorScheme = theme.colorScheme;
     final subtitleColor = colorScheme.onSurfaceVariant;
     final primaryTextColor = theme.textTheme.bodyLarge?.color ?? Colors.white;
-    final showEmailPasswordAction =
-        isCreatingAccount ? canSubmitEmailPassword : hasValidPassword;
+    final showEmailPasswordAction = isCreatingAccount
+        ? canSubmitEmailPassword
+        : hasValidPassword;
 
     return GlassContainer(
       color: const Color(0xFF00E5FF),
@@ -335,20 +339,18 @@ class _AuthPanel extends StatelessWidget {
                               hint: 'Password',
                               icon: Icons.lock_outline,
                               suffixIcon: IconButton(
-                                onPressed:
-                                    isLoading
-                                        ? null
-                                        : onTogglePasswordVisibility,
+                                onPressed: isLoading
+                                    ? null
+                                    : onTogglePasswordVisibility,
                                 icon: Icon(
                                   hidePassword
                                       ? Icons.visibility_outlined
                                       : Icons.visibility_off_outlined,
                                   color: Colors.white70,
                                 ),
-                                tooltip:
-                                    hidePassword
-                                        ? 'Show password'
-                                        : 'Hide password',
+                                tooltip: hidePassword
+                                    ? 'Show password'
+                                    : 'Hide password',
                               ),
                               hasSuccess: hasValidPassword,
                             ),
@@ -358,9 +360,7 @@ class _AuthPanel extends StatelessWidget {
                             Align(
                               alignment: Alignment.centerRight,
                               child: TextButton(
-                                onPressed: () {
-                                  // TODO: Implement forgot password
-                                },
+                                onPressed: () {},
                                 style: TextButton.styleFrom(
                                   foregroundColor: Colors.white.withValues(
                                     alpha: 0.6,
@@ -404,20 +404,18 @@ class _AuthPanel extends StatelessWidget {
                           hint: 'Confirm password',
                           icon: Icons.verified_user_outlined,
                           suffixIcon: IconButton(
-                            onPressed:
-                                isLoading
-                                    ? null
-                                    : onToggleConfirmPasswordVisibility,
+                            onPressed: isLoading
+                                ? null
+                                : onToggleConfirmPasswordVisibility,
                             icon: Icon(
                               hideConfirmPassword
                                   ? Icons.visibility_outlined
                                   : Icons.visibility_off_outlined,
                               color: Colors.white70,
                             ),
-                            tooltip:
-                                hideConfirmPassword
-                                    ? 'Show password'
-                                    : 'Hide password',
+                            tooltip: hideConfirmPassword
+                                ? 'Show password'
+                                : 'Hide password',
                           ),
                           hasSuccess: canSubmitEmailPassword,
                         ),
@@ -432,27 +430,25 @@ class _AuthPanel extends StatelessWidget {
                       width: double.infinity,
                       height: 56,
                       child: FilledButton.icon(
-                        onPressed:
-                            isLoading || !canSubmitEmailPassword
-                                ? null
-                                : onSubmitEmailPassword,
+                        onPressed: isLoading || !canSubmitEmailPassword
+                            ? null
+                            : onSubmitEmailPassword,
                         icon:
                             isLoading &&
-                                    activeProvider ==
-                                        AuthProviderType.emailPassword
-                                ? const SizedBox.square(
-                                  dimension: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2.5,
-                                    color: Colors.white,
-                                  ),
-                                )
-                                : Icon(
-                                  isCreatingAccount
-                                      ? Icons.person_add_alt_1_rounded
-                                      : Icons.login_rounded,
-                                  size: 20,
+                                activeProvider == AuthProviderType.emailPassword
+                            ? const SizedBox.square(
+                                dimension: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  color: Colors.white,
                                 ),
+                              )
+                            : Icon(
+                                isCreatingAccount
+                                    ? Icons.person_add_alt_1_rounded
+                                    : Icons.login_rounded,
+                                size: 20,
+                              ),
                         label: Text(
                           isCreatingAccount
                               ? 'CREATE ACCOUNT'
@@ -585,10 +581,10 @@ class _AuthPanel extends StatelessWidget {
           suffixIcon ??
           (hasSuccess
               ? const Icon(
-                Icons.check_circle_rounded,
-                color: Color(0xFF00E5FF),
-                size: 20,
-              )
+                  Icons.check_circle_rounded,
+                  color: Color(0xFF00E5FF),
+                  size: 20,
+                )
               : null),
       filled: true,
       fillColor: const Color(0xFF063970).withValues(alpha: 0.3),

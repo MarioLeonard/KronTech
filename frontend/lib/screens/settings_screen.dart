@@ -137,7 +137,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 items: const [
                   DropdownMenuItem(value: 'standard', child: Text('Standard')),
                   DropdownMenuItem(value: 'hybrid', child: Text('Hybrid')),
-                  DropdownMenuItem(value: 'satellite', child: Text('Satellite')),
+                  DropdownMenuItem(
+                    value: 'satellite',
+                    child: Text('Satellite'),
+                  ),
                   DropdownMenuItem(value: 'terrain', child: Text('Terrain')),
                 ],
                 onChanged: (val) {
@@ -170,16 +173,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildSettingsGroup({required String title, required List<Widget> items}) {
+  Widget _buildSettingsGroup({
+    required String title,
+    required List<Widget> items,
+  }) {
     return GlassContainer(
       color: Colors.white,
       opacity: 0.05,
       blur: 12,
       borderRadius: 24,
-      border: Border.all(
-        color: Colors.white.withValues(alpha: 0.15),
-        width: 1,
-      ),
+      border: Border.all(color: Colors.white.withValues(alpha: 0.15), width: 1),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 20),
         child: Column(
@@ -215,7 +218,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                 ],
               );
-            }).toList(),
+            }),
           ],
         ),
       ),
@@ -308,7 +311,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               value: value,
               items: items,
               onChanged: onChanged,
-              icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white70),
+              icon: const Icon(
+                Icons.keyboard_arrow_down_rounded,
+                color: Colors.white70,
+              ),
               dropdownColor: const Color(0xFF0A4275),
               style: const TextStyle(
                 color: Colors.white,
