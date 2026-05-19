@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:frontend/components/premium_background.dart';
 import 'package:frontend/features/chat/data/browser_chat_notifications.dart';
 import 'package:frontend/features/chat/data/chat_api_service.dart';
 import 'package:frontend/features/chat/data/chat_notification_service.dart';
@@ -44,14 +46,6 @@ class _MainShellState extends State<MainShell> {
   }
 
   @override
-  void didUpdateWidget(MainShell oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.user.idToken != widget.user.idToken) {
-      _connectNotifications();
-    }
-  }
-
-  @override
   void dispose() {
     _notificationReconnectTimer?.cancel();
     _notificationSubscription?.cancel();
@@ -85,12 +79,12 @@ class _MainShellState extends State<MainShell> {
   void _handleChatNotification(ChatNotificationEvent event) {
     if (!mounted) return;
 
-    final title = 'Mesaj nou';
+    final title = 'New message';
     final senderName = event.senderName.trim().isEmpty
         ? event.senderId
         : event.senderName.trim();
     final body = event.content.isEmpty
-        ? '$senderName: Ai primit un mesaj nou.'
+        ? '$senderName: You received a new message.'
         : '$senderName: ${event.content}';
     _browserNotifications.show(
       title: title,
@@ -105,7 +99,7 @@ class _MainShellState extends State<MainShell> {
         duration: const Duration(seconds: 5),
         content: Text(body),
         action: SnackBarAction(
-          label: 'Deschide',
+          label: 'Open',
           onPressed: () => _openChatConversation(event.conversationId),
         ),
       ),
@@ -126,7 +120,11 @@ class _MainShellState extends State<MainShell> {
       _ShellDestination(
         label: 'Home',
         icon: Icons.home_rounded,
-        content: HomeScreen(user: widget.user),
+        content: HomeScreen(
+          user: widget.user,
+          onNavigateToTrips: () => setState(() => _selectedIndex = 1),
+          onNavigateToChat: () => setState(() => _selectedIndex = 4),
+        ),
       ),
       const _ShellDestination(
         label: 'Trips',
@@ -177,59 +175,186 @@ class _MainShellState extends State<MainShell> {
         );
         final current = resolvedDestinations[_selectedIndex];
 
-        return Scaffold(
-          appBar: AppBar(
-            title: Text(current.label),
+        return PremiumBackground(
+          child: Scaffold(
+            backgroundColor: Colors.transparent,
+            appBar: PreferredSize(
+              preferredSize: const Size.fromHeight(kToolbarHeight),
+              child: _GlassAppBar(
+                title: current.label,
+                onSignOut: () => context.read<AuthProvider>().signOut(),
+              ),
+            ),
+            body: isWide
+                ? Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _GlassNavigationRail(
+                        selectedIndex: _selectedIndex,
+                        onDestinationSelected: (index) {
+                          setState(() => _selectedIndex = index);
+                        },
+                        destinations: destinations,
+                      ),
+                      Expanded(child: current.content),
+                    ],
+                  )
+                : Column(
+                    children: [
+                      Expanded(child: current.content),
+                      _GlassNavigationBar(
+                        selectedIndex: _selectedIndex,
+                        onDestinationSelected: (index) {
+                          setState(() => _selectedIndex = index);
+                        },
+                        destinations: destinations,
+                      ),
+                    ],
+                  ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _GlassAppBar extends StatelessWidget {
+  final String title;
+  final VoidCallback onSignOut;
+
+  const _GlassAppBar({required this.title, required this.onSignOut});
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.1),
+            border: Border(
+              bottom: BorderSide(
+                color: Colors.white.withValues(alpha: 0.15),
+                width: 1,
+              ),
+            ),
+          ),
+          child: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            title: Text(title),
             actions: [
               TextButton(
-                onPressed: () => context.read<AuthProvider>().signOut(),
+                onPressed: onSignOut,
                 child: const Text('Sign out'),
               ),
             ],
           ),
-          body: isWide
-              ? Row(
-                  children: [
-                    NavigationRail(
-                      selectedIndex: _selectedIndex,
-                      onDestinationSelected: (index) {
-                        setState(() => _selectedIndex = index);
-                      },
-                      labelType: NavigationRailLabelType.none,
-                      destinations: destinations
-                          .map(
-                            (destination) => NavigationRailDestination(
-                              icon: Icon(destination.icon),
-                              label: Text(destination.label),
-                            ),
-                          )
-                          .toList(),
-                    ),
-                    const VerticalDivider(width: 1),
-                    Expanded(child: current.content),
-                  ],
-                )
-              : Column(
-                  children: [
-                    Expanded(child: current.content),
-                    NavigationBar(
-                      selectedIndex: _selectedIndex,
-                      onDestinationSelected: (index) {
-                        setState(() => _selectedIndex = index);
-                      },
-                      destinations: destinations
-                          .map(
-                            (destination) => NavigationDestination(
-                              icon: Icon(destination.icon),
-                              label: destination.label,
-                            ),
-                          )
-                          .toList(),
-                    ),
-                  ],
+        ),
+      ),
+    );
+  }
+}
+
+class _GlassNavigationRail extends StatelessWidget {
+  final int selectedIndex;
+  final ValueChanged<int> onDestinationSelected;
+  final List<_ShellDestination> destinations;
+
+  const _GlassNavigationRail({
+    required this.selectedIndex,
+    required this.onDestinationSelected,
+    required this.destinations,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
+        child: Container(
+          width: 80,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.1),
+            border: Border(
+              right: BorderSide(
+                color: Colors.white.withValues(alpha: 0.15),
+                width: 1,
+              ),
+            ),
+          ),
+          child: Column(
+            children: destinations.asMap().entries.map((entry) {
+              final index = entry.key;
+              final destination = entry.value;
+              final isSelected = selectedIndex == index;
+
+              return IconButton(
+                onPressed: () => onDestinationSelected(index),
+                icon: Icon(
+                  destination.icon,
+                  color: isSelected
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
-        );
-      },
+                tooltip: destination.label,
+              );
+            }).toList(),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GlassNavigationBar extends StatelessWidget {
+  final int selectedIndex;
+  final ValueChanged<int> onDestinationSelected;
+  final List<_ShellDestination> destinations;
+
+  const _GlassNavigationBar({
+    required this.selectedIndex,
+    required this.onDestinationSelected,
+    required this.destinations,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
+        child: Container(
+          height: 80,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.1),
+            border: Border(
+              top: BorderSide(
+                color: Colors.white.withValues(alpha: 0.15),
+                width: 1,
+              ),
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: destinations.asMap().entries.map((entry) {
+              final index = entry.key;
+              final destination = entry.value;
+              final isSelected = selectedIndex == index;
+
+              return IconButton(
+                onPressed: () => onDestinationSelected(index),
+                icon: Icon(
+                  destination.icon,
+                  color: isSelected
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                ),
+                tooltip: destination.label,
+              );
+            }).toList(),
+          ),
+        ),
+      ),
     );
   }
 }

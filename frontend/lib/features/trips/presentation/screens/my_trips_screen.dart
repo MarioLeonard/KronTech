@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/components/glass_container.dart';
 import 'package:frontend/features/trips/domain/saved_trip.dart';
 import 'package:frontend/features/trips/presentation/controllers/saved_trips_provider.dart';
 import 'package:frontend/features/trips/presentation/screens/trip_creation_screen.dart';
@@ -46,15 +47,98 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isCreating) {
+      return TripCreationScreen(
+        onBack: _showList,
+        onTripGenerated: _showListAndRefresh,
+      );
+    }
+
+    final theme = Theme.of(context);
+
     return ChangeNotifierProvider.value(
       value: _savedTripsProvider,
-      child: _isCreating
-          ? TripCreationScreen(
-              onBack: _showList,
-              onTripGenerated: _showListAndRefresh,
-            )
-          : _MyTripsList(onAddTrip: _showCreate),
+      child: Consumer<SavedTripsProvider>(
+        builder: (context, provider, child) {
+          return Align(
+            alignment: Alignment.topLeft,
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(32.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header Row
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'My Trips',
+                          style: theme.textTheme.headlineMedium?.copyWith(
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        FilledButton.icon(
+                          onPressed: _showCreate,
+                          icon: const Icon(Icons.add_rounded, size: 20),
+                          label: const Text('Add Trip'),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: Colors.orange.shade600,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 12,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    // Subtitle
+                    Text(
+                      'Generated itineraries are saved here and can be deleted anytime.',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: Colors.white.withValues(alpha: 0.7),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    // Main Content
+                    switch (provider.status) {
+                      SavedTripsStatus.idle ||
+                      SavedTripsStatus.loading => const _TripsLoadingCard(),
+                      SavedTripsStatus.error => _TripsErrorCard(
+                        message:
+                            provider.errorMessage ??
+                            'Could not load saved trips.',
+                        onRetry: () => _reload(context),
+                      ),
+                      SavedTripsStatus.success =>
+                        provider.trips.isEmpty
+                            ? _TripsEmptyCard(onAddTrip: _showCreate)
+                            : _TripsGrid(trips: provider.trips),
+                    },
+                  ],
+                ), // Closes Column
+              ), // Closes Padding
+            ), // Closes SingleChildScrollView
+          ); // Closes Align (THIS WAS THE MISSING ONE!)
+        },
+      ),
     );
+  }
+
+  void _reload(BuildContext context) {
+    final idToken = context.read<AuthProvider>().user?.idToken;
+    if (idToken == null || idToken.isEmpty) {
+      return;
+    }
+    _savedTripsProvider.loadTrips(idToken);
   }
 
   void _showCreate() {
@@ -75,80 +159,6 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
   }
 }
 
-class _MyTripsList extends StatelessWidget {
-  const _MyTripsList({required this.onAddTrip});
-
-  final VoidCallback onAddTrip;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Consumer<SavedTripsProvider>(
-      builder: (context, provider, child) {
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Tripurile mele',
-                          style: theme.textTheme.headlineMedium,
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Itinerariile generate sunt salvate aici si pot fi sterse oricand.',
-                          style: theme.textTheme.bodyMedium,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  FilledButton.icon(
-                    onPressed: onAddTrip,
-                    icon: const Icon(Icons.add_rounded),
-                    label: const Text('Adauga calatorie'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 18),
-              switch (provider.status) {
-                SavedTripsStatus.idle ||
-                SavedTripsStatus.loading => const _TripsLoadingCard(),
-                SavedTripsStatus.error => _TripsErrorCard(
-                  message:
-                      provider.errorMessage ??
-                      'Nu am putut incarca tripurile salvate.',
-                  onRetry: () => _reload(context),
-                ),
-                SavedTripsStatus.success =>
-                  provider.trips.isEmpty
-                      ? _TripsEmptyCard(onAddTrip: onAddTrip)
-                      : _TripsGrid(trips: provider.trips),
-              },
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  void _reload(BuildContext context) {
-    final idToken = context.read<AuthProvider>().user?.idToken;
-    if (idToken == null || idToken.isEmpty) {
-      return;
-    }
-    context.read<SavedTripsProvider>().loadTrips(idToken);
-  }
-}
-
 class _TripsGrid extends StatelessWidget {
   const _TripsGrid({required this.trips});
 
@@ -164,7 +174,7 @@ class _TripsGrid extends StatelessWidget {
             children: trips
                 .map(
                   (trip) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.only(bottom: 16),
                     child: _SavedTripCard(trip: trip),
                   ),
                 )
@@ -178,9 +188,9 @@ class _TripsGrid extends StatelessWidget {
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: 1.55,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+            childAspectRatio: 1.6,
           ),
           itemBuilder: (context, index) => _SavedTripCard(trip: trips[index]),
         );
@@ -200,36 +210,52 @@ class _SavedTripCard extends StatelessWidget {
     final provider = context.watch<SavedTripsProvider>();
     final isDeleting = provider.deletingTripId == trip.id;
 
-    return Card(
+    // Upgrading to GlassContainer for consistent premium look
+    return GlassContainer(
+      color: Colors.white,
+      opacity: 0.05,
+      blur: 12,
+      borderRadius: 24,
+      border: Border.all(color: Colors.white.withValues(alpha: 0.15), width: 1),
       child: InkWell(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(24),
         onTap: () => _openTripDetails(context, trip),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.route_rounded, color: theme.colorScheme.tertiary),
-                  const SizedBox(width: 10),
+                  Icon(Icons.route_rounded, color: theme.colorScheme.primary),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(trip.title, style: theme.textTheme.titleMedium),
+                        Text(
+                          trip.title,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                          ),
+                        ),
                         const SizedBox(height: 4),
                         Text(
                           _subtitle,
-                          maxLines: 2,
+                          maxLines: 1,
                           overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.6),
+                            fontSize: 13,
+                          ),
                         ),
                       ],
                     ),
                   ),
                   IconButton(
-                    tooltip: 'Sterge trip',
+                    tooltip: 'Delete trip', // 2. Translate Text
                     onPressed: isDeleting
                         ? null
                         : () => _confirmDelete(context),
@@ -237,28 +263,37 @@ class _SavedTripCard extends StatelessWidget {
                         ? const SizedBox(
                             width: 18,
                             height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
                           )
-                        : const Icon(Icons.delete_outline_rounded),
+                        : Icon(
+                            Icons.delete_outline_rounded,
+                            color: Colors.white.withValues(alpha: 0.5),
+                          ),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               if (trip.summary.isNotEmpty)
                 Text(
                   trip.summary,
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodyMedium,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.8),
+                    height: 1.4,
+                  ),
                 ),
               const Spacer(),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  Chip(label: Text(trip.status)),
+                  _buildChip(context, trip.status),
                   if (trip.startDate.isNotEmpty || trip.endDate.isNotEmpty)
-                    Chip(label: Text('${trip.startDate} - ${trip.endDate}')),
+                    _buildChip(context, '${trip.startDate} - ${trip.endDate}'),
                 ],
               ),
             ],
@@ -268,9 +303,27 @@ class _SavedTripCard extends StatelessWidget {
     );
   }
 
+  Widget _buildChip(BuildContext context, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
   String get _subtitle {
     if (trip.cities.isEmpty) {
-      return 'Orase nespecificate';
+      return 'No cities specified'; // 2. Translate Text
     }
     return trip.cities.join(', ');
   }
@@ -281,6 +334,10 @@ class _SavedTripCard extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
+      backgroundColor: const Color(0xFF063970),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (context) {
         return DraggableScrollableSheet(
           expand: false,
@@ -290,7 +347,7 @@ class _SavedTripCard extends StatelessWidget {
           builder: (context, scrollController) {
             return SingleChildScrollView(
               controller: scrollController,
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
               child: itinerary == null
                   ? _MissingItineraryDetails(trip: trip)
                   : TripResultView(trip: itinerary),
@@ -306,16 +363,32 @@ class _SavedTripCard extends StatelessWidget {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Stergi tripul?'),
-          content: Text('Tripul "${trip.title}" va fi sters din lista ta.'),
+          backgroundColor: const Color(0xFF063970),
+          title: const Text(
+            'Delete trip?',
+            style: TextStyle(color: Colors.white),
+          ), // 2. Translate Text
+          content: Text(
+            'Trip "${trip.title}" will be deleted from your list.', // 2. Translate Text
+            style: const TextStyle(color: Colors.white70),
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Anuleaza'),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: Colors.white60),
+              ), // 2. Translate Text
             ),
-            FilledButton(
+            TextButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Sterge'),
+              child: const Text(
+                'Delete',
+                style: TextStyle(
+                  color: Colors.redAccent,
+                  fontWeight: FontWeight.bold,
+                ),
+              ), // 2. Translate Text
             ),
           ],
         );
@@ -347,20 +420,23 @@ class _MissingItineraryDetails extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(trip.title, style: theme.textTheme.titleLarge),
-            const SizedBox(height: 8),
-            Text(
-              trip.summary.isEmpty ? 'Detalii indisponibile.' : trip.summary,
-            ),
-          ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          trip.title,
+          style: theme.textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
         ),
-      ),
+        const SizedBox(height: 16),
+        Text(
+          trip.summary.isEmpty
+              ? 'Details unavailable.'
+              : trip.summary, // 2. Translate Text
+          style: const TextStyle(color: Colors.white70, fontSize: 16),
+        ),
+      ],
     );
   }
 }
@@ -370,14 +446,33 @@ class _TripsLoadingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Card(
-      child: Padding(
-        padding: EdgeInsets.all(20),
+    return GlassContainer(
+      color: Colors.white,
+      opacity: 0.05,
+      blur: 12,
+      borderRadius: 24,
+      child: const Padding(
+        padding: EdgeInsets.all(24),
         child: Row(
           children: [
-            CircularProgressIndicator(),
-            SizedBox(width: 14),
-            Expanded(child: Text('Se incarca tripurile salvate...')),
+            SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.5,
+                color: Colors.white,
+              ),
+            ),
+            SizedBox(width: 20),
+            Expanded(
+              child: Text(
+                'Loading saved trips...', // 2. Translate Text
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -393,18 +488,28 @@ class _TripsErrorCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return GlassContainer(
+      color: Colors.white,
+      opacity: 0.05,
+      blur: 12,
+      borderRadius: 24,
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(message),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
+            Text(
+              message,
+              style: const TextStyle(color: Colors.white, fontSize: 15),
+            ),
+            const SizedBox(height: 16),
+            TextButton.icon(
               onPressed: onRetry,
-              icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Reincarca'),
+              icon: const Icon(Icons.refresh_rounded, size: 20),
+              label: const Text('Retry'), // 2. Translate Text
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.orange.shade400,
+              ),
             ),
           ],
         ),
@@ -422,28 +527,62 @@ class _TripsEmptyCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Card(
+    // 3. Apply Glassmorphism to the Empty State Card
+    return GlassContainer(
+      color: Colors.white,
+      opacity: 0.05,
+      blur: 12.0,
+      borderRadius: 24,
+      border: Border.all(color: Colors.white.withValues(alpha: 0.15), width: 1),
       child: Padding(
-        padding: const EdgeInsets.all(22),
+        padding: const EdgeInsets.all(32),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(
-              Icons.travel_explore_rounded,
-              color: theme.colorScheme.tertiary,
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.travel_explore_rounded,
+                color: theme.colorScheme.primary,
+                size: 32,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'No saved trips', // 2. Translate Text
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w900,
+                color: Colors.white,
+              ),
             ),
             const SizedBox(height: 12),
-            Text('Nu ai tripuri salvate', style: theme.textTheme.titleLarge),
-            const SizedBox(height: 8),
             Text(
-              'Creeaza prima calatorie si o voi salva aici automat dupa generare.',
-              style: theme.textTheme.bodyMedium,
+              'Create your first journey and we will automatically save it here.', // 2. Translate Text
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: Colors.white.withValues(alpha: 0.6),
+                height: 1.5,
+              ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 32),
             FilledButton.icon(
               onPressed: onAddTrip,
               icon: const Icon(Icons.add_rounded),
-              label: const Text('Adauga calatorie'),
+              label: const Text('Add Trip'), // 2. Translate Text
+              style: FilledButton.styleFrom(
+                backgroundColor: theme.colorScheme.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 14,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
             ),
           ],
         ),

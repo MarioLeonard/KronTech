@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/components/glass_container.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -43,159 +44,278 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final theme = Theme.of(context);
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Settings', style: theme.textTheme.headlineMedium),
-          const SizedBox(height: 16),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Trip preferences', style: theme.textTheme.titleMedium),
-                  const SizedBox(height: 8),
-                  SwitchListTile.adaptive(
-                    value: _tripNotifications,
-                    onChanged: (value) {
-                      setState(() => _tripNotifications = value);
-                    },
-                    title: const Text('Trip notifications'),
-                    subtitle: const Text(
-                      'Updates when routes change or a trip starts.',
-                    ),
-                  ),
-                  SwitchListTile.adaptive(
-                    value: _autoSaveDrafts,
-                    onChanged: (value) {
-                      setState(() => _autoSaveDrafts = value);
-                    },
-                    title: const Text('Auto-save drafts'),
-                    subtitle: const Text(
-                      'Keep unfinished trips ready for later.',
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<String>(
-                    initialValue: _distanceUnit,
-                    items: const [
-                      DropdownMenuItem(value: 'km', child: Text('Kilometers')),
-                      DropdownMenuItem(value: 'mi', child: Text('Miles')),
-                    ],
-                    onChanged: (value) {
-                      if (value == null) {
-                        return;
-                      }
-                      setState(() => _distanceUnit = value);
-                    },
-                    decoration: const InputDecoration(
-                      labelText: 'Distance unit',
-                    ),
-                  ),
-                ],
-              ),
+          Text(
+            'Settings',
+            style: theme.textTheme.headlineMedium?.copyWith(
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.5,
             ),
           ),
-          const SizedBox(height: 16),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Map', style: theme.textTheme.titleMedium),
-                  const SizedBox(height: 8),
-                  SwitchListTile.adaptive(
-                    value: _shareLocation,
-                    onChanged: (value) {
-                      setState(() => _shareLocation = value);
-                    },
-                    title: const Text('My location'),
-                    subtitle: const Text('Show your location on the map.'),
-                  ),
-                  SwitchListTile.adaptive(
-                    value: _trafficLayer,
-                    onChanged: (value) {
-                      setState(() => _trafficLayer = value);
-                    },
-                    title: const Text('Traffic layer'),
-                    subtitle: const Text('Overlay live traffic on the map.'),
-                  ),
-                  SwitchListTile.adaptive(
-                    value: _showBuildings,
-                    onChanged: (value) {
-                      setState(() => _showBuildings = value);
-                    },
-                    title: const Text('3D buildings'),
-                    subtitle: const Text(
-                      'Display building extrusions where available.',
-                    ),
-                  ),
-                  SwitchListTile.adaptive(
-                    value: _showCompass,
-                    onChanged: (value) {
-                      setState(() => _showCompass = value);
-                    },
-                    title: const Text('Compass'),
-                    subtitle: const Text('Show the compass when rotating.'),
-                  ),
-                  SwitchListTile.adaptive(
-                    value: _rotateGestures,
-                    onChanged: (value) {
-                      setState(() => _rotateGestures = value);
-                    },
-                    title: const Text('Rotate gestures'),
-                    subtitle: const Text(
-                      'Allow map rotation with two fingers.',
-                    ),
-                  ),
-                  SwitchListTile.adaptive(
-                    value: _tiltGestures,
-                    onChanged: (value) {
-                      setState(() => _tiltGestures = value);
-                    },
-                    title: const Text('Tilt gestures'),
-                    subtitle: const Text('Allow 3D tilt with two fingers.'),
-                  ),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<String>(
-                    initialValue: _mapType,
-                    items: const [
-                      DropdownMenuItem(
-                        value: 'standard',
-                        child: Text('Standard'),
-                      ),
-                      DropdownMenuItem(value: 'hybrid', child: Text('Hybrid')),
-                      DropdownMenuItem(
-                        value: 'satellite',
-                        child: Text('Satellite'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'terrain',
-                        child: Text('Terrain'),
-                      ),
-                    ],
-                    onChanged: (value) {
-                      if (value == null) {
-                        return;
-                      }
-                      setState(() => _mapType = value);
-                    },
-                    decoration: const InputDecoration(labelText: 'Map type'),
-                  ),
-                ],
+          const SizedBox(height: 24),
+
+          // 1. Trip Preferences Group
+          _buildSettingsGroup(
+            title: 'Trip preferences',
+            items: [
+              _buildSwitchItem(
+                title: 'Trip notifications',
+                subtitle: 'Updates when routes change or a trip starts.',
+                value: _tripNotifications,
+                onChanged: (val) => setState(() => _tripNotifications = val),
               ),
-            ),
+              _buildSwitchItem(
+                title: 'Auto-save drafts',
+                subtitle: 'Keep unfinished trips ready for later.',
+                value: _autoSaveDrafts,
+                onChanged: (val) => setState(() => _autoSaveDrafts = val),
+              ),
+              _buildDropdownItem(
+                title: 'Distance unit',
+                subtitle: 'Preferred units for routes and navigation.',
+                value: _distanceUnit,
+                items: const [
+                  DropdownMenuItem(value: 'km', child: Text('Kilometers')),
+                  DropdownMenuItem(value: 'mi', child: Text('Miles')),
+                ],
+                onChanged: (val) {
+                  if (val != null) setState(() => _distanceUnit = val);
+                },
+              ),
+            ],
           ),
-          const SizedBox(height: 16),
+
+          const SizedBox(height: 24),
+
+          // 2. Map Group
+          _buildSettingsGroup(
+            title: 'Map',
+            items: [
+              _buildSwitchItem(
+                title: 'My location',
+                subtitle: 'Show your location on the map.',
+                value: _shareLocation,
+                onChanged: (val) => setState(() => _shareLocation = val),
+              ),
+              _buildSwitchItem(
+                title: 'Traffic layer',
+                subtitle: 'Overlay live traffic on the map.',
+                value: _trafficLayer,
+                onChanged: (val) => setState(() => _trafficLayer = val),
+              ),
+              _buildSwitchItem(
+                title: '3D buildings',
+                subtitle: 'Display building extrusions where available.',
+                value: _showBuildings,
+                onChanged: (val) => setState(() => _showBuildings = val),
+              ),
+              _buildSwitchItem(
+                title: 'Compass',
+                subtitle: 'Show the compass when rotating.',
+                value: _showCompass,
+                onChanged: (val) => setState(() => _showCompass = val),
+              ),
+              _buildSwitchItem(
+                title: 'Rotate gestures',
+                subtitle: 'Allow map rotation with two fingers.',
+                value: _rotateGestures,
+                onChanged: (val) => setState(() => _rotateGestures = val),
+              ),
+              _buildSwitchItem(
+                title: 'Tilt gestures',
+                subtitle: 'Allow 3D tilt with two fingers.',
+                value: _tiltGestures,
+                onChanged: (val) => setState(() => _tiltGestures = val),
+              ),
+              _buildDropdownItem(
+                title: 'Map type',
+                subtitle: 'Choose your preferred base map style.',
+                value: _mapType,
+                items: const [
+                  DropdownMenuItem(value: 'standard', child: Text('Standard')),
+                  DropdownMenuItem(value: 'hybrid', child: Text('Hybrid')),
+                  DropdownMenuItem(value: 'satellite', child: Text('Satellite')),
+                  DropdownMenuItem(value: 'terrain', child: Text('Terrain')),
+                ],
+                onChanged: (val) {
+                  if (val != null) setState(() => _mapType = val);
+                },
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 32),
+
           Align(
             alignment: Alignment.centerRight,
-            child: OutlinedButton.icon(
+            child: TextButton.icon(
               onPressed: _resetDefaults,
-              icon: const Icon(Icons.restart_alt_rounded),
-              label: const Text('Reset to defaults'),
+              icon: const Icon(Icons.restart_alt_rounded, size: 20),
+              label: const Text('RESET TO DEFAULTS'),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.white.withValues(alpha: 0.6),
+                textStyle: const TextStyle(
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.1,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSettingsGroup({required String title, required List<Widget> items}) {
+    return GlassContainer(
+      color: Colors.white,
+      opacity: 0.05,
+      blur: 12,
+      borderRadius: 24,
+      border: Border.all(
+        color: Colors.white.withValues(alpha: 0.15),
+        width: 1,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 18,
+                  letterSpacing: -0.2,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            ...items.asMap().entries.map((entry) {
+              final index = entry.key;
+              final widget = entry.value;
+              final isLast = index == items.length - 1;
+
+              return Column(
+                children: [
+                  widget,
+                  if (!isLast)
+                    Divider(
+                      color: Colors.white.withValues(alpha: 0.1),
+                      height: 1,
+                      indent: 24,
+                      endIndent: 24,
+                    ),
+                ],
+              );
+            }).toList(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSwitchItem({
+    required String title,
+    required String subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.6),
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          Switch.adaptive(
+            value: value,
+            onChanged: onChanged,
+            activeColor: Colors.orange.shade600,
+            activeTrackColor: Colors.orange.shade600.withValues(alpha: 0.4),
+            inactiveTrackColor: Colors.white.withValues(alpha: 0.1),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDropdownItem({
+    required String title,
+    required String subtitle,
+    required String value,
+    required List<DropdownMenuItem<String>> items,
+    required ValueChanged<String?> onChanged,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.6),
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: value,
+              items: items,
+              onChanged: onChanged,
+              icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white70),
+              dropdownColor: const Color(0xFF0A4275),
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+              ),
+              borderRadius: BorderRadius.circular(16),
             ),
           ),
         ],
