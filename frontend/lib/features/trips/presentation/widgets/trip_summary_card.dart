@@ -97,7 +97,7 @@ class TripSummaryCard extends StatelessWidget {
                       ),
                       TripMetricChip(
                         icon: Icons.restaurant_rounded,
-                        label: 'Mancare',
+                        label: 'Food',
                         value: _money(
                           trip.costSummary.estimatedFoodTotal,
                           trip.currency,

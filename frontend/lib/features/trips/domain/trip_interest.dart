@@ -1,15 +1,15 @@
 enum TripInterest {
-  nature('nature', 'Natura'),
-  culture('culture', 'Cultura'),
-  food('food', 'Mancare'),
-  relaxation('relaxation', 'Relaxare'),
+  nature('nature', 'Nature'),
+  culture('culture', 'Culture'),
+  food('food', 'Food'),
+  relaxation('relaxation', 'Relaxation'),
   nightlife('nightlife', 'Nightlife'),
   shopping('shopping', 'Shopping'),
-  adventure('adventure', 'Aventura'),
-  history('history', 'Istorie'),
-  familyKids('family_kids', 'Familie/copii'),
-  lowBudget('low_budget', 'Buget redus'),
-  luxuryPremium('luxury_premium', 'Lux/premium');
+  adventure('adventure', 'Adventure'),
+  history('history', 'History'),
+  familyKids('family_kids', 'Family/kids'),
+  lowBudget('low_budget', 'Low budget'),
+  luxuryPremium('luxury_premium', 'Luxury/premium');
 
   const TripInterest(this.value, this.label);
 

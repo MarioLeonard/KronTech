@@ -11,12 +11,14 @@ class TripRequestForm extends StatefulWidget {
     required this.onSubmit,
     required this.onReset,
     required this.isLoading,
+    this.onClose,
     super.key,
   });
 
   final ValueChanged<TripCreationRequest> onSubmit;
   final VoidCallback onReset;
   final bool isLoading;
+  final VoidCallback? onClose;
 
   @override
   State<TripRequestForm> createState() => _TripRequestFormState();
@@ -26,6 +28,7 @@ class _TripRequestFormState extends State<TripRequestForm> {
   List<String> _cities = const [];
   DateTime? _startDate;
   DateTime? _endDate;
+  bool _isOneDayTrip = false;
   Set<TripInterest> _interests = const {};
   String? _validationMessage;
 
@@ -41,7 +44,7 @@ class _TripRequestFormState extends State<TripRequestForm> {
       TripCreationRequest(
         cities: _cities,
         startDate: _startDate!,
-        endDate: _endDate!,
+        endDate: _isOneDayTrip ? _startDate! : _endDate!,
         interests: _interests.toList(),
       ),
     );
@@ -54,10 +57,10 @@ class _TripRequestFormState extends State<TripRequestForm> {
     if (_startDate == null) {
       return 'Choose a start date.';
     }
-    if (_endDate == null) {
+    if (!_isOneDayTrip && _endDate == null) {
       return 'Choose an end date.';
     }
-    if (_endDate!.isBefore(_startDate!)) {
+    if (!_isOneDayTrip && _endDate!.isBefore(_startDate!)) {
       return 'The end date cannot be before the start date.';
     }
     if (_interests.isEmpty) {
@@ -82,82 +85,69 @@ class _TripRequestFormState extends State<TripRequestForm> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 46,
-                  height: 46,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(14),
-                    color: theme.colorScheme.tertiary.withValues(alpha: 0.9),
-                  ),
-                  child: const Icon(Icons.route_rounded, color: Colors.white),
+            Center(
+              child: Container(
+                width: 46,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.34),
+                  borderRadius: BorderRadius.circular(999),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Create a trip',
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Choose the cities, dates, and vibe. AI will turn it into a day-by-day plan.',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: Colors.white.withValues(alpha: 0.62),
-                          height: 1.35,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            CityMultiSelectField(
-              cities: _cities,
-              enabled: enabled,
-              onChanged: (cities) {
-                setState(() => _cities = cities);
-                widget.onReset();
-              },
-            ),
-            const SizedBox(height: 16),
-            TripDateRangeFields(
-              startDate: _startDate,
-              endDate: _endDate,
-              enabled: enabled,
-              onStartDateChanged: (date) {
-                setState(() => _startDate = date);
-                widget.onReset();
-              },
-              onEndDateChanged: (date) {
-                setState(() => _endDate = date);
-                widget.onReset();
-              },
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'Interests',
-              style: theme.textTheme.titleSmall?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w900,
               ),
             ),
-            const SizedBox(height: 10),
-            InterestChipsSelector(
-              selected: _interests,
-              enabled: enabled,
-              onChanged: (interests) {
-                setState(() => _interests = interests);
-                widget.onReset();
-              },
+            const SizedBox(height: 18),
+            _FormCard(
+              child: CityMultiSelectField(
+                cities: _cities,
+                enabled: enabled,
+                onChanged: (cities) {
+                  setState(() => _cities = cities);
+                  widget.onReset();
+                },
+              ),
+            ),
+            const SizedBox(height: 12),
+            _FormCard(
+              child: TripDateRangeFields(
+                startDate: _startDate,
+                endDate: _endDate,
+                isOneDayTrip: _isOneDayTrip,
+                enabled: enabled,
+                onStartDateChanged: (date) {
+                  setState(() {
+                    _startDate = date;
+                    if (_endDate != null && _endDate!.isBefore(date)) {
+                      _endDate = null;
+                    }
+                  });
+                  widget.onReset();
+                },
+                onEndDateChanged: (date) {
+                  setState(() => _endDate = date);
+                  widget.onReset();
+                },
+                onOneDayTripChanged: (value) {
+                  setState(() {
+                    _isOneDayTrip = value;
+                    if (value) {
+                      _endDate = null;
+                    }
+                  });
+                  widget.onReset();
+                },
+              ),
+            ),
+            const SizedBox(height: 12),
+            _FormCard(
+              title: 'Trip vibe',
+              child: InterestChipsSelector(
+                selected: _interests,
+                enabled: enabled,
+                onChanged: (interests) {
+                  setState(() => _interests = interests);
+                  widget.onReset();
+                },
+              ),
             ),
             if (_validationMessage != null) ...[
               const SizedBox(height: 14),
@@ -184,8 +174,8 @@ class _TripRequestFormState extends State<TripRequestForm> {
                     : const Icon(Icons.auto_awesome_rounded),
                 label: Text(
                   widget.isLoading
-                      ? 'Generating itinerary...'
-                      : 'Generate itinerary',
+                      ? 'Building your itinerary...'
+                      : 'Create my itinerary',
                   style: const TextStyle(fontWeight: FontWeight.w900),
                 ),
                 style: FilledButton.styleFrom(
@@ -198,6 +188,48 @@ class _TripRequestFormState extends State<TripRequestForm> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FormCard extends StatelessWidget {
+  const _FormCard({required this.child, this.title});
+
+  final Widget child;
+  final String? title;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return SizedBox(
+      width: double.infinity,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.075),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (title != null) ...[
+                Text(
+                  title!,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 10),
+              ],
+              child,
+            ],
+          ),
         ),
       ),
     );

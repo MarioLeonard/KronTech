@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:frontend/components/glass_container.dart';
+import 'package:frontend/features/trips/data/backend_trip_generation_service.dart';
 import 'package:frontend/features/trips/domain/saved_trip.dart';
+import 'package:frontend/features/trips/domain/trip_creation_request.dart';
 import 'package:frontend/features/trips/presentation/controllers/saved_trips_provider.dart';
-import 'package:frontend/features/trips/presentation/screens/trip_details_screen.dart';
 import 'package:frontend/features/trips/presentation/screens/trip_creation_screen.dart';
+import 'package:frontend/features/trips/presentation/screens/trip_details_screen.dart';
 import 'package:frontend/providers/auth_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -17,16 +21,18 @@ class MyTripsScreen extends StatefulWidget {
 class _MyTripsScreenState extends State<MyTripsScreen> {
   late final SavedTripsProvider _savedTripsProvider;
   late final HeroController _tripsHeroController;
+  late final BackendTripGenerationService _tripGenerationService;
   final GlobalKey<NavigatorState> _tripsNavigatorKey =
       GlobalKey<NavigatorState>();
+  final List<_PendingTripGeneration> _pendingGenerations = [];
   String? _activeHeroTripTag;
-  bool _isCreating = false;
   bool _didLoadTrips = false;
 
   @override
   void initState() {
     super.initState();
     _savedTripsProvider = SavedTripsProvider();
+    _tripGenerationService = BackendTripGenerationService();
     _tripsHeroController = HeroController(
       createRectTween: (begin, end) {
         return MaterialRectArcTween(begin: begin, end: end);
@@ -61,73 +67,31 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final child = _isCreating
-        ? TripCreationScreen(
-            key: const ValueKey('trip-creation'),
-            onBack: _showList,
-            onTripGenerated: _showListAndRefresh,
-          )
-        : ChangeNotifierProvider.value(
-            key: const ValueKey('trips-list'),
-            value: _savedTripsProvider,
-            child: Navigator(
-              key: _tripsNavigatorKey,
-              observers: [_tripsHeroController],
-              onGenerateRoute: (settings) {
-                return PageRouteBuilder<void>(
-                  settings: settings,
-                  pageBuilder: (context, animation, secondaryAnimation) {
-                    return Consumer<SavedTripsProvider>(
-                      builder: (context, provider, child) {
-                        return _TripsListView(
-                          provider: provider,
-                          onAddTrip: _showCreate,
-                          onRetry: () => _reload(context),
-                          onOpenTrip: _showTripDetails,
-                          activeHeroTripTag: _activeHeroTripTag,
-                        );
-                      },
-                    );
-                  },
-                );
-              },
-            ),
+    return ChangeNotifierProvider.value(
+      value: _savedTripsProvider,
+      child: Navigator(
+        key: _tripsNavigatorKey,
+        observers: [_tripsHeroController],
+        onGenerateRoute: (settings) {
+          return PageRouteBuilder<void>(
+            settings: settings,
+            pageBuilder: (context, animation, secondaryAnimation) {
+              return Consumer<SavedTripsProvider>(
+                builder: (context, provider, child) {
+                  return _TripsListView(
+                    provider: provider,
+                    pendingGenerations: _pendingGenerations,
+                    onAddTrip: _showCreate,
+                    onRetry: () => _reload(context),
+                    onOpenTrip: _showTripDetails,
+                    activeHeroTripTag: _activeHeroTripTag,
+                  );
+                },
+              );
+            },
           );
-
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 520),
-      reverseDuration: const Duration(milliseconds: 360),
-      switchInCurve: Curves.easeOutCubic,
-      switchOutCurve: Curves.easeInCubic,
-      layoutBuilder: (currentChild, previousChildren) {
-        return Stack(
-          alignment: Alignment.topCenter,
-          children: [...previousChildren, ?currentChild],
-        );
-      },
-      transitionBuilder: (child, animation) {
-        final isTripCreation =
-            (child.key as ValueKey<String>?)?.value == 'trip-creation';
-        final slideBegin = isTripCreation
-            ? const Offset(0.05, 0.02)
-            : const Offset(-0.03, 0);
-        final slide = Tween<Offset>(begin: slideBegin, end: Offset.zero)
-            .animate(
-              CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
-            );
-        final scale = Tween<double>(begin: 0.98, end: 1).animate(
-          CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
-        );
-
-        return FadeTransition(
-          opacity: animation,
-          child: SlideTransition(
-            position: slide,
-            child: ScaleTransition(scale: scale, child: child),
-          ),
-        );
-      },
-      child: child,
+        },
+      ),
     );
   }
 
@@ -148,15 +112,23 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
     );
   }
 
-  void _showCreate() {
-    setState(() => _isCreating = true);
+  Future<void> _showCreate() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: false,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.34),
+      builder: (sheetContext) {
+        return TripCreationScreen(
+          onBack: () => Navigator.of(sheetContext).pop(),
+          onTripGenerationRequested: _startTripGeneration,
+        );
+      },
+    );
   }
 
   void _showList() {
-    if (_isCreating) {
-      setState(() => _isCreating = false);
-      return;
-    }
     _tripsNavigatorKey.currentState?.popUntil((route) => route.isFirst);
   }
 
@@ -186,29 +158,72 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
     setState(() => _activeHeroTripTag = null);
   }
 
-  void _showListAndRefresh() {
-    setState(() => _isCreating = false);
-    _tripsNavigatorKey.currentState?.popUntil((route) => route.isFirst);
-    final user = context.read<AuthProvider>().user;
-    final idToken = user?.idToken;
-    final userId = user?.id;
-    if (idToken == null ||
-        idToken.isEmpty ||
-        userId == null ||
-        userId.isEmpty) {
+  Future<void> _startTripGeneration(
+    TripCreationRequest request,
+    String idToken,
+    String userId,
+  ) async {
+    final pending = _PendingTripGeneration.fromRequest(request);
+    setState(() => _pendingGenerations.insert(0, pending));
+    unawaited(_generateTripInBackground(pending, request, idToken, userId));
+  }
+
+  Future<void> _generateTripInBackground(
+    _PendingTripGeneration pending,
+    TripCreationRequest request,
+    String idToken,
+    String userId,
+  ) async {
+    try {
+      await _tripGenerationService.generateTrip(
+        request: request,
+        idToken: idToken,
+      );
+      if (!mounted) {
+        return;
+      }
+      await _savedTripsProvider.loadTrips(
+        idToken: idToken,
+        userId: userId,
+        forceRefresh: true,
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _pendingGenerations.removeWhere((item) => item.id == pending.id);
+      });
+    } on TripGenerationException catch (error) {
+      _removePendingGeneration(pending.id);
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.message)));
+    } catch (_) {
+      _removePendingGeneration(pending.id);
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('We could not generate the trip.')),
+      );
+    }
+  }
+
+  void _removePendingGeneration(String id) {
+    if (!mounted) {
       return;
     }
-    _savedTripsProvider.loadTrips(
-      idToken: idToken,
-      userId: userId,
-      forceRefresh: true,
-    );
+    setState(() => _pendingGenerations.removeWhere((item) => item.id == id));
   }
 }
 
 class _TripsListView extends StatelessWidget {
   const _TripsListView({
     required this.provider,
+    required this.pendingGenerations,
     required this.onAddTrip,
     required this.onRetry,
     required this.onOpenTrip,
@@ -216,6 +231,7 @@ class _TripsListView extends StatelessWidget {
   });
 
   final SavedTripsProvider provider;
+  final List<_PendingTripGeneration> pendingGenerations;
   final VoidCallback onAddTrip;
   final VoidCallback onRetry;
   final ValueChanged<SavedTrip> onOpenTrip;
@@ -223,6 +239,9 @@ class _TripsListView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasTripsOrPending =
+        provider.trips.isNotEmpty || pendingGenerations.isNotEmpty;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(32),
       child: Center(
@@ -234,18 +253,35 @@ class _TripsListView extends StatelessWidget {
               _TripsHero(onAddTrip: onAddTrip),
               const SizedBox(height: 28),
               switch (provider.status) {
-                SavedTripsStatus.idle ||
-                SavedTripsStatus.loading => const _TripsLoadingCard(),
-                SavedTripsStatus.error => _TripsErrorCard(
-                  message:
-                      provider.errorMessage ?? 'Could not load saved trips.',
-                  onRetry: onRetry,
-                ),
+                SavedTripsStatus.idle || SavedTripsStatus.loading =>
+                  hasTripsOrPending
+                      ? _TripsSections(
+                          trips: provider.trips,
+                          pendingGenerations: pendingGenerations,
+                          onOpenTrip: onOpenTrip,
+                          activeHeroTripTag: activeHeroTripTag,
+                        )
+                      : const _TripsLoadingCard(),
+                SavedTripsStatus.error =>
+                  hasTripsOrPending
+                      ? _TripsSections(
+                          trips: provider.trips,
+                          pendingGenerations: pendingGenerations,
+                          onOpenTrip: onOpenTrip,
+                          activeHeroTripTag: activeHeroTripTag,
+                        )
+                      : _TripsErrorCard(
+                          message:
+                              provider.errorMessage ??
+                              'Could not load saved trips.',
+                          onRetry: onRetry,
+                        ),
                 SavedTripsStatus.success =>
-                  provider.trips.isEmpty
+                  !hasTripsOrPending
                       ? _TripsEmptyCard(onAddTrip: onAddTrip)
                       : _TripsSections(
                           trips: provider.trips,
+                          pendingGenerations: pendingGenerations,
                           onOpenTrip: onOpenTrip,
                           activeHeroTripTag: activeHeroTripTag,
                         ),
@@ -365,11 +401,13 @@ class _TripsHero extends StatelessWidget {
 class _TripsSections extends StatelessWidget {
   const _TripsSections({
     required this.trips,
+    required this.pendingGenerations,
     required this.onOpenTrip,
     required this.activeHeroTripTag,
   });
 
   final List<SavedTrip> trips;
+  final List<_PendingTripGeneration> pendingGenerations;
   final ValueChanged<SavedTrip> onOpenTrip;
   final String? activeHeroTripTag;
 
@@ -384,6 +422,7 @@ class _TripsSections extends StatelessWidget {
         _TripsSection(
           title: 'Upcoming trips',
           trips: upcoming,
+          pendingGenerations: pendingGenerations,
           onOpenTrip: onOpenTrip,
           activeHeroTripTag: activeHeroTripTag,
         ),
@@ -391,6 +430,7 @@ class _TripsSections extends StatelessWidget {
         _TripsSection(
           title: 'Past trips',
           trips: past,
+          pendingGenerations: const [],
           onOpenTrip: onOpenTrip,
           activeHeroTripTag: activeHeroTripTag,
         ),
@@ -399,22 +439,57 @@ class _TripsSections extends StatelessWidget {
   }
 }
 
+class _PendingTripGeneration {
+  _PendingTripGeneration({
+    required this.id,
+    required this.destination,
+    required this.dateLabel,
+    required this.subtitle,
+  });
+
+  factory _PendingTripGeneration.fromRequest(TripCreationRequest request) {
+    final destination = request.cities
+        .map((city) => city.trim())
+        .where((city) => city.isNotEmpty)
+        .join(', ');
+    final safeDestination = destination.isEmpty ? 'New trip' : destination;
+    final dayCount =
+        request.endDate.difference(request.startDate).inDays.abs() + 1;
+
+    return _PendingTripGeneration(
+      id: DateTime.now().microsecondsSinceEpoch.toString(),
+      destination: safeDestination,
+      dateLabel: _formatPendingTripRange(request.startDate, request.endDate),
+      subtitle:
+          'Itinerary of $dayCount ${dayCount == 1 ? 'day' : 'days'} in $safeDestination',
+    );
+  }
+
+  final String id;
+  final String destination;
+  final String dateLabel;
+  final String subtitle;
+}
+
 class _TripsSection extends StatelessWidget {
   const _TripsSection({
     required this.title,
     required this.trips,
+    required this.pendingGenerations,
     required this.onOpenTrip,
     required this.activeHeroTripTag,
   });
 
   final String title;
   final List<SavedTrip> trips;
+  final List<_PendingTripGeneration> pendingGenerations;
   final ValueChanged<SavedTrip> onOpenTrip;
   final String? activeHeroTripTag;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final itemCount = trips.length + pendingGenerations.length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -429,11 +504,11 @@ class _TripsSection extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 10),
-            _CountPill(count: trips.length),
+            _CountPill(count: itemCount),
           ],
         ),
         const SizedBox(height: 12),
-        if (trips.isEmpty)
+        if (itemCount == 0)
           _SectionEmptyState(title: title)
         else
           LayoutBuilder(
@@ -447,7 +522,7 @@ class _TripsSection extends StatelessWidget {
                   : 1;
 
               return GridView.builder(
-                itemCount: trips.length,
+                itemCount: itemCount,
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -457,7 +532,12 @@ class _TripsSection extends StatelessWidget {
                   mainAxisExtent: columns == 1 ? 226 : 268,
                 ),
                 itemBuilder: (context, index) {
-                  final trip = trips[index];
+                  if (index < pendingGenerations.length) {
+                    return _GeneratingTripCard(
+                      pending: pendingGenerations[index],
+                    );
+                  }
+                  final trip = trips[index - pendingGenerations.length];
                   return _SavedTripCard(
                     trip: trip,
                     onOpen: onOpenTrip,
@@ -514,6 +594,186 @@ class _SectionEmptyState extends StatelessWidget {
         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
           color: Colors.white.withValues(alpha: 0.62),
           fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
+}
+
+class _GeneratingTripCard extends StatelessWidget {
+  const _GeneratingTripCard({required this.pending});
+
+  final _PendingTripGeneration pending;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(18),
+      child: Material(
+        color: Colors.white.withValues(alpha: 0.08),
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 5,
+                child: TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0, end: 1),
+                  duration: const Duration(milliseconds: 900),
+                  curve: Curves.easeInOutCubic,
+                  builder: (context, value, child) {
+                    return DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            colorScheme.primary.withValues(
+                              alpha: 0.22 + value * 0.08,
+                            ),
+                            colorScheme.tertiary.withValues(
+                              alpha: 0.18 + value * 0.08,
+                            ),
+                            const Color(0xFF063970),
+                          ],
+                        ),
+                      ),
+                      child: child,
+                    );
+                  },
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      const DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Color(0x11000000),
+                              Color(0x22000000),
+                              Color(0xAA063970),
+                            ],
+                          ),
+                        ),
+                      ),
+                      Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SizedBox(
+                              width: 34,
+                              height: 34,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 3,
+                                color: colorScheme.tertiary,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'Generating trip...',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Positioned(
+                        left: 16,
+                        right: 16,
+                        bottom: 14,
+                        child: Text(
+                          pending.destination,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w900,
+                            shadows: [
+                              Shadow(
+                                color: Colors.black.withValues(alpha: 0.35),
+                                blurRadius: 16,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 3,
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Colors.white.withValues(alpha: 0.08),
+                        const Color(0xFF0E5A90).withValues(alpha: 0.18),
+                      ],
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        pending.subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: Colors.white.withValues(alpha: 0.74),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        'Preparing places, schedule, stays, restaurants, and estimates.',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: Colors.white.withValues(alpha: 0.58),
+                          height: 1.3,
+                        ),
+                      ),
+                      const Spacer(),
+                      _buildPendingChip(pending.dateLabel),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPendingChip(String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );
@@ -920,6 +1180,16 @@ bool _isSameDay(DateTime first, DateTime second) {
 
 String _formatTripDate(DateTime date) {
   return '${date.day} ${_monthAbbreviation(date.month)} ${date.year}';
+}
+
+String _formatPendingTripRange(DateTime startDate, DateTime endDate) {
+  if (_isSameDay(startDate, endDate)) {
+    return _formatTripDate(startDate);
+  }
+  if (startDate.year == endDate.year) {
+    return '${startDate.day} ${_monthAbbreviation(startDate.month)} - ${endDate.day} ${_monthAbbreviation(endDate.month)} ${endDate.year}';
+  }
+  return '${_formatTripDate(startDate)} - ${_formatTripDate(endDate)}';
 }
 
 String _monthAbbreviation(int month) {

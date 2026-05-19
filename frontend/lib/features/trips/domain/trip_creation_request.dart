@@ -6,7 +6,7 @@ class TripCreationRequest {
     required this.startDate,
     required this.endDate,
     required this.interests,
-    this.locale = 'ro-RO',
+    this.locale = 'en-US',
     this.currency = 'EUR',
     this.distanceUnit = 'km',
   });

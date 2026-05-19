@@ -120,7 +120,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     final user = context.read<AuthProvider>().user ?? widget.user;
     if (user.idToken.isEmpty) {
-      _showErrorSnackBar('Sesiunea a expirat. Autentifica-te din nou.');
+      _showErrorSnackBar('Your session expired. Please sign in again.');
       return;
     }
 

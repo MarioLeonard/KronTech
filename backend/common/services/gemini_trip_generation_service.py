@@ -241,7 +241,8 @@ class GeminiTripGenerationService:
     def _build_prompt(request_data: dict) -> str:
         request_json = json.dumps(request_data, ensure_ascii=False, indent=2)
         return f"""
-You are a travel planning assistant. Generate a practical, day-by-day trip itinerary.
+You are a senior travel planning assistant. Generate a complete, polished trip
+itinerary that can be saved directly in a travel app.
 
 Return ONLY valid JSON. Do not include markdown, comments, explanations, or text outside the JSON object.
 
@@ -249,22 +250,30 @@ User request JSON:
 {request_json}
 
 Important requirements:
-- Organize the itinerary by day.
+- Use English for every human-readable string, regardless of the request locale.
+- Match the requested cities, dates, interests, currency, and distance unit.
+- Organize the itinerary by day, with one object for every calendar day from startDate through endDate.
 - Include recommended activities with approximate time ranges.
 - The day activities are also used as the app's "Places to visit" list. Include only tourist attractions, landmarks, museums, viewpoints, parks, cultural sites, beaches, neighborhoods worth visiting, or similar visit-worthy places. Do not include accommodation, hotel check-in/check-out, airport/train transfers, transit steps, meals, restaurants, shopping errands, rest periods, or administrative tasks as activities.
+- Each activity title must be a clean tourist objective name, not a sentence.
+- Activity descriptions should explain why the place is worth visiting and what to expect there.
 - Include approximate cost for each activity and each day.
 - Include approximate distances in kilometers between objectives.
 - Include approximate travel duration between locations.
-- Include recommended accommodation options.
+- Include 3 to 6 recommended accommodation options that fit the trip style and budget implied by the interests.
 - For accommodation names, return only the property or accommodation name. Do not append platform labels such as "(Airbnb)", "(Booking)", "(Booking.com)", or similar text in parentheses.
-- Include destinationImageUrl with a direct HTTPS image URL for the main destination/city when you can provide a reliable public image link. Prefer Wikimedia Commons or Unsplash images that are representative of the destination. If you are not confident the direct image URL is real, return an empty string.
-- For Booking or Airbnb, if you do not have a real API integration or live availability, mark them clearly as search suggestions and provide search URLs, not claims of availability.
-- Include restaurants or places to eat.
+- Accommodation type must be concise, such as hotel, apartment, hostel, guesthouse, villa, or boutique hotel.
+- Include destinationImageUrl with a direct HTTPS URL to an actual image file for the main destination/city. The URL must be public, accessible in a normal browser without authentication, API keys, cookies, referrer requirements, expiring signatures, or login walls.
+- destinationImageUrl must point directly to image bytes, not to an HTML page, search result, gallery page, or API endpoint. Prefer stable Wikimedia Commons upload URLs, images from official tourism/open public sites, or Unsplash images only when the URL is a direct publicly accessible image URL. Avoid Google Images, Pinterest, Instagram, Facebook, blob URLs, data URLs, and protected CDN links.
+- If you are not confident the destinationImageUrl is a real public image URL that can load directly in a browser, return an empty string instead of guessing.
+- For Booking or Airbnb, do not claim live availability. Mark every option as a search suggestion and provide search URLs for the city/property search.
+- Include 3 to 6 restaurants or places to eat with realistic cuisine, area, estimated meal cost, and a short practical note.
 - Costs, distances, and durations are estimates and must be marked as approximate.
 - Prefer realistic pacing. Do not overload days.
 - Avoid inventing exact live prices or availability.
 - If information is uncertain, include it in assumptions or warnings.
-- Use English for all human-readable strings.
+- Keep titles, summaries, notes, assumptions, and warnings concise but useful.
+- The final JSON should feel like a ready-to-use saved trip, not a draft or generic template.
 
 JSON schema:
 {{
@@ -274,7 +283,7 @@ JSON schema:
   "startDate": "YYYY-MM-DD",
   "endDate": "YYYY-MM-DD",
   "currency": "string",
-  "destinationImageUrl": "https://...",
+  "destinationImageUrl": "direct public HTTPS image URL, or empty string if uncertain",
   "costSummary": {{
     "estimatedTotal": 0,
     "estimatedActivitiesTotal": 0,
@@ -346,7 +355,10 @@ JSON schema:
 
 Validation rules:
 - Return at least one day.
-- Return at least two activities per day unless the trip duration makes that impossible.
+- Return 2 to 4 tourist activities per day unless the trip duration makes that impossible.
+- Return at least 3 accommodation options and at least 3 restaurant options when possible.
 - Use numeric values for costs and distances.
 - Keep URLs as search URLs when live availability cannot be verified.
+- destinationImageUrl must be a real browser-accessible image URL with no authentication.
+- Do not include Romanian text anywhere in the JSON.
 """.strip()
