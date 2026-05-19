@@ -244,6 +244,7 @@ def update_profile(request):
         )
 
 
+@csrf_exempt
 @firebase_required
 def upload_profile_photo(request):
     """

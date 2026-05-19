@@ -18,14 +18,15 @@ class UserProfile {
   });
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
+    final resolvedPhotoUrl =
+        json['profilePhotoUrl'] as String? ??
+        json['photo_url'] as String? ??
+        json['profilePhotoDataUrl'] as String?;
     return UserProfile(
       uid: json['uid'] as String? ?? json['id'] as String? ?? '',
       email: json['email'] as String?,
       displayName: json['display_name'] as String?,
-      photoUrl:
-          json['profilePhotoUrl'] as String? ??
-          json['photo_url'] as String? ??
-          json['profilePhotoDataUrl'] as String?,
+      photoUrl: resolvedPhotoUrl,
       emailVerified: json['email_verified'] as bool? ?? false,
       bio: json['bio'] as String?,
       location: json['location'] as String?,

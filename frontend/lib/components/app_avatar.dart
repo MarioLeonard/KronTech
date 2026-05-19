@@ -1,14 +1,17 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class AppAvatar extends StatelessWidget {
   const AppAvatar({
     required this.imageUrl,
+    this.imageBytes,
     this.radius = 20,
     this.icon = Icons.person_rounded,
     super.key,
   });
 
   final String? imageUrl;
+  final Uint8List? imageBytes;
   final double radius;
   final IconData icon;
 
@@ -22,12 +25,18 @@ class AppAvatar extends StatelessWidget {
       child: ClipOval(
         child: DecoratedBox(
           decoration: BoxDecoration(color: theme.colorScheme.secondary),
-          child: url == null || url.isEmpty
+          child: imageBytes != null
+              ? Image.memory(imageBytes!, fit: BoxFit.cover)
+              : url == null || url.isEmpty
               ? _FallbackIcon(icon: icon, radius: radius)
               : Image.network(
                   url,
                   fit: BoxFit.cover,
+                  webHtmlElementStrategy: kIsWeb
+                      ? WebHtmlElementStrategy.prefer
+                      : WebHtmlElementStrategy.never,
                   errorBuilder: (_, _, _) {
+                    debugPrint('[AppAvatar] Image.network failed for $url');
                     return _FallbackIcon(icon: icon, radius: radius);
                   },
                   loadingBuilder: (context, child, loadingProgress) {

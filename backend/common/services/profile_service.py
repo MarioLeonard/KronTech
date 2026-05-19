@@ -144,31 +144,32 @@ class ProfileService:
             )
 
         try:
-            # Upload to Firebase Storage
             storage = FirebaseStorageService()
-            storage_path = storage.generate_storage_path(uid, filename, "profile")
+            storage_path = storage.profile_photo_storage_path(uid)
             photo_url = storage.upload_file(
                 storage_path,
                 file_content,
                 content_type,
             )
 
-            # Delete old photo if exists
-            profile = UserProfile.get_by_uid(uid)
-            old_photo_url = profile.profile_photo_url if profile else None
-            if old_photo_url:
-                try:
-                    # Extract storage path from URL and delete old file
-                    logger.info(f"Old photo exists for user {uid}, keeping for reference")
-                except Exception as e:
-                    logger.warning(f"Failed to delete old photo: {e}")
-
-            # Update profile with new photo URL
             profile = UserProfile.get_by_uid(uid)
             if not profile:
                 raise Exception(f"Profile not found for user {uid}")
 
-            profile.update({"profilePhotoUrl": photo_url})
+            old_photo_path = profile.data.get("profilePhotoPath")
+            if old_photo_path and old_photo_path != storage_path:
+                try:
+                    storage.delete_file(old_photo_path)
+                except Exception as e:
+                    logger.warning(f"Failed to delete old photo: {e}")
+
+            profile.update(
+                {
+                    "profilePhotoUrl": photo_url,
+                    "profilePhotoPath": storage_path,
+                    "photo_url": photo_url,
+                }
+            )
             logger.info(f"Profile photo updated for user {uid}")
 
             return profile

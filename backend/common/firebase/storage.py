@@ -134,15 +134,8 @@ class FirebaseStorageService:
         content_type, file_content = FirebaseStorageService._parse_image_data_url(
             data_url
         )
-        extension = FirebaseStorageService._extension_for_content_type(content_type)
-        filename = f"profile_photo.{extension}"
-
         storage_service = FirebaseStorageService()
-        storage_path = storage_service.generate_storage_path(
-            uid,
-            filename,
-            "profile",
-        )
+        storage_path = storage_service.profile_photo_storage_path(uid)
         url = storage_service.upload_file(
             storage_path,
             file_content,
@@ -272,3 +265,8 @@ class FirebaseStorageService:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         
         return f"users/{uid}/{category}/{timestamp}_{safe_name}"
+
+    @staticmethod
+    def profile_photo_storage_path(uid: str) -> str:
+        """Return the single replaceable storage object used for a user's avatar."""
+        return f"users/{uid}/profile/profile_photo"

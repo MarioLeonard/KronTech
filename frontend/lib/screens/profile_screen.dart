@@ -1,9 +1,13 @@
+import 'dart:ui';
+import 'dart:typed_data';
+
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:country_picker/country_picker.dart';
+import 'package:country_state_city/country_state_city.dart' as csc;
 import 'package:frontend/components/app_avatar.dart';
 import 'package:frontend/components/glass_container.dart';
 import 'package:frontend/components/premium_background.dart';
-import 'package:frontend/features/onboarding/presentation/widgets/city_location_field.dart';
-import 'package:frontend/features/onboarding/presentation/widgets/country_location_field.dart';
 import 'package:frontend/models/auth_exception.dart';
 import 'package:frontend/models/auth_user.dart';
 import 'package:frontend/models/user_profile.dart';
@@ -30,6 +34,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late TextEditingController _streetController;
   late TextEditingController _birthDateController;
   bool _isUploadingPhoto = false;
+  bool _isEditingProfile = false;
+  Uint8List? _pendingProfilePhotoBytes;
 
   @override
   void initState() {
@@ -70,6 +76,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _cityController.text = profile?.city ?? '';
       _streetController.text = profile?.street ?? '';
       _birthDateController.text = _formatDateStr(profile?.dateOfBirth);
+      _isEditingProfile = false;
     });
     FocusScope.of(context).unfocus();
   }
@@ -110,6 +117,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     FocusScope.of(context).unfocus();
+    setState(() => _isEditingProfile = false);
     _showSuccessSnackBar(context);
   }
 
@@ -136,12 +144,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
 
       if (mounted) {
-        setState(() => _isUploadingPhoto = true);
+        setState(() {
+          _isUploadingPhoto = true;
+          _pendingProfilePhotoBytes = null;
+        });
+      }
+
+      final bytes = await image.readAsBytes();
+      if (mounted) {
+        setState(() => _pendingProfilePhotoBytes = bytes);
       }
 
       final updatedProfile = await _backendApiService.uploadProfilePhoto(
         idToken: user.idToken,
-        bytes: await image.readAsBytes(),
+        bytes: bytes,
         filename: image.name,
         contentType: image.mimeType ?? _mimeTypeFromName(image.name),
       );
@@ -234,24 +250,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
     }
 
-    final DateTime? picked = await showDatePicker(
+    final DateTime? picked = await _showCupertinoDatePicker(
       context: context,
       initialDate: initial,
-      firstDate: DateTime(1900),
-      lastDate: DateTime.now(),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.dark(
-              primary: Theme.of(context).colorScheme.primary,
-              onPrimary: Colors.white,
-              surface: const Color(0xFF063970),
-              onSurface: Colors.white,
-            ),
-          ),
-          child: child!,
-        );
-      },
+      minimumDate: DateTime(1900),
+      maximumDate: DateTime.now(),
     );
 
     if (picked != null) {
@@ -262,100 +265,53 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  void _pickGender() {
-    showModalBottomSheet(
+  Future<DateTime?> _showCupertinoDatePicker({
+    required BuildContext context,
+    required DateTime initialDate,
+    required DateTime minimumDate,
+    required DateTime maximumDate,
+  }) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    var selectedDate = initialDate;
+
+    return showModalBottomSheet<DateTime>(
       context: context,
-      backgroundColor: const Color(0xFF063970),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.28),
       builder: (context) {
-        return Container(
-          padding: const EdgeInsets.symmetric(vertical: 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: ['Male', 'Female', 'Other'].map((gender) {
-              return ListTile(
-                title: Text(
-                  gender,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
+        return SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: _CupertinoPickerShell(
+              onDone: () => Navigator.of(context).pop(selectedDate),
+              child: CupertinoTheme(
+                data: CupertinoThemeData(
+                  brightness: Brightness.dark,
+                  primaryColor: colorScheme.primary,
+                  textTheme: CupertinoTextThemeData(
+                    dateTimePickerTextStyle: theme.textTheme.titleLarge
+                        ?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                        ),
                   ),
                 ),
-                onTap: () {
-                  setState(() {
-                    _genderController.text = gender;
-                  });
-                  Navigator.pop(context);
-                },
-              );
-            }).toList(),
-          ),
-        );
-      },
-    );
-  }
-
-  void _pickCountry() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 450, maxHeight: 600),
-              child: GlassContainer(
-                color: const Color(0xFF0A4275),
-                opacity: 0.8,
-                blur: 12,
-                borderRadius: 24,
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.15),
-                  width: 1,
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Select Country',
-                            style: Theme.of(context).textTheme.titleLarge
-                                ?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                          ),
-                          IconButton(
-                            onPressed: () => Navigator.pop(context),
-                            icon: const Icon(
-                              Icons.close_rounded,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      Flexible(
-                        child: CountryLocationField(
-                          value: _countryController.text,
-                          onChanged: (value) async {
-                            if (value.isNotEmpty) {
-                              setState(() => _countryController.text = value);
-                              Navigator.pop(context);
-                            }
-                          },
-                        ),
-                      ),
-                    ],
+                child: ScrollConfiguration(
+                  behavior: const _PickerScrollBehavior(),
+                  child: CupertinoDatePicker(
+                    mode: CupertinoDatePickerMode.date,
+                    initialDateTime: initialDate,
+                    minimumDate: minimumDate,
+                    maximumDate: maximumDate,
+                    onDateTimeChanged: (value) {
+                      selectedDate = DateTime(
+                        value.year,
+                        value.month,
+                        value.day,
+                      );
+                    },
                   ),
                 ),
               ),
@@ -366,66 +322,68 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  void _pickCity() {
-    showDialog(
+  Future<void> _pickGender() async {
+    final gender = await _showCupertinoTextPicker(
+      title: 'Gender',
+      values: const ['Male', 'Female', 'Other'],
+      currentValue: _genderController.text,
+    );
+    if (gender == null) {
+      return;
+    }
+    setState(() => _genderController.text = gender);
+  }
+
+  Future<String?> _showCupertinoTextPicker({
+    required String title,
+    required List<String> values,
+    required String currentValue,
+  }) {
+    final selectedIndex = values.indexWhere(
+      (value) => value.toLowerCase() == currentValue.toLowerCase(),
+    );
+    var selectedValue = values[selectedIndex < 0 ? 0 : selectedIndex];
+
+    return showModalBottomSheet<String>(
       context: context,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.28),
       builder: (context) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 450, maxHeight: 600),
-              child: GlassContainer(
-                color: const Color(0xFF0A4275),
-                opacity: 0.8,
-                blur: 12,
-                borderRadius: 24,
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.15),
-                  width: 1,
+        return SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: _CupertinoPickerShell(
+              title: title,
+              onDone: () => Navigator.of(context).pop(selectedValue),
+              child: CupertinoTheme(
+                data: CupertinoThemeData(
+                  brightness: Brightness.dark,
+                  textTheme: CupertinoTextThemeData(
+                    pickerTextStyle: Theme.of(context).textTheme.titleLarge
+                        ?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                        ),
+                  ),
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Select City',
-                            style: Theme.of(context).textTheme.titleLarge
-                                ?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                          ),
-                          IconButton(
-                            onPressed: () => Navigator.pop(context),
-                            icon: const Icon(
-                              Icons.close_rounded,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      Flexible(
-                        child: CityLocationField(
-                          value: _cityController.text,
-                          country: _countryController.text,
-                          onChanged: (value) async {
-                            if (value.isNotEmpty) {
-                              setState(() => _cityController.text = value);
-                              Navigator.pop(context);
-                            }
-                          },
+                child: CupertinoPicker(
+                  scrollController: FixedExtentScrollController(
+                    initialItem: selectedIndex < 0 ? 0 : selectedIndex,
+                  ),
+                  itemExtent: 42,
+                  onSelectedItemChanged: (index) {
+                    selectedValue = values[index];
+                  },
+                  children: [
+                    for (final value in values)
+                      Center(
+                        child: Text(
+                          value,
+                          style: const TextStyle(fontWeight: FontWeight.w800),
                         ),
                       ),
-                    ],
-                  ),
+                  ],
                 ),
               ),
             ),
@@ -433,6 +391,73 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
       },
     );
+  }
+
+  Future<void> _pickCountry() async {
+    final countries =
+        CountryService()
+            .getAll()
+            .map((country) => country.name)
+            .toSet()
+            .toList()
+          ..sort();
+    final country = await _showCupertinoTextPicker(
+      title: 'Country',
+      values: countries,
+      currentValue: _countryController.text,
+    );
+    if (country == null) {
+      return;
+    }
+    setState(() {
+      if (_countryController.text != country) {
+        _cityController.clear();
+      }
+      _countryController.text = country;
+    });
+  }
+
+  Future<void> _pickCity() async {
+    final countryCode = _countryCodeFor(_countryController.text);
+    if (countryCode.isEmpty) {
+      _showErrorSnackBar('Choose a country first.');
+      return;
+    }
+
+    final cities = (await csc.getCountryCities(
+      countryCode,
+    )).map((city) => city.name).toSet().toList()..sort();
+    if (!mounted) {
+      return;
+    }
+    if (cities.isEmpty) {
+      _showErrorSnackBar('No cities found for this country.');
+      return;
+    }
+
+    final city = await _showCupertinoTextPicker(
+      title: 'City',
+      values: cities,
+      currentValue: _cityController.text,
+    );
+    if (city == null) {
+      return;
+    }
+    setState(() => _cityController.text = city);
+  }
+
+  String _countryCodeFor(String countryName) {
+    final normalized = countryName.trim().toLowerCase();
+    if (normalized.isEmpty) {
+      return '';
+    }
+
+    for (final country in CountryService().getAll()) {
+      if (country.name.toLowerCase() == normalized) {
+        return country.countryCode;
+      }
+    }
+    return '';
   }
 
   @override
@@ -450,225 +475,413 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         body: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
-          child: Column(
-            children: [
-              // Header Section
-              Center(
-                child: Column(
-                  children: [
-                    GestureDetector(
-                      onTap: _isUploadingPhoto
-                          ? null
-                          : _pickAndUploadProfilePhoto,
-                      child: Stack(
-                        alignment: Alignment.bottomRight,
-                        children: [
-                          Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: theme.colorScheme.primary.withValues(
-                                    alpha: 0.3,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1040),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'PROFILE',
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      letterSpacing: 4,
+                      fontWeight: FontWeight.bold,
+                      color: colorScheme.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Your travel profile, neatly tuned.',
+                    style: theme.textTheme.displaySmall?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      color: colorScheme.onSurface,
+                      height: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 620),
+                    child: Text(
+                      'Keep your personal details, location, and profile photo ready for smoother trip planning.',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: colorScheme.onSurface.withValues(alpha: 0.68),
+                        fontWeight: FontWeight.w500,
+                        height: 1.45,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Container(
+                    height: 4,
+                    width: 80,
+                    decoration: BoxDecoration(
+                      color: colorScheme.primary,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                  GlassContainer(
+                    color: const Color(0xFF0E5A90),
+                    opacity: 0.18,
+                    blur: 18,
+                    borderRadius: 26,
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.14),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(22),
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final isWide = constraints.maxWidth >= 760;
+                          final avatar = GestureDetector(
+                            onTap: _isUploadingPhoto
+                                ? null
+                                : _pickAndUploadProfilePhoto,
+                            child: Stack(
+                              alignment: Alignment.bottomRight,
+                              children: [
+                                DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: colorScheme.primary.withValues(
+                                          alpha: 0.28,
+                                        ),
+                                        blurRadius: 28,
+                                        spreadRadius: 1,
+                                      ),
+                                    ],
                                   ),
-                                  blurRadius: 30,
-                                  spreadRadius: 2,
+                                  child: AppAvatar(
+                                    radius: isWide ? 58 : 48,
+                                    imageUrl: photoUrl,
+                                    imageBytes: _pendingProfilePhotoBytes,
+                                    icon: Icons.person_outline_rounded,
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.all(7),
+                                  decoration: BoxDecoration(
+                                    color: colorScheme.tertiary,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.24,
+                                      ),
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  child: _isUploadingPhoto
+                                      ? const SizedBox(
+                                          width: 17,
+                                          height: 17,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Colors.white,
+                                          ),
+                                        )
+                                      : const Icon(
+                                          Icons.camera_alt_rounded,
+                                          size: 17,
+                                          color: Colors.white,
+                                        ),
                                 ),
                               ],
                             ),
-                            child: AppAvatar(
-                              radius: 60,
-                              imageUrl: photoUrl,
-                              icon: Icons.person_outline_rounded,
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: colorScheme.primary,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.2),
-                                width: 1.5,
+                          );
+                          final copy = Column(
+                            crossAxisAlignment: isWide
+                                ? CrossAxisAlignment.start
+                                : CrossAxisAlignment.center,
+                            children: [
+                              Text(
+                                displayName,
+                                textAlign: isWide
+                                    ? TextAlign.start
+                                    : TextAlign.center,
+                                style: theme.textTheme.headlineSmall?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w900,
+                                  height: 1.1,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                user.email ?? 'No email',
+                                textAlign: isWide
+                                    ? TextAlign.start
+                                    : TextAlign.center,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: Colors.white.withValues(alpha: 0.64),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          );
+                          final signOut = OutlinedButton.icon(
+                            onPressed: () =>
+                                context.read<AuthProvider>().signOut(),
+                            icon: const Icon(Icons.logout_rounded, size: 18),
+                            label: const Text('Sign out'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              side: BorderSide(
+                                color: Colors.white.withValues(alpha: 0.22),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 18,
+                                vertical: 13,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
                               ),
                             ),
-                            child: _isUploadingPhoto
-                                ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
+                          );
+
+                          if (!isWide) {
+                            return Column(
+                              children: [
+                                avatar,
+                                const SizedBox(height: 16),
+                                copy,
+                                const SizedBox(height: 18),
+                                signOut,
+                              ],
+                            );
+                          }
+
+                          return Row(
+                            children: [
+                              avatar,
+                              const SizedBox(width: 22),
+                              Expanded(child: copy),
+                              const SizedBox(width: 16),
+                              signOut,
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  GlassContainer(
+                    color: Colors.white,
+                    opacity: 0.055,
+                    blur: 16,
+                    borderRadius: 24,
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.14),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(18),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  'Personal details',
+                                  style: theme.textTheme.titleLarge?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                tooltip: _isEditingProfile
+                                    ? 'Editing enabled'
+                                    : 'Edit profile',
+                                onPressed: _isEditingProfile
+                                    ? null
+                                    : () => setState(
+                                        () => _isEditingProfile = true,
+                                      ),
+                                icon: const Icon(Icons.more_horiz_rounded),
+                                color: Colors.white,
+                                style: IconButton.styleFrom(
+                                  backgroundColor: Colors.white.withValues(
+                                    alpha: _isEditingProfile ? 0.06 : 0.1,
+                                  ),
+                                  disabledForegroundColor: Colors.white
+                                      .withValues(alpha: 0.38),
+                                ),
+                              ),
+                            ],
+                          ),
+                          AnimatedSize(
+                            duration: const Duration(milliseconds: 220),
+                            curve: Curves.easeOutCubic,
+                            alignment: Alignment.topLeft,
+                            child: _isEditingProfile
+                                ? Padding(
+                                    padding: const EdgeInsets.only(top: 4),
+                                    child: Text(
+                                      'Edit mode is on.',
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                            color: Colors.white.withValues(
+                                              alpha: 0.56,
+                                            ),
+                                            fontWeight: FontWeight.w700,
+                                          ),
                                     ),
                                   )
-                                : const Icon(
-                                    Icons.camera_alt_rounded,
-                                    size: 18,
-                                    color: Colors.white,
-                                  ),
+                                : const SizedBox.shrink(),
+                          ),
+                          const SizedBox(height: 16),
+                          LayoutBuilder(
+                            builder: (context, constraints) {
+                              final isWide = constraints.maxWidth >= 720;
+                              final rows = [
+                                InlineEditRow(
+                                  label: 'Gender',
+                                  icon: Icons.wc_rounded,
+                                  controller: _genderController,
+                                  enabled: _isEditingProfile,
+                                  readOnly: true,
+                                  onTap: _isEditingProfile ? _pickGender : null,
+                                ),
+                                InlineEditRow(
+                                  label: 'Country',
+                                  icon: Icons.public_rounded,
+                                  controller: _countryController,
+                                  enabled: _isEditingProfile,
+                                  readOnly: true,
+                                  onTap: _isEditingProfile
+                                      ? _pickCountry
+                                      : null,
+                                ),
+                                InlineEditRow(
+                                  label: 'City',
+                                  icon: Icons.location_city_rounded,
+                                  controller: _cityController,
+                                  enabled: _isEditingProfile,
+                                  readOnly: true,
+                                  onTap: _isEditingProfile ? _pickCity : null,
+                                ),
+                                InlineEditRow(
+                                  label: 'Street',
+                                  icon: Icons.signpost_rounded,
+                                  controller: _streetController,
+                                  enabled: _isEditingProfile,
+                                  readOnly: !_isEditingProfile,
+                                ),
+                                InlineEditRow(
+                                  label: 'Birth date',
+                                  icon: Icons.cake_rounded,
+                                  controller: _birthDateController,
+                                  enabled: _isEditingProfile,
+                                  readOnly: true,
+                                  onTap: _isEditingProfile ? _pickDate : null,
+                                ),
+                              ];
+
+                              if (!isWide) {
+                                return Column(
+                                  children: [
+                                    for (final row in rows) ...[
+                                      row,
+                                      if (row != rows.last)
+                                        const SizedBox(height: 10),
+                                    ],
+                                  ],
+                                );
+                              }
+
+                              return Wrap(
+                                spacing: 12,
+                                runSpacing: 12,
+                                children: [
+                                  for (final row in rows)
+                                    SizedBox(
+                                      width: (constraints.maxWidth - 12) / 2,
+                                      child: row,
+                                    ),
+                                ],
+                              );
+                            },
+                          ),
+                          AnimatedSize(
+                            duration: const Duration(milliseconds: 240),
+                            curve: Curves.easeOutCubic,
+                            alignment: Alignment.topCenter,
+                            child: _isEditingProfile
+                                ? Padding(
+                                    padding: const EdgeInsets.only(top: 22),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      children: [
+                                        TextButton(
+                                          onPressed: _resetForm,
+                                          child: Text(
+                                            'Cancel',
+                                            style: TextStyle(
+                                              color: Colors.white.withValues(
+                                                alpha: 0.72,
+                                              ),
+                                              fontWeight: FontWeight.w800,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        FilledButton.icon(
+                                          onPressed: _saveProfile,
+                                          icon: const Icon(Icons.check_rounded),
+                                          label: const Text(
+                                            'Save changes',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w900,
+                                            ),
+                                          ),
+                                          style: FilledButton.styleFrom(
+                                            backgroundColor:
+                                                colorScheme.tertiary,
+                                            foregroundColor: Colors.white,
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 22,
+                                              vertical: 15,
+                                            ),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(14),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  )
+                                : const SizedBox.shrink(),
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 20),
-                    Text(
-                      displayName,
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      user.email ?? 'No email',
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: colorScheme.onSurface.withValues(alpha: 0.6),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    OutlinedButton.icon(
-                      onPressed: () => context.read<AuthProvider>().signOut(),
-                      icon: const Icon(Icons.logout_rounded, size: 18),
-                      label: const Text('Sign out'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        side: BorderSide(
-                          color: Colors.white.withValues(alpha: 0.24),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 18,
-                          vertical: 12,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 48),
-
-              // Details Glass Container
-              GlassContainer(
-                color: Colors.white,
-                opacity: 0.05,
-                blur: 16,
-                borderRadius: 24,
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.15),
-                  width: 1,
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  child: Column(
-                    children: [
-                      InlineEditRow(
-                        label: 'Gender',
-                        controller: _genderController,
-                        readOnly: true,
-                        onTap: _pickGender,
-                      ),
-                      _buildDivider(),
-                      InlineEditRow(
-                        label: 'Country',
-                        controller: _countryController,
-                        readOnly: true,
-                        onTap: _pickCountry,
-                      ),
-                      _buildDivider(),
-                      InlineEditRow(
-                        label: 'City',
-                        controller: _cityController,
-                        readOnly: true,
-                        onTap: _pickCity,
-                      ),
-                      _buildDivider(),
-                      InlineEditRow(
-                        label: 'Street',
-                        controller: _streetController,
-                      ),
-                      _buildDivider(),
-                      InlineEditRow(
-                        label: 'Birth Date',
-                        controller: _birthDateController,
-                        readOnly: true,
-                        onTap: _pickDate,
-                      ),
-                      const SizedBox(height: 32),
-                      // 2. Save & Cancel Buttons
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            TextButton(
-                              onPressed: _resetForm,
-                              child: const Text(
-                                'Cancel',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            ElevatedButton(
-                              onPressed: _saveProfile,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: colorScheme.primary,
-                                foregroundColor: Colors.white,
-                                elevation: 0,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 24,
-                                  vertical: 14,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              child: const Text(
-                                'Save Changes',
-                                style: TextStyle(fontWeight: FontWeight.w900),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
                   ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildDivider() {
-    return Divider(
-      color: Colors.white.withValues(alpha: 0.1),
-      height: 1,
-      indent: 24,
-      endIndent: 24,
     );
   }
 }
 
 class InlineEditRow extends StatelessWidget {
   final String label;
+  final IconData icon;
   final TextEditingController controller;
+  final bool? enabled;
   final bool readOnly;
   final VoidCallback? onTap;
 
   const InlineEditRow({
     required this.label,
+    required this.icon,
     required this.controller,
+    required this.enabled,
     this.readOnly = false,
     this.onTap,
     super.key,
@@ -676,56 +889,168 @@ class InlineEditRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.5),
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
+    final theme = Theme.of(context);
+    final isEnabled = enabled ?? false;
+    final effectiveReadOnly = readOnly || !isEnabled;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: isEnabled ? 0.075 : 0.045),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: isEnabled ? 0.11 : 0.07),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 17, color: theme.colorScheme.primary),
+                const SizedBox(width: 8),
+                Text(
+                  label,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.68),
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: TextFormField(
+            const SizedBox(height: 8),
+            TextFormField(
               controller: controller,
-              readOnly: readOnly,
-              onTap: onTap,
-              textAlign: TextAlign.right,
+              readOnly: effectiveReadOnly,
+              onTap: isEnabled ? onTap : null,
               cursorColor: Colors.white,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: isEnabled ? 1 : 0.62),
+                fontWeight: FontWeight.w800,
                 fontSize: 15,
               ),
               decoration: InputDecoration(
-                border: InputBorder.none,
                 isDense: true,
-                contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                filled: true,
+                fillColor: Colors.white.withValues(
+                  alpha: isEnabled ? 0.07 : 0.04,
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 13,
+                ),
                 hintText: 'Not set',
                 hintStyle: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.3),
-                  fontWeight: FontWeight.w500,
+                  color: Colors.white.withValues(alpha: 0.34),
+                  fontWeight: FontWeight.w600,
                 ),
-                focusedBorder: readOnly
-                    ? InputBorder.none
-                    : UnderlineInputBorder(
-                        borderSide: BorderSide(
-                          color: Colors.white.withValues(alpha: 0.3),
-                          width: 0.5,
-                        ),
-                      ),
+                suffixIcon: isEnabled && readOnly
+                    ? Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        color: Colors.white.withValues(alpha: 0.54),
+                      )
+                    : null,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: Colors.white.withValues(alpha: 0.1),
+                  ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: Colors.white.withValues(alpha: 0.1),
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.72),
+                    width: 1.4,
+                  ),
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
+}
+
+class _CupertinoPickerShell extends StatelessWidget {
+  const _CupertinoPickerShell({
+    required this.child,
+    required this.onDone,
+    this.title,
+  });
+
+  final Widget child;
+  final VoidCallback onDone;
+  final String? title;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFF063970),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 46,
+              height: 5,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.34),
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    title ?? '',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: onDone,
+                  child: const Text(
+                    'Done',
+                    style: TextStyle(fontWeight: FontWeight.w900),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 176, child: child),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PickerScrollBehavior extends MaterialScrollBehavior {
+  const _PickerScrollBehavior();
+
+  @override
+  Set<PointerDeviceKind> get dragDevices => const {
+    PointerDeviceKind.touch,
+    PointerDeviceKind.mouse,
+    PointerDeviceKind.trackpad,
+    PointerDeviceKind.stylus,
+    PointerDeviceKind.unknown,
+  };
 }
 
 String _mimeTypeFromName(String name) {
