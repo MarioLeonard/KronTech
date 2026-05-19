@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:frontend/features/trips/domain/saved_trip.dart';
+import 'package:frontend/utils/hive_service.dart';
 import 'package:http/http.dart' as http;
 
 class SavedTripsException implements Exception {
@@ -23,7 +24,19 @@ class BackendSavedTripsService {
   final http.Client _client;
   final Uri _baseUri;
 
-  Future<List<SavedTrip>> fetchTrips(String idToken) async {
+  Future<List<SavedTrip>> fetchTrips({
+    required String idToken,
+    required String userId,
+    bool forceRefresh = false,
+  }) async {
+    if (!forceRefresh) {
+      final cachedTrips = _readCachedTripsOrNull(userId);
+      if (cachedTrips != null) {
+        _log('Loaded ${cachedTrips.length} trips from Hive cache.');
+        return cachedTrips;
+      }
+    }
+
     try {
       final response = await _client
           .get(
@@ -41,31 +54,26 @@ class BackendSavedTripsService {
         throw SavedTripsException(_readErrorMessage(body));
       }
 
-      final trips = body['trips'];
-      if (trips is! List) {
+      final tripsJson = body['trips'];
+      if (tripsJson is! List) {
         return const [];
       }
 
-      return trips
-          .whereType<Map>()
-          .map((trip) => SavedTrip.fromJson(Map<String, dynamic>.from(trip)))
-          .where((trip) => trip.id.isNotEmpty)
-          .toList()
-        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      await _writeCachedTrips(userId: userId, tripsJson: tripsJson);
+      return _parseTrips(tripsJson);
     } on TimeoutException {
-      throw const SavedTripsException(
-        'Incarcarea tripurilor a durat prea mult.',
-      );
+      throw const SavedTripsException('Loading trips took too long.');
     } on SavedTripsException {
       rethrow;
     } catch (error, stackTrace) {
       _log('Unexpected fetch trips error: $error\n$stackTrace');
-      throw const SavedTripsException('Nu am putut incarca tripurile salvate.');
+      throw const SavedTripsException('We could not load saved trips.');
     }
   }
 
   Future<void> deleteTrip({
     required String idToken,
+    required String userId,
     required String tripId,
   }) async {
     try {
@@ -85,14 +93,80 @@ class BackendSavedTripsService {
           _readErrorMessage(_decodeResponse(response.body)),
         );
       }
+      await _removeCachedTrip(userId: userId, tripId: tripId);
     } on TimeoutException {
-      throw const SavedTripsException('Stergerea a durat prea mult.');
+      throw const SavedTripsException('Deleting took too long.');
     } on SavedTripsException {
       rethrow;
     } catch (error, stackTrace) {
       _log('Unexpected delete trip error: $error\n$stackTrace');
-      throw const SavedTripsException('Nu am putut sterge tripul.');
+      throw const SavedTripsException('We could not delete the trip.');
     }
+  }
+
+  List<SavedTrip> readCachedTrips(String userId) {
+    return _readCachedTripsOrNull(userId) ?? const [];
+  }
+
+  List<SavedTrip>? _readCachedTripsOrNull(String userId) {
+    final cacheEntry = _readCacheEntry(userId);
+    final tripsJson = cacheEntry['trips'];
+    if (tripsJson is! List) {
+      return null;
+    }
+    return _parseTrips(tripsJson);
+  }
+
+  List<SavedTrip> _parseTrips(List<dynamic> tripsJson) {
+    return tripsJson
+        .whereType<Map>()
+        .map((trip) => SavedTrip.fromJson(Map<String, dynamic>.from(trip)))
+        .where((trip) => trip.id.isNotEmpty)
+        .toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  }
+
+  Map<String, dynamic> _readCacheEntry(String userId) {
+    final cached = HiveService.getSavedTripsBox().get(_cacheKey(userId));
+    if (cached is Map) {
+      return Map<String, dynamic>.from(cached);
+    }
+    return <String, dynamic>{};
+  }
+
+  Future<void> _writeCachedTrips({
+    required String userId,
+    required List<dynamic> tripsJson,
+  }) async {
+    await HiveService.getSavedTripsBox().put(_cacheKey(userId), {
+      'updatedAt': DateTime.now().toIso8601String(),
+      'trips': tripsJson
+          .whereType<Map>()
+          .map((trip) => Map<String, dynamic>.from(trip))
+          .toList(),
+    });
+  }
+
+  Future<void> _removeCachedTrip({
+    required String userId,
+    required String tripId,
+  }) async {
+    final cacheEntry = _readCacheEntry(userId);
+    final tripsJson = cacheEntry['trips'];
+    if (tripsJson is! List) {
+      return;
+    }
+
+    final nextTrips = tripsJson
+        .whereType<Map>()
+        .map((trip) => Map<String, dynamic>.from(trip))
+        .where((trip) => trip['id'] != tripId)
+        .toList();
+    await _writeCachedTrips(userId: userId, tripsJson: nextTrips);
+  }
+
+  String _cacheKey(String userId) {
+    return 'saved_trips_$userId';
   }
 
   Uri _resolve(String path) {
@@ -117,7 +191,7 @@ class BackendSavedTripsService {
     if (message is String && message.isNotEmpty) {
       return message;
     }
-    return 'Operatia nu a putut fi finalizata.';
+    return 'The operation could not be completed.';
   }
 
   String _truncate(String value, {int maxLength = 3000}) {

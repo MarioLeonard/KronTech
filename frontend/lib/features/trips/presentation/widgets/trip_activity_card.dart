@@ -19,9 +19,9 @@ class TripActivityCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface.withValues(alpha: 0.7),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.5)),
+        color: Colors.white.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -38,12 +38,19 @@ class TripActivityCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(activity.title, style: theme.textTheme.titleMedium),
+                    Text(
+                      activity.title,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
                     const SizedBox(height: 4),
                     Text(
                       activity.location,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w700,
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
                   ],
@@ -52,7 +59,13 @@ class TripActivityCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          Text(activity.description, style: theme.textTheme.bodyMedium),
+          Text(
+            activity.description,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: Colors.white.withValues(alpha: 0.7),
+              height: 1.4,
+            ),
+          ),
           if (activity.tags.isNotEmpty) ...[
             const SizedBox(height: 10),
             Wrap(
@@ -75,12 +88,12 @@ class TripActivityCard extends StatelessWidget {
               ),
               TripMetricChip(
                 icon: Icons.route_rounded,
-                label: 'Distanta',
+                label: 'Distance',
                 value: '${_number(activity.distanceFromPreviousKm)} km',
               ),
               TripMetricChip(
                 icon: Icons.directions_walk_rounded,
-                label: 'Durata',
+                label: 'Duration',
                 value: activity.travelTimeFromPrevious,
               ),
               TripMetricChip(
@@ -92,7 +105,12 @@ class TripActivityCard extends StatelessWidget {
           ),
           if (activity.costNote.isNotEmpty) ...[
             const SizedBox(height: 8),
-            Text(activity.costNote, style: theme.textTheme.bodySmall),
+            Text(
+              activity.costNote,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: Colors.white.withValues(alpha: 0.58),
+              ),
+            ),
           ],
         ],
       ),

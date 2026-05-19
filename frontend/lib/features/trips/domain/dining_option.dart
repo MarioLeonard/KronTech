@@ -20,8 +20,8 @@ class DiningOption {
   factory DiningOption.fromJson(Map<String, dynamic> json) {
     return DiningOption(
       name: _readString(json, 'name', 'Loc pentru masa'),
-      city: _readString(json, 'city', 'Oras nespecificat'),
-      area: _readString(json, 'area', 'Zona nespecificata'),
+      city: _readString(json, 'city', 'City unspecified'),
+      area: _readString(json, 'area', 'Area unspecified'),
       cuisine: _readString(json, 'cuisine', 'Bucatarie mixta'),
       recommendedFor: _readString(json, 'recommendedFor', 'masa'),
       estimatedMealCost: _readNum(json, 'estimatedMealCost'),

@@ -17,6 +17,9 @@ class TripMetricChip extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
+      constraints: BoxConstraints(
+        maxWidth: MediaQuery.sizeOf(context).width - 64,
+      ),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: theme.colorScheme.primary.withValues(alpha: 0.12),
@@ -30,8 +33,28 @@ class TripMetricChip extends StatelessWidget {
         children: [
           Icon(icon, size: 18, color: theme.colorScheme.primary),
           const SizedBox(width: 6),
-          Text('$label: ', style: theme.textTheme.labelMedium),
-          Text(value, style: theme.textTheme.bodySmall),
+          Flexible(
+            child: RichText(
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              text: TextSpan(
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: Colors.white.withValues(alpha: 0.78),
+                  height: 1.25,
+                ),
+                children: [
+                  TextSpan(
+                    text: '$label: ',
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: Colors.white.withValues(alpha: 0.88),
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  TextSpan(text: value),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );

@@ -56,10 +56,10 @@ class _CityMultiSelectFieldState extends State<CityMultiSelectField> {
           onSubmitted: (_) => _addCity(),
           decoration: InputDecoration(
             prefixIcon: const Icon(Icons.location_city_rounded),
-            labelText: 'Orase',
-            hintText: 'Adauga oras',
+            labelText: 'Cities',
+            hintText: 'Add city',
             suffixIcon: IconButton(
-              tooltip: 'Adauga oras',
+              tooltip: 'Add city',
               onPressed: widget.enabled ? _addCity : null,
               icon: const Icon(Icons.add_rounded),
             ),

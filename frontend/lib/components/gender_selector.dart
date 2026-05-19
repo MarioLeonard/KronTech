@@ -56,7 +56,7 @@ class _GenderSelectorState extends State<GenderSelector> {
           ),
         ),
         const SizedBox(height: 12),
-        // Noul mod de a gestiona starea radio în Flutter 3.32+
+        // The new way to manage radio state in Flutter 3.32+
         RadioGroup<String>(
           groupValue: _selectedGender,
           onChanged: (value) {

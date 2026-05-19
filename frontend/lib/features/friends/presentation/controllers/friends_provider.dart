@@ -81,7 +81,7 @@ class FriendsProvider extends ChangeNotifier {
     } on FriendsApiException catch (error) {
       _errorMessage = error.message;
     } catch (_) {
-      _errorMessage = 'Nu am putut incarca prietenii.';
+      _errorMessage = 'We could not load friends.';
     } finally {
       _isInitialLoading = false;
       _isLoadingMore = false;
@@ -99,7 +99,7 @@ class FriendsProvider extends ChangeNotifier {
     } on FriendsApiException catch (error) {
       _requestsErrorMessage = error.message;
     } catch (_) {
-      _requestsErrorMessage = 'Nu am putut incarca cererile.';
+      _requestsErrorMessage = 'We could not load requests.';
     } finally {
       _isLoadingRequests = false;
       notifyListeners();
@@ -135,7 +135,7 @@ class FriendsProvider extends ChangeNotifier {
     } on FriendsApiException catch (error) {
       _searchErrorMessage = error.message;
     } catch (_) {
-      _searchErrorMessage = 'Nu am putut cauta utilizatori.';
+      _searchErrorMessage = 'We could not search users.';
     } finally {
       _isSearching = false;
       notifyListeners();
@@ -161,7 +161,7 @@ class FriendsProvider extends ChangeNotifier {
     } on FriendsApiException catch (error) {
       _searchErrorMessage = error.message;
     } catch (_) {
-      _searchErrorMessage = 'Nu am putut trimite cererea.';
+      _searchErrorMessage = 'We could not send the request.';
     } finally {
       _setActionLoading(userId, false);
     }
@@ -181,7 +181,7 @@ class FriendsProvider extends ChangeNotifier {
     } on FriendsApiException catch (error) {
       _requestsErrorMessage = error.message;
     } catch (_) {
-      _requestsErrorMessage = 'Nu am putut accepta cererea.';
+      _requestsErrorMessage = 'We could not accept the request.';
     } finally {
       _setActionLoading(request.id, false);
     }
@@ -200,7 +200,7 @@ class FriendsProvider extends ChangeNotifier {
     } on FriendsApiException catch (error) {
       _requestsErrorMessage = error.message;
     } catch (_) {
-      _requestsErrorMessage = 'Nu am putut refuza cererea.';
+      _requestsErrorMessage = 'We could not decline the request.';
     } finally {
       _setActionLoading(request.id, false);
     }

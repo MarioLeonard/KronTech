@@ -50,40 +50,54 @@ class _TripCreationView extends StatelessWidget {
 
             if (isWide) {
               return SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (onBack != null) ...[
-                      _BackToTripsButton(onPressed: onBack!),
-                      const SizedBox(height: 14),
-                    ],
-                    Row(
+                padding: const EdgeInsets.all(32),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 1180),
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        SizedBox(width: 380, child: form),
-                        const SizedBox(width: 20),
-                        Expanded(child: result),
+                        if (onBack != null) ...[
+                          _BackToTripsButton(onPressed: onBack!),
+                          const SizedBox(height: 18),
+                        ],
+                        const _CreationHeader(),
+                        const SizedBox(height: 24),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(width: 410, child: form),
+                            const SizedBox(width: 24),
+                            Expanded(child: result),
+                          ],
+                        ),
                       ],
                     ),
-                  ],
+                  ),
                 ),
               );
             }
 
             return SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (onBack != null) ...[
-                    _BackToTripsButton(onPressed: onBack!),
-                    const SizedBox(height: 14),
-                  ],
-                  form,
-                  const SizedBox(height: 16),
-                  result,
-                ],
+              padding: const EdgeInsets.all(32),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1180),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (onBack != null) ...[
+                        _BackToTripsButton(onPressed: onBack!),
+                        const SizedBox(height: 14),
+                      ],
+                      const _CreationHeader(),
+                      const SizedBox(height: 18),
+                      form,
+                      const SizedBox(height: 16),
+                      result,
+                    ],
+                  ),
+                ),
               ),
             );
           },
@@ -121,6 +135,38 @@ class _TripCreationView extends StatelessWidget {
   }
 }
 
+class _CreationHeader extends StatelessWidget {
+  const _CreationHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'ADD TRIP',
+          style: theme.textTheme.labelLarge?.copyWith(
+            color: theme.colorScheme.primary,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 3,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Design a route that is ready to use.',
+          style: theme.textTheme.headlineMedium?.copyWith(
+            color: Colors.white,
+            fontWeight: FontWeight.w900,
+            height: 1.1,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _BackToTripsButton extends StatelessWidget {
   const _BackToTripsButton({required this.onPressed});
 
@@ -131,7 +177,7 @@ class _BackToTripsButton extends StatelessWidget {
     return OutlinedButton.icon(
       onPressed: onPressed,
       icon: const Icon(Icons.arrow_back_rounded),
-      label: const Text('Inapoi la tripurile mele'),
+      label: const Text('Back to My Trips'),
     );
   }
 }
@@ -171,8 +217,10 @@ class _TripLoadingState extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Card(
+      color: Colors.white.withValues(alpha: 0.08),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -187,15 +235,20 @@ class _TripLoadingState extends StatelessWidget {
                 Expanded(
                   child: Text(
                     'Se genereaza itinerariul...',
-                    style: theme.textTheme.titleMedium,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 12),
             Text(
-              'Gemini pregateste zilele, activitatile, estimarile de cost si distantele aproximative.',
-              style: theme.textTheme.bodyMedium,
+              'Gemini is preparing the days, activities, cost estimates, and approximate distances.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: Colors.white.withValues(alpha: 0.66),
+              ),
             ),
             const SizedBox(height: 16),
             const LinearProgressIndicator(),

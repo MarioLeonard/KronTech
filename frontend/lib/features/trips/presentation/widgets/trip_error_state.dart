@@ -33,7 +33,7 @@ class TripErrorState extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Nu am putut genera excursia',
+                        'We could not generate the trip',
                         style: theme.textTheme.titleMedium,
                       ),
                       const SizedBox(height: 6),
@@ -47,7 +47,7 @@ class TripErrorState extends StatelessWidget {
             OutlinedButton.icon(
               onPressed: onRetry,
               icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Incearca din nou'),
+              label: const Text('Try again'),
             ),
           ],
         ),

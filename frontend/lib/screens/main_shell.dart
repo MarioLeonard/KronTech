@@ -12,7 +12,6 @@ import 'package:frontend/screens/chat_screen.dart';
 import 'package:frontend/screens/friends_screen.dart';
 import 'package:frontend/screens/home_screen.dart';
 import 'package:frontend/screens/profile_screen.dart';
-import 'package:frontend/screens/settings_screen.dart';
 
 class MainShell extends StatefulWidget {
   const MainShell({required this.user, super.key});
@@ -30,6 +29,8 @@ class _MainShellState extends State<MainShell> {
       BrowserChatNotifications();
 
   int _selectedIndex = 0;
+  final Set<int> _visitedIndexes = {0};
+  bool _isSwitchingTabs = false;
   String? _initialChatConversationId;
   StreamSubscription<ChatNotificationEvent>? _notificationSubscription;
   Timer? _notificationReconnectTimer;
@@ -108,8 +109,24 @@ class _MainShellState extends State<MainShell> {
     if (!mounted) return;
     setState(() {
       _initialChatConversationId = conversationId;
-      _selectedIndex = 4;
     });
+    _selectDestination(4);
+  }
+
+  Future<void> _selectDestination(int index) async {
+    if (_isSwitchingTabs || index == _selectedIndex) {
+      return;
+    }
+
+    _isSwitchingTabs = true;
+    setState(() {
+      _selectedIndex = index;
+      _visitedIndexes.add(index);
+    });
+    await Future<void>.delayed(const Duration(milliseconds: 720));
+    if (mounted) {
+      _isSwitchingTabs = false;
+    }
   }
 
   @override
@@ -120,8 +137,8 @@ class _MainShellState extends State<MainShell> {
         icon: Icons.home_rounded,
         content: HomeScreen(
           user: widget.user,
-          onNavigateToTrips: () => setState(() => _selectedIndex = 1),
-          onNavigateToChat: () => setState(() => _selectedIndex = 4),
+          onNavigateToTrips: () => _selectDestination(1),
+          onNavigateToChat: () => _selectDestination(4),
         ),
       ),
       const _ShellDestination(
@@ -143,11 +160,6 @@ class _MainShellState extends State<MainShell> {
         label: 'Chat',
         icon: Icons.chat_bubble_rounded,
         content: ChatScreen(initialConversationId: _initialChatConversationId),
-      ),
-      const _ShellDestination(
-        label: 'Settings',
-        icon: Icons.settings_rounded,
-        content: SettingsScreen(),
       ),
     ];
 
@@ -171,7 +183,15 @@ class _MainShellState extends State<MainShell> {
             initialConversationId: _initialChatConversationId,
           ),
         );
-        final current = resolvedDestinations[_selectedIndex];
+        final pageContent = _ShellPageTransition(
+          selectedIndex: _selectedIndex,
+          children: [
+            for (var index = 0; index < resolvedDestinations.length; index++)
+              _visitedIndexes.contains(index)
+                  ? resolvedDestinations[index].content
+                  : const SizedBox.shrink(),
+          ],
+        );
 
         return PremiumBackground(
           child: Scaffold(
@@ -183,20 +203,20 @@ class _MainShellState extends State<MainShell> {
                       _GlassNavigationRail(
                         selectedIndex: _selectedIndex,
                         onDestinationSelected: (index) {
-                          setState(() => _selectedIndex = index);
+                          _selectDestination(index);
                         },
                         destinations: destinations,
                       ),
-                      Expanded(child: current.content),
+                      Expanded(child: pageContent),
                     ],
                   )
                 : Column(
                     children: [
-                      Expanded(child: current.content),
+                      Expanded(child: pageContent),
                       _GlassNavigationBar(
                         selectedIndex: _selectedIndex,
                         onDestinationSelected: (index) {
-                          setState(() => _selectedIndex = index);
+                          _selectDestination(index);
                         },
                         destinations: destinations,
                       ),
@@ -206,6 +226,132 @@ class _MainShellState extends State<MainShell> {
         );
       },
     );
+  }
+}
+
+class _ShellPageTransition extends StatefulWidget {
+  const _ShellPageTransition({
+    required this.selectedIndex,
+    required this.children,
+  });
+
+  final int selectedIndex;
+  final List<Widget> children;
+
+  @override
+  State<_ShellPageTransition> createState() => _ShellPageTransitionState();
+}
+
+class _ShellPageTransitionState extends State<_ShellPageTransition>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  int _currentIndex = 0;
+  int? _previousIndex;
+  bool _incomingFromBottom = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.selectedIndex;
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 720),
+    )..value = 1;
+  }
+
+  @override
+  void didUpdateWidget(covariant _ShellPageTransition oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.selectedIndex == oldWidget.selectedIndex) {
+      return;
+    }
+
+    _previousIndex = _currentIndex;
+    _incomingFromBottom = widget.selectedIndex > _currentIndex;
+    _currentIndex = widget.selectedIndex;
+    _controller.forward(from: 0).whenComplete(() {
+      if (mounted) {
+        setState(() => _previousIndex = null);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final animation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeInOutCubicEmphasized,
+    );
+
+    return ClipRect(
+      child: AnimatedBuilder(
+        animation: animation,
+        builder: (context, child) {
+          final progress = animation.value;
+          final direction = _incomingFromBottom ? 1.0 : -1.0;
+          final outgoingOffset = Offset(0, -direction * progress);
+          final incomingOffset = Offset(0, direction * (1 - progress));
+
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              for (var index = 0; index < widget.children.length; index++)
+                _ShellPageSlot(
+                  key: ValueKey('shell-page-$index'),
+                  isVisible: index == _currentIndex || index == _previousIndex,
+                  isActive: index == _currentIndex,
+                  offset: index == _currentIndex
+                      ? incomingOffset
+                      : index == _previousIndex
+                      ? outgoingOffset
+                      : Offset.zero,
+                  child: widget.children[index],
+                ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _ShellPageSlot extends StatelessWidget {
+  const _ShellPageSlot({
+    required this.isVisible,
+    required this.isActive,
+    required this.offset,
+    required this.child,
+    super.key,
+  });
+
+  final bool isVisible;
+  final bool isActive;
+  final Offset offset;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final page = TickerMode(
+      enabled: isVisible,
+      child: IgnorePointer(
+        ignoring: !isActive,
+        child: RepaintBoundary(
+          child: FractionalTranslation(translation: offset, child: child),
+        ),
+      ),
+    );
+
+    if (isVisible) {
+      return page;
+    }
+
+    return Offstage(offstage: true, child: page);
   }
 }
 
@@ -425,12 +571,11 @@ class _RailDestinationButton extends StatelessWidget {
         button: true,
         selected: isSelected,
         label: destination.label,
-        child: Material(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.circular(18),
-          child: InkWell(
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
             onTap: onPressed,
-            borderRadius: BorderRadius.circular(18),
             child: SizedBox(
               width: double.infinity,
               height: _RailDestinationList._buttonHeight,
@@ -522,19 +667,58 @@ class _GlassNavigationBar extends StatelessWidget {
               final destination = entry.value;
               final isSelected = selectedIndex == index;
 
-              return IconButton(
+              return _BottomDestinationButton(
+                destination: destination,
+                isSelected: isSelected,
                 onPressed: () => onDestinationSelected(index),
-                icon: Icon(
-                  destination.icon,
-                  color: isSelected
-                      ? Theme.of(context).colorScheme.primary
-                      : Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.6),
-                ),
-                tooltip: destination.label,
               );
             }).toList(),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _BottomDestinationButton extends StatelessWidget {
+  const _BottomDestinationButton({
+    required this.destination,
+    required this.isSelected,
+    required this.onPressed,
+  });
+
+  final _ShellDestination destination;
+  final bool isSelected;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = isSelected
+        ? theme.colorScheme.primary
+        : theme.colorScheme.onSurface.withValues(alpha: 0.6);
+
+    return Tooltip(
+      message: destination.label,
+      child: Semantics(
+        button: true,
+        selected: isSelected,
+        label: destination.label,
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onPressed,
+            child: SizedBox(
+              width: 52,
+              height: 52,
+              child: AnimatedScale(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOutCubic,
+                scale: isSelected ? 1.08 : 1,
+                child: Icon(destination.icon, color: color),
+              ),
+            ),
           ),
         ),
       ),

@@ -11,6 +11,7 @@ class GeneratedTrip {
     required this.startDate,
     required this.endDate,
     required this.currency,
+    required this.destinationImageUrl,
     required this.costSummary,
     required this.distanceSummary,
     required this.days,
@@ -26,6 +27,7 @@ class GeneratedTrip {
   final String startDate;
   final String endDate;
   final String currency;
+  final String destinationImageUrl;
   final TripCostSummary costSummary;
   final TripDistanceSummary distanceSummary;
   final List<TripDay> days;
@@ -42,6 +44,7 @@ class GeneratedTrip {
       startDate: _readString(json, 'startDate', ''),
       endDate: _readString(json, 'endDate', ''),
       currency: _readString(json, 'currency', 'EUR'),
+      destinationImageUrl: _readString(json, 'destinationImageUrl', ''),
       costSummary: TripCostSummary.fromJson(_readMap(json['costSummary'])),
       distanceSummary: TripDistanceSummary.fromJson(
         _readMap(json['distanceSummary']),

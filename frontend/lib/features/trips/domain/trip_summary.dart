@@ -44,7 +44,7 @@ class TripDistanceSummary {
       estimatedTotalTransitDuration: _readString(
         json,
         'estimatedTotalTransitDuration',
-        'Durata indisponibila',
+        'Duration unavailable',
       ),
       note: _readString(json, 'note', 'Distantele sunt aproximative.'),
     );

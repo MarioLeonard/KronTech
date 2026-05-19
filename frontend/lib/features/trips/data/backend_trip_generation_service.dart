@@ -61,26 +61,26 @@ class BackendTripGenerationService {
       final tripJson = responseBody['trip'];
       if (tripJson is! Map<String, dynamic>) {
         throw const TripGenerationException(
-          'Backend-ul nu a returnat un itinerariu valid.',
+          'The backend did not return a valid itinerary.',
         );
       }
 
       final trip = GeneratedTrip.fromJson(tripJson);
       if (!trip.hasUsefulContent) {
         throw const TripGenerationException(
-          'Raspunsul primit nu contine un itinerariu util. Incearca din nou.',
+          'The response did not contain a useful itinerary. Please try again.',
         );
       }
 
       return trip;
     } on TimeoutException {
       throw const TripGenerationException(
-        'Generarea a durat prea mult. Incearca din nou.',
+        'Generation took too long. Please try again.',
       );
     } on FormatException catch (error) {
       _log('Backend trip JSON parsing failed: $error');
       throw const TripGenerationException(
-        'Backend-ul nu a returnat JSON valid.',
+        'The backend did not return valid JSON.',
       );
     } on TripGenerationException catch (error) {
       _log('TripGenerationException: ${error.message}');
@@ -88,7 +88,7 @@ class BackendTripGenerationService {
     } catch (error, stackTrace) {
       _log('Unexpected backend trip error: $error\n$stackTrace');
       throw const TripGenerationException(
-        'Nu am putut genera excursia acum. Verifica conexiunea si incearca din nou.',
+        'We could not generate the trip right now. Check your connection and try again.',
       );
     }
   }
@@ -116,7 +116,7 @@ class BackendTripGenerationService {
       return message;
     }
 
-    return 'Backend-ul nu a putut genera excursia.';
+    return 'The backend could not generate the trip.';
   }
 
   String _truncate(String value, {int maxLength = 4000}) {

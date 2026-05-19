@@ -26,16 +26,16 @@ class TripActivity {
   factory TripActivity.fromJson(Map<String, dynamic> json) {
     return TripActivity(
       timeRange: _readString(json, 'timeRange', 'Ora nespecificata'),
-      title: _readString(json, 'title', 'Activitate recomandata'),
+      title: _readString(json, 'title', 'Recommended activity'),
       location: _readString(json, 'location', 'Locatie nespecificata'),
-      description: _readString(json, 'description', 'Descriere indisponibila.'),
+      description: _readString(json, 'description', 'Description unavailable.'),
       estimatedCost: _readNum(json, 'estimatedCost'),
       costNote: _readString(json, 'costNote', 'Cost aproximativ.'),
       distanceFromPreviousKm: _readNum(json, 'distanceFromPreviousKm'),
       travelTimeFromPrevious: _readString(
         json,
         'travelTimeFromPrevious',
-        'Durata indisponibila',
+        'Duration unavailable',
       ),
       transportMode: _readString(json, 'transportMode', 'other'),
       tags: _readStringList(json['tags']),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/components/glass_container.dart';
 import 'package:frontend/features/trips/domain/trip_creation_request.dart';
 import 'package:frontend/features/trips/domain/trip_interest.dart';
 import 'package:frontend/features/trips/presentation/widgets/city_multi_select_field.dart';
@@ -48,19 +49,19 @@ class _TripRequestFormState extends State<TripRequestForm> {
 
   String? _validate() {
     if (_cities.isEmpty) {
-      return 'Adauga cel putin un oras.';
+      return 'Add at least one city.';
     }
     if (_startDate == null) {
-      return 'Alege data de inceput.';
+      return 'Choose a start date.';
     }
     if (_endDate == null) {
-      return 'Alege data finala.';
+      return 'Choose an end date.';
     }
     if (_endDate!.isBefore(_startDate!)) {
-      return 'Data finala nu poate fi inainte de data de inceput.';
+      return 'The end date cannot be before the start date.';
     }
     if (_interests.isEmpty) {
-      return 'Alege cel putin un interes.';
+      return 'Choose at least one interest.';
     }
     return null;
   }
@@ -70,28 +71,55 @@ class _TripRequestFormState extends State<TripRequestForm> {
     final theme = Theme.of(context);
     final enabled = !widget.isLoading;
 
-    return Card(
+    return GlassContainer(
+      color: const Color(0xFF0E5A90),
+      opacity: 0.22,
+      blur: 16,
+      borderRadius: 24,
+      border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(22),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                CircleAvatar(
-                  backgroundColor: theme.colorScheme.tertiary,
+                Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    color: theme.colorScheme.tertiary.withValues(alpha: 0.9),
+                  ),
                   child: const Icon(Icons.route_rounded, color: Colors.white),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    'Creeaza excursie',
-                    style: theme.textTheme.titleLarge,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Create a trip',
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Choose the cities, dates, and vibe. AI will turn it into a day-by-day plan.',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: Colors.white.withValues(alpha: 0.62),
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
             CityMultiSelectField(
               cities: _cities,
               enabled: enabled,
@@ -115,7 +143,13 @@ class _TripRequestFormState extends State<TripRequestForm> {
               },
             ),
             const SizedBox(height: 20),
-            Text('Interese', style: theme.textTheme.titleSmall),
+            Text(
+              'Interests',
+              style: theme.textTheme.titleSmall?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
             const SizedBox(height: 10),
             InterestChipsSelector(
               selected: _interests,
@@ -138,7 +172,7 @@ class _TripRequestFormState extends State<TripRequestForm> {
             const SizedBox(height: 22),
             SizedBox(
               width: double.infinity,
-              height: 52,
+              height: 56,
               child: FilledButton.icon(
                 onPressed: enabled ? _submit : null,
                 icon: widget.isLoading
@@ -150,8 +184,16 @@ class _TripRequestFormState extends State<TripRequestForm> {
                     : const Icon(Icons.auto_awesome_rounded),
                 label: Text(
                   widget.isLoading
-                      ? 'Se genereaza itinerariul...'
-                      : 'Genereaza excursia',
+                      ? 'Generating itinerary...'
+                      : 'Generate itinerary',
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+                style: FilledButton.styleFrom(
+                  backgroundColor: theme.colorScheme.tertiary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                 ),
               ),
             ),

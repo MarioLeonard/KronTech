@@ -13,9 +13,14 @@ class TripDayCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Card(
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        color: Colors.white.withValues(alpha: 0.08),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.13)),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -23,7 +28,7 @@ class TripDayCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 CircleAvatar(
-                  backgroundColor: theme.colorScheme.secondary,
+                  backgroundColor: theme.colorScheme.tertiary,
                   child: Text(
                     day.dayNumber == 0 ? '?' : day.dayNumber.toString(),
                     style: theme.textTheme.labelLarge?.copyWith(
@@ -36,16 +41,33 @@ class TripDayCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(day.title, style: theme.textTheme.titleLarge),
+                      Text(
+                        day.title,
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
                       const SizedBox(height: 4),
-                      Text('${day.date} · ${day.city}'),
+                      Text(
+                        '${day.date} · ${day.city}',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.58),
+                        ),
+                      ),
                     ],
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            Text(day.summary, style: theme.textTheme.bodyMedium),
+            Text(
+              day.summary,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: Colors.white.withValues(alpha: 0.72),
+                height: 1.45,
+              ),
+            ),
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,
@@ -58,12 +80,12 @@ class TripDayCard extends StatelessWidget {
                 ),
                 TripMetricChip(
                   icon: Icons.route_rounded,
-                  label: 'Distanta',
+                  label: 'Distance',
                   value: '${_number(day.estimatedDistanceKm)} km',
                 ),
                 TripMetricChip(
                   icon: Icons.schedule_rounded,
-                  label: 'Deplasari',
+                  label: 'Transit',
                   value: day.estimatedTransitDuration,
                 ),
               ],
@@ -77,12 +99,23 @@ class TripDayCard extends StatelessWidget {
             ),
             if (day.mealSuggestions.isNotEmpty) ...[
               const SizedBox(height: 4),
-              Text('Sugestii masa', style: theme.textTheme.titleSmall),
+              Text(
+                'Sugestii masa',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
               const SizedBox(height: 6),
               ...day.mealSuggestions.map(
                 (suggestion) => Padding(
                   padding: const EdgeInsets.only(bottom: 4),
-                  child: Text('• $suggestion'),
+                  child: Text(
+                    '• $suggestion',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.68),
+                    ),
+                  ),
                 ),
               ),
             ],

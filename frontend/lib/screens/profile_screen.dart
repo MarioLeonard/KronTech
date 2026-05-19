@@ -4,9 +4,12 @@ import 'package:frontend/components/glass_container.dart';
 import 'package:frontend/components/premium_background.dart';
 import 'package:frontend/features/onboarding/presentation/widgets/city_location_field.dart';
 import 'package:frontend/features/onboarding/presentation/widgets/country_location_field.dart';
+import 'package:frontend/models/auth_exception.dart';
 import 'package:frontend/models/auth_user.dart';
 import 'package:frontend/models/user_profile.dart';
 import 'package:frontend/providers/auth_provider.dart';
+import 'package:frontend/services/backend_api_service.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -19,11 +22,14 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  final ImagePicker _imagePicker = ImagePicker();
+  final BackendApiService _backendApiService = BackendApiService();
   late TextEditingController _genderController;
   late TextEditingController _countryController;
   late TextEditingController _cityController;
   late TextEditingController _streetController;
   late TextEditingController _birthDateController;
+  bool _isUploadingPhoto = false;
 
   @override
   void initState() {
@@ -56,7 +62,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _resetForm() {
-    final profile = widget.user.profile;
+    final user = context.read<AuthProvider>().user ?? widget.user;
+    final profile = user.profile;
     setState(() {
       _genderController.text = profile?.gender ?? '';
       _countryController.text = profile?.country ?? '';
@@ -68,9 +75,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _saveProfile() async {
+    final user = context.read<AuthProvider>().user ?? widget.user;
     final profile =
-        widget.user.profile ??
-        UserProfile(uid: widget.user.id, email: widget.user.email);
+        user.profile ?? UserProfile(uid: user.id, email: user.email);
 
     // Parse back the date if possible
     String? isoDate = profile.dateOfBirth;
@@ -106,7 +113,65 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _showSuccessSnackBar(context);
   }
 
-  void _showSuccessSnackBar(BuildContext context) {
+  Future<void> _pickAndUploadProfilePhoto() async {
+    if (_isUploadingPhoto) {
+      return;
+    }
+
+    final user = context.read<AuthProvider>().user ?? widget.user;
+    if (user.idToken.isEmpty) {
+      _showErrorSnackBar('Sesiunea a expirat. Autentifica-te din nou.');
+      return;
+    }
+
+    try {
+      final image = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 900,
+        maxHeight: 900,
+        imageQuality: 84,
+      );
+      if (image == null) {
+        return;
+      }
+
+      if (mounted) {
+        setState(() => _isUploadingPhoto = true);
+      }
+
+      final updatedProfile = await _backendApiService.uploadProfilePhoto(
+        idToken: user.idToken,
+        bytes: await image.readAsBytes(),
+        filename: image.name,
+        contentType: image.mimeType ?? _mimeTypeFromName(image.name),
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      context.read<AuthProvider>().updateProfile(updatedProfile);
+      _showSuccessSnackBar(context, message: 'Profile photo updated!');
+    } on AuthException catch (error) {
+      if (mounted) {
+        _showErrorSnackBar(error.message);
+      }
+    } catch (error) {
+      debugPrint('Failed to upload profile photo: $error');
+      if (mounted) {
+        _showErrorSnackBar('Could not upload the profile photo.');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isUploadingPhoto = false);
+      }
+    }
+  }
+
+  void _showSuccessSnackBar(
+    BuildContext context, {
+    String message = 'Profile updated successfully!',
+  }) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
@@ -131,10 +196,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   size: 28,
                 ),
                 const SizedBox(width: 16),
-                const Expanded(
+                Expanded(
                   child: Text(
-                    'Profile updated successfully!',
-                    style: TextStyle(
+                    message,
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
@@ -145,6 +210,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Theme.of(context).colorScheme.error,
+        content: Text(message),
       ),
     );
   }
@@ -168,7 +243,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.dark(
-              primary: Colors.orange.shade600,
+              primary: Theme.of(context).colorScheme.primary,
               onPrimary: Colors.white,
               surface: const Color(0xFF063970),
               onSurface: Colors.white,
@@ -363,11 +438,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final profile = widget.user.profile;
+    final colorScheme = theme.colorScheme;
+    final user = context.watch<AuthProvider>().user ?? widget.user;
+    final profile = user.profile;
     final displayName = profile?.fullName.isNotEmpty == true
         ? profile!.fullName
-        : (widget.user.displayName ?? 'Traveler');
-    final photoUrl = profile?.photoUrl ?? widget.user.effectivePhotoUrl;
+        : (user.displayName ?? 'Traveler');
+    final photoUrl = user.effectivePhotoUrl;
 
     return PremiumBackground(
       child: Scaffold(
@@ -381,7 +458,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Column(
                   children: [
                     GestureDetector(
-                      onTap: () => debugPrint('Open image picker'),
+                      onTap: _isUploadingPhoto
+                          ? null
+                          : _pickAndUploadProfilePhoto,
                       child: Stack(
                         alignment: Alignment.bottomRight,
                         children: [
@@ -407,18 +486,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           Container(
                             padding: const EdgeInsets.all(6),
                             decoration: BoxDecoration(
-                              color: theme.colorScheme.primary,
+                              color: colorScheme.primary,
                               shape: BoxShape.circle,
                               border: Border.all(
                                 color: Colors.white.withValues(alpha: 0.2),
                                 width: 1.5,
                               ),
                             ),
-                            child: const Icon(
-                              Icons.camera_alt_rounded,
-                              size: 18,
-                              color: Colors.white,
-                            ),
+                            child: _isUploadingPhoto
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.camera_alt_rounded,
+                                    size: 18,
+                                    color: Colors.white,
+                                  ),
                           ),
                         ],
                       ),
@@ -434,12 +522,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      widget.user.email ?? 'No email',
+                      user.email ?? 'No email',
                       textAlign: TextAlign.center,
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurface.withValues(
-                          alpha: 0.6,
-                        ),
+                        color: colorScheme.onSurface.withValues(alpha: 0.6),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -534,7 +620,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ElevatedButton(
                               onPressed: _saveProfile,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.orange.shade600,
+                                backgroundColor: colorScheme.primary,
                                 foregroundColor: Colors.white,
                                 elevation: 0,
                                 padding: const EdgeInsets.symmetric(
@@ -640,4 +726,18 @@ class InlineEditRow extends StatelessWidget {
       ),
     );
   }
+}
+
+String _mimeTypeFromName(String name) {
+  final normalized = name.toLowerCase();
+  if (normalized.endsWith('.png')) {
+    return 'image/png';
+  }
+  if (normalized.endsWith('.webp')) {
+    return 'image/webp';
+  }
+  if (normalized.endsWith('.gif')) {
+    return 'image/gif';
+  }
+  return 'image/jpeg';
 }

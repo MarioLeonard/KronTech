@@ -29,7 +29,7 @@ class GeminiTripGenerationService:
         api_key = config("GEMINI_API_KEY", default="").strip()
         if not api_key:
             raise GeminiTripGenerationError(
-                "Configuratia Gemini lipseste pe backend. Verifica GEMINI_API_KEY."
+                "Gemini configuration is missing on the backend. Check GEMINI_API_KEY."
             )
 
         model = config("GEMINI_MODEL", default=cls.DEFAULT_MODEL).strip()
@@ -50,7 +50,7 @@ class GeminiTripGenerationService:
 
         if not cls._has_useful_content(trip):
             raise GeminiTripGenerationError(
-                "Raspunsul primit nu contine un itinerariu util. Incearca din nou."
+                "The response did not contain a useful itinerary. Please try again."
             )
 
         return trip
@@ -129,33 +129,33 @@ class GeminiTripGenerationService:
         except urllib.error.URLError as error:
             logger.warning("Gemini network error: %s", error)
             raise GeminiTripGenerationError(
-                "Nu am putut contacta Gemini. Verifica conexiunea backend-ului."
+                "Could not contact Gemini. Check the backend connection."
             ) from error
         except TimeoutError as error:
             raise GeminiTripGenerationError(
-                "Generarea a durat prea mult. Incearca din nou."
+                "Generation took too long. Please try again."
             ) from error
         except json.JSONDecodeError as error:
             raise GeminiTripGenerationError(
-                "Gemini nu a returnat un raspuns JSON valid."
+                "Gemini did not return a valid JSON response."
             ) from error
 
     @classmethod
     def _extract_generated_text(cls, response_body: dict) -> str:
         candidates = response_body.get("candidates")
         if not isinstance(candidates, list) or not candidates:
-            raise GeminiTripGenerationError("Gemini nu a returnat continut.")
+            raise GeminiTripGenerationError("Gemini did not return content.")
 
         content = candidates[0].get("content") if isinstance(candidates[0], dict) else None
         parts = content.get("parts") if isinstance(content, dict) else None
         if not isinstance(parts, list):
-            raise GeminiTripGenerationError("Gemini nu a returnat text.")
+            raise GeminiTripGenerationError("Gemini did not return text.")
 
         text = "".join(
             part.get("text", "") for part in parts if isinstance(part, dict)
         ).strip()
         if not text:
-            raise GeminiTripGenerationError("Gemini nu a returnat text.")
+            raise GeminiTripGenerationError("Gemini did not return text.")
 
         logger.debug("Gemini generated text: %s", cls._truncate(text))
         return text
@@ -171,12 +171,12 @@ class GeminiTripGenerationService:
             trip = json.loads(text)
         except json.JSONDecodeError as error:
             raise GeminiTripGenerationError(
-                "Raspunsul primit nu a avut formatul JSON asteptat."
+                "The response did not have the expected JSON format."
             ) from error
 
         if not isinstance(trip, dict):
             raise GeminiTripGenerationError(
-                "Raspunsul primit nu a avut formatul asteptat."
+                "The response did not have the expected format."
             )
 
         return trip
@@ -212,9 +212,9 @@ class GeminiTripGenerationService:
         if status_code == 429 or error.get("status") == "RESOURCE_EXHAUSTED":
             retry_delay = cls._read_retry_delay(error.get("details"))
             return (
-                "quota Gemini este depasita sau indisponibila pentru modelul "
-                "configurat. Verifica planul, billing-ul si limitele proiectului."
-                f"{' Reincearca dupa ' + retry_delay + '.' if retry_delay else ''}"
+                "the Gemini quota is exceeded or unavailable for the "
+                "configured model. Check the plan, billing, and project limits."
+                f"{' Retry after ' + retry_delay + '.' if retry_delay else ''}"
             )
 
         message = error.get("message")
@@ -255,13 +255,15 @@ Important requirements:
 - Include approximate distances in kilometers between objectives.
 - Include approximate travel duration between locations.
 - Include recommended accommodation options.
+- For accommodation names, return only the property or accommodation name. Do not append platform labels such as "(Airbnb)", "(Booking)", "(Booking.com)", or similar text in parentheses.
+- Include destinationImageUrl with a direct HTTPS image URL for the main destination/city when you can provide a reliable public image link. Prefer Wikimedia Commons or Unsplash images that are representative of the destination. If you are not confident the direct image URL is real, return an empty string.
 - For Booking or Airbnb, if you do not have a real API integration or live availability, mark them clearly as search suggestions and provide search URLs, not claims of availability.
 - Include restaurants or places to eat.
 - Costs, distances, and durations are estimates and must be marked as approximate.
 - Prefer realistic pacing. Do not overload days.
 - Avoid inventing exact live prices or availability.
 - If information is uncertain, include it in assumptions or warnings.
-- Use Romanian for all human-readable strings.
+- Use English for all human-readable strings.
 
 JSON schema:
 {{
@@ -271,6 +273,7 @@ JSON schema:
   "startDate": "YYYY-MM-DD",
   "endDate": "YYYY-MM-DD",
   "currency": "string",
+  "destinationImageUrl": "https://...",
   "costSummary": {{
     "estimatedTotal": 0,
     "estimatedActivitiesTotal": 0,
@@ -312,7 +315,7 @@ JSON schema:
   ],
   "accommodations": [
     {{
-      "name": "string",
+      "name": "property or accommodation name only, without platform labels in parentheses",
       "city": "string",
       "area": "string",
       "type": "hotel/apartment/hostel/guesthouse/other",

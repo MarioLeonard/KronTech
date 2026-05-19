@@ -40,7 +40,7 @@ class TripDateRangeFields extends StatelessWidget {
         final isCompact = constraints.maxWidth < 460;
         final fields = [
           _DateField(
-            label: 'Data inceput',
+            label: 'Start date',
             value: _formatDate(startDate),
             enabled: enabled,
             onTap: () => _pickDate(
@@ -111,7 +111,7 @@ class _DateField extends StatelessWidget {
       decoration: InputDecoration(
         prefixIcon: const Icon(Icons.calendar_month_rounded),
         labelText: label,
-        hintText: 'Alege data',
+        hintText: 'Choose date',
       ),
     );
   }

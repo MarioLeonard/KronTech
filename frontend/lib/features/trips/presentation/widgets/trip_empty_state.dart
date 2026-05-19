@@ -20,12 +20,12 @@ class TripEmptyState extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Itinerariul va aparea aici',
+                    'The itinerary will appear here',
                     style: theme.textTheme.titleMedium,
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Adauga orase, perioada si interesele tale pentru a genera o excursie organizata pe zile.',
+                    'Add cities, dates, and your interests to generate a day-by-day trip.',
                     style: theme.textTheme.bodyMedium,
                   ),
                 ],

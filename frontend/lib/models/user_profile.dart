@@ -23,19 +23,19 @@ class UserProfile {
       email: json['email'] as String?,
       displayName: json['display_name'] as String?,
       photoUrl:
-          json['photo_url'] as String? ??
           json['profilePhotoUrl'] as String? ??
+          json['photo_url'] as String? ??
           json['profilePhotoDataUrl'] as String?,
       emailVerified: json['email_verified'] as bool? ?? false,
       bio: json['bio'] as String?,
       location: json['location'] as String?,
-        firstName: json['firstName'] as String?,
-        lastName: json['lastName'] as String?,
-        dateOfBirth: json['dateOfBirth'] as String?,
-        gender: json['gender'] as String?,
-        country: json['country'] as String?,
-        city: json['city'] as String?,
-        street: json['street'] as String?,
+      firstName: json['firstName'] as String?,
+      lastName: json['lastName'] as String?,
+      dateOfBirth: json['dateOfBirth'] as String?,
+      gender: json['gender'] as String?,
+      country: json['country'] as String?,
+      city: json['city'] as String?,
+      street: json['street'] as String?,
       hasCompletedOnboarding:
           json['hasCompletedOnboarding'] as bool? ??
           json['has_completed_onboarding'] as bool? ??

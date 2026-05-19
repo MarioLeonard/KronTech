@@ -25,9 +25,9 @@ class StayOption {
 
   factory StayOption.fromJson(Map<String, dynamic> json) {
     return StayOption(
-      name: _readString(json, 'name', 'Cazare recomandata'),
-      city: _readString(json, 'city', 'Oras nespecificat'),
-      area: _readString(json, 'area', 'Zona nespecificata'),
+      name: _readString(json, 'name', 'Recommended accommodation'),
+      city: _readString(json, 'city', 'City unspecified'),
+      area: _readString(json, 'area', 'Area unspecified'),
       type: _readString(json, 'type', 'other'),
       estimatedNightlyCost: _readNum(json, 'estimatedNightlyCost'),
       source: _readString(json, 'source', 'Search suggestion'),
@@ -39,7 +39,7 @@ class StayOption {
       note: _readString(
         json,
         'note',
-        'Sugestie de cautare, nu disponibilitate verificata.',
+        'Search suggestion, not verified availability.',
       ),
     );
   }

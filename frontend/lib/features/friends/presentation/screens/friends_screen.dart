@@ -62,7 +62,7 @@ class _FriendsScreenState extends State<FriendsScreen>
                   FilledButton.icon(
                     onPressed: () => _showSearchSheet(context),
                     icon: const Icon(Icons.person_add_alt_1_rounded),
-                    label: const Text('Gaseste prieteni'),
+                    label: const Text('Find friends'),
                   ),
                 ],
               ),
@@ -128,9 +128,9 @@ class _FriendsTab extends StatelessWidget {
     if (provider.errorMessage != null && provider.friends.isEmpty) {
       return _StateCard(
         icon: Icons.error_outline_rounded,
-        title: 'Nu am putut incarca prietenii',
+        title: 'We could not load friends',
         message: provider.errorMessage!,
-        actionLabel: 'Incearca din nou',
+        actionLabel: 'Try again',
         onAction: () => provider.loadFriends(refresh: true),
       );
     }
@@ -138,8 +138,8 @@ class _FriendsTab extends StatelessWidget {
     if (provider.friends.isEmpty) {
       return const _StateCard(
         icon: Icons.group_outlined,
-        title: 'Nu ai prieteni inca',
-        message: 'Cauta persoane din aplicatie si trimite prima cerere.',
+        title: 'You do not have friends yet',
+        message: 'Search for people in the app and send the first request.',
       );
     }
 
@@ -202,9 +202,9 @@ class _RequestsTab extends StatelessWidget {
     if (provider.requestsErrorMessage != null && provider.requests.isEmpty) {
       return _StateCard(
         icon: Icons.error_outline_rounded,
-        title: 'Nu am putut incarca cererile',
+        title: 'We could not load requests',
         message: provider.requestsErrorMessage!,
-        actionLabel: 'Reincarca',
+        actionLabel: 'Reload',
         onAction: provider.loadRequests,
       );
     }
@@ -212,8 +212,8 @@ class _RequestsTab extends StatelessWidget {
     if (provider.requests.isEmpty) {
       return const _StateCard(
         icon: Icons.inbox_rounded,
-        title: 'Nu ai cereri noi',
-        message: 'Cererile primite vor aparea aici.',
+        title: 'You do not have new requests',
+        message: 'Incoming requests will appear here.',
       );
     }
 
@@ -265,7 +265,7 @@ class _FindFriendsSheetState extends State<_FindFriendsSheet> {
               children: [
                 Expanded(
                   child: Text(
-                    'Gaseste prieteni',
+                    'Find friends',
                     style: theme.textTheme.titleLarge,
                   ),
                 ),
@@ -281,7 +281,7 @@ class _FindFriendsSheetState extends State<_FindFriendsSheet> {
               autofocus: true,
               decoration: const InputDecoration(
                 prefixIcon: Icon(Icons.search_rounded),
-                hintText: 'Cauta dupa nume sau email',
+                hintText: 'Search by name or email',
               ),
               textInputAction: TextInputAction.search,
               onChanged: provider.searchDebounced,
@@ -304,8 +304,8 @@ class _FindFriendsSheetState extends State<_FindFriendsSheet> {
                   : provider.searchResults.isEmpty
                   ? const _StateCard(
                       icon: Icons.manage_search_rounded,
-                      title: 'Cauta utilizatori',
-                      message: 'Scrie cel putin o parte din nume sau email.',
+                      title: 'Search users',
+                      message: 'Type at least part of a name or email.',
                     )
                   : ListView.separated(
                       itemCount: provider.searchResults.length,

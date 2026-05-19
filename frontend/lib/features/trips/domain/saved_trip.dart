@@ -28,7 +28,7 @@ class SavedTrip {
 
     return SavedTrip(
       id: _readString(json, 'id', ''),
-      title: _readString(json, 'title', 'Excursie salvata'),
+      title: _readString(json, 'title', 'Saved trip'),
       summary: _readString(json, 'summary', ''),
       cities: _readStringList(json['cities']),
       startDate: _readString(json, 'startDate', ''),

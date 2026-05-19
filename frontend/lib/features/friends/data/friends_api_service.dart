@@ -182,7 +182,7 @@ class FriendsApiService {
       return;
     }
     final message =
-        body['message'] as String? ?? 'Operatia nu a putut fi finalizata.';
+        body['message'] as String? ?? 'The operation could not be completed.';
     throw FriendsApiException(message);
   }
 
