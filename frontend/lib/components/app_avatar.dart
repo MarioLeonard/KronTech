@@ -1,6 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import 'app_avatar_html_stub.dart'
+    if (dart.library.html) 'app_avatar_html_web.dart'
+    as avatar_html;
+
 class AppAvatar extends StatelessWidget {
   const AppAvatar({
     required this.imageUrl,
@@ -29,12 +33,17 @@ class AppAvatar extends StatelessWidget {
               ? Image.memory(imageBytes!, fit: BoxFit.cover)
               : url == null || url.isEmpty
               ? _FallbackIcon(icon: icon, radius: radius)
+              : kIsWeb
+              ? Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    _FallbackIcon(icon: icon, radius: radius),
+                    avatar_html.buildHtmlAvatarImage(url),
+                  ],
+                )
               : Image.network(
                   url,
                   fit: BoxFit.cover,
-                  webHtmlElementStrategy: kIsWeb
-                      ? WebHtmlElementStrategy.prefer
-                      : WebHtmlElementStrategy.never,
                   errorBuilder: (_, _, _) {
                     debugPrint('[AppAvatar] Image.network failed for $url');
                     return _FallbackIcon(icon: icon, radius: radius);

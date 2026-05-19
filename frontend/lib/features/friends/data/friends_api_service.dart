@@ -153,6 +153,16 @@ class FriendsApiService {
     _throwIfFailed(response, _decodeResponse(response.body));
   }
 
+  Future<void> removeFriend({
+    required String idToken,
+    required String friendId,
+  }) async {
+    final response = await _client
+        .delete(_resolve('/api/friends/$friendId/'), headers: _headers(idToken))
+        .timeout(const Duration(seconds: 30));
+    _throwIfFailed(response, _decodeResponse(response.body));
+  }
+
   Uri _resolve(String path, [Map<String, String>? queryParameters]) {
     return _baseUri.replace(path: path, queryParameters: queryParameters);
   }

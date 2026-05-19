@@ -206,6 +206,28 @@ class FriendsProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> removeFriend(FriendUser friend) async {
+    _setActionLoading(friend.id, true);
+    _errorMessage = null;
+
+    try {
+      await _friendsService.removeFriend(
+        idToken: _idToken,
+        friendId: friend.id,
+      );
+      _friends.removeWhere((item) => item.id == friend.id);
+      notifyListeners();
+      return true;
+    } on FriendsApiException catch (error) {
+      _errorMessage = error.message;
+    } catch (_) {
+      _errorMessage = 'We could not remove this friend.';
+    } finally {
+      _setActionLoading(friend.id, false);
+    }
+    return false;
+  }
+
   void clearErrors() {
     _errorMessage = null;
     _requestsErrorMessage = null;

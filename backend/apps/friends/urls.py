@@ -18,4 +18,5 @@ urlpatterns = [
         views.FriendRequestDeclineView.as_view(),
         name="friend-request-decline",
     ),
+    path("<str:friend_id>/", views.FriendDetailView.as_view(), name="friend-detail"),
 ]

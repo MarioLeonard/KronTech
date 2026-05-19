@@ -60,6 +60,20 @@ class FriendListView(APIView):
         return success_response(data=data, message="Friends retrieved successfully")
 
 
+class FriendDetailView(APIView):
+    def delete(self, request, friend_id):
+        user_id, auth_error = _require_user_id(request)
+        if auth_error:
+            return auth_error
+
+        try:
+            data = FriendService().remove_friend(user_id, friend_id)
+        except FriendServiceError as error:
+            return _service_error_response(error)
+
+        return success_response(data=data, message="Friend removed successfully")
+
+
 class FriendSearchView(APIView):
     def get(self, request):
         user_id, auth_error = _require_user_id(request)

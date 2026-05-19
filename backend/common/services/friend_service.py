@@ -198,6 +198,28 @@ class FirestoreFriendRepository:
         batch.commit()
         return friendship
 
+    def delete_friendship(self, friendship_id: str, user_ids: Iterable[str]) -> None:
+        user_id_1, user_id_2 = sorted(user_ids)
+        batch = self._db.batch()
+        friendship_ref = self._db.collection("friendships").document(friendship_id)
+        user_1_friend_ref = (
+            self._db.collection("users")
+            .document(user_id_1)
+            .collection("friends")
+            .document(user_id_2)
+        )
+        user_2_friend_ref = (
+            self._db.collection("users")
+            .document(user_id_2)
+            .collection("friends")
+            .document(user_id_1)
+        )
+
+        batch.delete(friendship_ref)
+        batch.delete(user_1_friend_ref)
+        batch.delete(user_2_friend_ref)
+        batch.commit()
+
 
 class FriendService:
     def __init__(self, repository=None, chat_service=None):
@@ -352,6 +374,22 @@ class FriendService:
                 "updated_at": _now_iso(),
             },
         )
+
+    def remove_friend(self, user_id: str, friend_id: str) -> dict:
+        if not friend_id:
+            raise FriendServiceValidationError("friend_id is required")
+        if user_id == friend_id:
+            raise FriendServiceValidationError("Cannot remove yourself as a friend")
+
+        friendship_id = _stable_friendship_id(user_id, friend_id)
+        friendship = self.repository.get_friendship(friendship_id)
+        if not friendship:
+            raise FriendServiceNotFoundError("Friendship not found")
+        if user_id not in friendship.get("user_ids", []):
+            raise FriendServicePermissionError("You cannot remove this friendship")
+
+        self.repository.delete_friendship(friendship_id, friendship["user_ids"])
+        return {"friend_id": friend_id, "friendship_id": friendship_id}
 
     def get_relationship_status(self, user_id: str, other_user_id: str) -> str:
         if self.are_friends(user_id, other_user_id):
