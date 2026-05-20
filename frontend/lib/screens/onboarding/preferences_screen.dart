@@ -45,7 +45,7 @@ class PreferencesScreen extends StatelessWidget {
               subtitle: const Text('Receive important updates and offers.'),
               value: prefsData.enableNotifications,
               onChanged: provider.toggleNotifications,
-              activeThumbColor: Colors.blue, // Modificat aici
+              activeThumbColor: Colors.blue,
               contentPadding: EdgeInsets.zero,
             ),
             const SizedBox(height: 16),

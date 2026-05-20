@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../models/user_model.dart';
 
-/// Screen showing onboarding completion with final user data
+part 'info_row.dart';
+
 class OnboardingCompletionScreen extends StatelessWidget {
   final UserModel user;
   final VoidCallback? onContinue;
@@ -21,7 +22,7 @@ class OnboardingCompletionScreen extends StatelessWidget {
           child: Column(
             children: [
               const SizedBox(height: 60),
-              // Success icon
+
               Container(
                 width: 100,
                 height: 100,
@@ -36,7 +37,7 @@ class OnboardingCompletionScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 32),
-              // Title
+
               Text(
                 'Welcome!',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
@@ -44,7 +45,7 @@ class OnboardingCompletionScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 12),
-              // Subtitle
+
               Text(
                 'Your onboarding is complete. Here\'s your profile summary:',
                 textAlign: TextAlign.center,
@@ -53,7 +54,7 @@ class OnboardingCompletionScreen extends StatelessWidget {
                 ).textTheme.bodyMedium?.copyWith(color: Colors.grey),
               ),
               const SizedBox(height: 40),
-              // User info card
+
               Card(
                 elevation: 0,
                 shape: RoundedRectangleBorder(
@@ -134,7 +135,7 @@ class OnboardingCompletionScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 40),
-              // Continue button
+
               SizedBox(
                 width: double.infinity,
                 height: 56,
@@ -160,37 +161,6 @@ class OnboardingCompletionScreen extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-/// Helper widget for displaying info rows
-class _InfoRow extends StatelessWidget {
-  final String label;
-  final String value;
-
-  const _InfoRow(this.label, this.value);
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Colors.grey,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: Theme.of(
-            context,
-          ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
-        ),
-      ],
     );
   }
 }

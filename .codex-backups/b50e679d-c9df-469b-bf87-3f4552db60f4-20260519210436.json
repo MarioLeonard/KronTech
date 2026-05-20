@@ -1,0 +1,472 @@
+{
+  "id": "b50e679d-c9df-469b-bf87-3f4552db60f4",
+  "request": {
+    "locale": "ro-RO",
+    "currency": "EUR",
+    "interests": [
+      "nature",
+      "nightlife",
+      "family_kids",
+      "low_budget"
+    ],
+    "endDate": "2026-05-22",
+    "startDate": "2026-05-18",
+    "cities": [
+      "Brasov"
+    ],
+    "distanceUnit": "km"
+  },
+  "summary": "Acest itinerar de 5 zile în Brașov este conceput pentru o familie cu un buget redus, care dorește să exploreze frumusețile naturale, atracțiile culturale și opțiunile de divertisment, incluzând activități potrivite pentru copii și sugestii pentru viața de noapte. Se pune accent pe activități gratuite sau cu costuri reduse și pe transportul public/mersul pe jos.",
+  "currency": "EUR",
+  "status": "planned",
+  "updatedAt": "2026-05-11T11:09:36.959247Z",
+  "endDate": "2026-05-22",
+  "itinerary": {
+    "title": "Itinerar de 5 Zile în Brașov: Natură, Familie și Buget Redus",
+    "summary": "Acest itinerar de 5 zile în Brașov este conceput pentru o familie cu un buget redus, care dorește să exploreze frumusețile naturale, atracțiile culturale și opțiunile de divertisment, incluzând activități potrivite pentru copii și sugestii pentru viața de noapte. Se pune accent pe activități gratuite sau cu costuri reduse și pe transportul public/mersul pe jos.",
+    "currency": "EUR",
+    "days": [
+      {
+        "summary": "Prima zi este dedicată acomodării și explorării pe îndelete a Pieței Sfatului și a principalelor atracții din centrul istoric al Brașovului, cu un buget redus.",
+        "date": "2026-05-18",
+        "estimatedDistanceKm": 5,
+        "city": "Brașov",
+        "dayNumber": 1,
+        "estimatedTransitDuration": "15 minute",
+        "activities": [
+          {
+            "location": "Brașov Centru",
+            "tags": [
+              "organizare",
+              "familie_copii"
+            ],
+            "description": "Ajungeți în Brașov și faceți check-in la cazare. Lăsați bagajele și pregătiți-vă pentru explorare.",
+            "transportMode": "other",
+            "travelTimeFromPrevious": "0 minute",
+            "timeRange": "14:00 - 15:00",
+            "distanceFromPreviousKm": 0,
+            "costNote": "Costul cazării este inclus în secțiunea 'accommodations'.",
+            "estimatedCost": 0,
+            "title": "Cazare și Check-in"
+          },
+          {
+            "location": "Piața Sfatului, Brașov",
+            "transportMode": "walking",
+            "description": "Începeți explorarea din inima Brașovului, Piața Sfatului, admirând clădirile istorice și fântâna arteziană. Vizitați apoi Biserica Neagră, una dintre cele mai mari biserici gotice din Europa de Est. Copiii pot admira arhitectura impunătoare.",
+            "tags": [
+              "cultura",
+              "familie_copii",
+              "low_budget"
+            ],
+            "travelTimeFromPrevious": "5 minute",
+            "timeRange": "15:30 - 17:30",
+            "costNote": "Estimare pentru taxa de intrare la Biserica Neagră (aproximativ 5 EUR/adult, copii sub 7 ani gratuit, 7-18 ani reducere). Cost aproximativ pentru o familie (2 adulți + 1-2 copii).",
+            "distanceFromPreviousKm": 0.5,
+            "estimatedCost": 15,
+            "title": "Piața Sfatului și Biserica Neagră"
+          },
+          {
+            "location": "Strada Sforii, Brașov",
+            "transportMode": "walking",
+            "description": "Descoperiți Strada Sforii, una dintre cele mai înguste străzi din Europa. O atracție amuzantă pentru copii. Continuați cu o plimbare relaxantă pe străduțele pietonale din Centrul Vechi.",
+            "tags": [
+              "cultura",
+              "familie_copii",
+              "low_budget"
+            ],
+            "travelTimeFromPrevious": "3 minute",
+            "timeRange": "17:30 - 18:30",
+            "distanceFromPreviousKm": 0.3,
+            "costNote": "Activitate gratuită.",
+            "estimatedCost": 0,
+            "title": "Strada Sforii și Plimbare în Centrul Vechi"
+          }
+        ],
+        "estimatedCost": 75,
+        "mealSuggestions": [
+          "Prânz/Gustare: La Terasele din Piața Sfatului (diverse opțiuni accesibile)",
+          "Cină: Restaurant Sergiana (pentru o experiență tradițională, puțin peste buget, dar cu porții mari) sau o pizzerie locală în Centrul Vechi pentru o opțiune mai economică."
+        ],
+        "title": "Sosirea în Brașov și Descoperirea Centrului Istoric"
+      },
+      {
+        "summary": "Zi dedicată naturii și aventurii, cu o vizită pe Muntele Tâmpa și distracție la Parc Aventura, potrivite pentru întreaga familie.",
+        "date": "2026-05-19",
+        "city": "Brașov",
+        "estimatedDistanceKm": 18,
+        "dayNumber": 2,
+        "estimatedTransitDuration": "50 minute",
+        "mealSuggestions": [
+          "Prânz: La restaurantul din Parc Aventura sau pachețel de acasă pentru un buget mai mic.",
+          "Cină: Restaurant Ceasu' Rău (mâncare tradițională românească, prețuri decente) sau o shaormerie/fast-food în zona centrală."
+        ],
+        "estimatedCost": 105,
+        "activities": [
+          {
+            "location": "Muntele Tâmpa, Brașov",
+            "transportMode": "walking",
+            "description": "Urcați cu telecabina pe Muntele Tâmpa pentru a admira o panoramă superbă asupra orașului. Sus, puteți face o scurtă plimbare până la literele 'BRAȘOV' sau pe traseele amenajate. Este o experiență memorabilă pentru copii.",
+            "tags": [
+              "natura",
+              "familie_copii",
+              "low_budget"
+            ],
+            "travelTimeFromPrevious": "10 minute",
+            "timeRange": "09:30 - 12:30",
+            "distanceFromPreviousKm": 1,
+            "costNote": "Estimare pentru bilete telecabină dus-întors (aproximativ 10 EUR/adult, 5 EUR/copil). Cost aproximativ pentru o familie (2 adulți + 2 copii).",
+            "estimatedCost": 35,
+            "title": "Muntele Tâmpa cu Telecabina"
+          },
+          {
+            "location": "Strada Poienelor 104, Brașov",
+            "transportMode": "public_transport",
+            "description": "Petreceți după-amiaza la Parc Aventura, un parc de aventură în natură cu trasee de cățărare adaptate pentru toate vârstele, de la copii mici la adulți. O experiență plină de adrenalină și distracție pentru toată familia.",
+            "tags": [
+              "natura",
+              "familie_copii",
+              "aventura"
+            ],
+            "travelTimeFromPrevious": "20 minute",
+            "timeRange": "13:30 - 17:30",
+            "estimatedCost": 70,
+            "costNote": "Estimare pentru taxele de intrare la Parc Aventura (aproximativ 15-20 EUR/persoană, în funcție de vârstă/înălțime). Cost aproximativ pentru o familie (2 adulți + 2 copii).",
+            "distanceFromPreviousKm": 7,
+            "title": "Parc Aventura Brașov"
+          }
+        ],
+        "title": "Natura și Aventura la Poalele Tâmpei"
+      },
+      {
+        "summary": "O zi dedicată explorării stațiunii montane Poiana Brașov și relaxării, cu opțiuni pentru copii și, seara, o incursiune în viața de noapte a Brașovului pentru adulți.",
+        "date": "2026-05-20",
+        "city": "Brașov",
+        "estimatedDistanceKm": 25,
+        "dayNumber": 3,
+        "estimatedTransitDuration": "1 oră 20 minute",
+        "estimatedCost": 60,
+        "activities": [
+          {
+            "location": "Poiana Brașov",
+            "tags": [
+              "natura",
+              "familie_copii",
+              "low_budget"
+            ],
+            "description": "Luați autobuzul până la Poiana Brașov. Bucurați-vă de aerul curat de munte, faceți o plimbare ușoară prin stațiune sau pe unul dintre traseele de drumeție mai scurte și ușoare, potrivite pentru familii. Copiii pot alerga și se pot juca în natură.",
+            "transportMode": "public_transport",
+            "travelTimeFromPrevious": "30 minute",
+            "timeRange": "10:00 - 14:00",
+            "estimatedCost": 10,
+            "distanceFromPreviousKm": 12,
+            "costNote": "Estimare pentru biletele de autobuz (aproximativ 2 EUR/persoană/sens, 8 EUR dus-întors pentru familie).",
+            "title": "Excursie la Poiana Brașov"
+          },
+          {
+            "location": "Strada Brazilor 1, Brașov",
+            "tags": [
+              "familie_copii",
+              "natura",
+              "low_budget"
+            ],
+            "description": "După-amiaza, vizitați Grădina Zoologică Brașov, o atracție populară pentru copii. Este un loc bun pentru a petrece câteva ore relaxante în natură, admirând diverse specii de animale.",
+            "transportMode": "public_transport",
+            "travelTimeFromPrevious": "30 minute",
+            "timeRange": "15:00 - 17:00",
+            "estimatedCost": 15,
+            "distanceFromPreviousKm": 10,
+            "costNote": "Estimare pentru intrarea la Zoo (aproximativ 3-4 EUR/adult, 1-2 EUR/copil). Cost aproximativ pentru o familie (2 adulți + 2 copii).",
+            "title": "Vizită la Grădina Zoologică Brașov"
+          },
+          {
+            "location": "Centrul Vechi, Brașov",
+            "transportMode": "taxi",
+            "description": "Pentru adulți, după ce copiii sunt la culcare, puteți explora câteva dintre pub-urile și barurile din Centrul Vechi al Brașovului. Sugestii: Deane's Irish Pub & Grill, Auld Irish Pub sau Pub 17. Atmosferă plăcută și muzică bună.",
+            "tags": [
+              "nightlife",
+              "adults_only",
+              "low_budget"
+            ],
+            "travelTimeFromPrevious": "20 minute",
+            "timeRange": "21:00 - 00:00",
+            "estimatedCost": 0,
+            "costNote": "Costul depinde de consumație. Nu include costuri de transport, presupunând cazare în apropiere.",
+            "distanceFromPreviousKm": 3,
+            "title": "Viața de Noapte în Centrul Vechi (Opțional)"
+          }
+        ],
+        "mealSuggestions": [
+          "Prânz: La un restaurant din Poiana Brașov (pot fi mai scumpe, căutați opțiuni de tip fast-food sau împingeți tava) sau pachețel.",
+          "Cină: Restaurant Casa Românească (mâncare tradițională, prețuri medii) sau un restaurant cu specific italian în Centrul Vechi."
+        ],
+        "title": "Explorare la Poiana Brașov și Relaxare"
+      },
+      {
+        "summary": "Ultima zi completă în Brașov este dedicată istoriei și culturii locale, cu obiective importante și timp pentru relaxare și cumpărături de suveniruri.",
+        "date": "2026-05-21",
+        "estimatedDistanceKm": 10,
+        "city": "Brașov",
+        "dayNumber": 4,
+        "estimatedTransitDuration": "40 minute",
+        "estimatedCost": 35,
+        "mealSuggestions": [
+          "Prânz: La un restaurant cu autoservire sau o cofetărie/patiserie locală pentru un prânz rapid și economic.",
+          "Cină: Restaurant La Ceaun (mâncare românească autentică la prețuri accesibile) sau un restaurant cu specific internațional pe Strada Republicii."
+        ],
+        "activities": [
+          {
+            "location": "Brașov",
+            "transportMode": "walking",
+            "description": "Vizitați Turnul Alb și Turnul Negru, două dintre cele mai bine conservate turnuri de apărare ale Brașovului, oferind priveliști frumoase. Apoi, mergeți la Bastionul Țesătorilor, un exemplu impresionant de arhitectură militară medievală. Copiii vor fi fascinați de istoria fortificațiilor.",
+            "tags": [
+              "cultura",
+              "istorie",
+              "familie_copii",
+              "low_budget"
+            ],
+            "travelTimeFromPrevious": "10 minute",
+            "timeRange": "10:00 - 12:00",
+            "distanceFromPreviousKm": 1,
+            "costNote": "Estimare pentru intrarea la Bastionul Țesătorilor (aproximativ 2-3 EUR/adult, copii gratuit/reducere). Turnurile sunt gratuite la exterior. Cost aproximativ pentru o familie.",
+            "estimatedCost": 10,
+            "title": "Turnul Alb, Turnul Negru și Bastionul Țesătorilor"
+          },
+          {
+            "location": "Piața Unirii 2, Brașov",
+            "tags": [
+              "cultura",
+              "istorie",
+              "familie_copii",
+              "low_budget"
+            ],
+            "description": "Vizitați Prima Școală Românească din cartierul istoric Șchei, unde veți descoperi o colecție impresionantă de cărți vechi și exponate istorice. Alături se află Biserica Sf. Nicolae, o biserică ortodoxă veche și frumoasă.",
+            "transportMode": "walking",
+            "travelTimeFromPrevious": "10 minute",
+            "timeRange": "12:30 - 14:00",
+            "distanceFromPreviousKm": 1,
+            "costNote": "Estimare pentru intrarea la Prima Școală Românească (aproximativ 3 EUR/adult, copii gratuit/reducere). Cost aproximativ pentru o familie.",
+            "estimatedCost": 15,
+            "title": "Prima Școală Românească și Biserica Sf. Nicolae"
+          },
+          {
+            "location": "Strada Republicii, Brașov",
+            "transportMode": "walking",
+            "description": "Petreceți după-amiaza plimbându-vă pe Strada Republicii, principala arteră pietonală, căutând suveniruri locale și artizanat. Puteți savura o cafea sau o înghețată la una dintre terase.",
+            "tags": [
+              "cumparaturi",
+              "relaxare",
+              "familie_copii",
+              "low_budget"
+            ],
+            "travelTimeFromPrevious": "8 minute",
+            "timeRange": "15:00 - 17:00",
+            "estimatedCost": 0,
+            "costNote": "Costul depinde de cumpărături.",
+            "distanceFromPreviousKm": 0.8,
+            "title": "Cumpărături de Suveniruri și Relaxare"
+          },
+          {
+            "location": "Centrul Vechi, Brașov",
+            "tags": [
+              "nightlife",
+              "adults_only",
+              "relaxare"
+            ],
+            "description": "Pentru ultima seară, puteți alege o cină specială sau, dacă doriți, adulții pot explora din nou opțiunile de viață de noapte din Centrul Vechi, savurând o băutură într-un bar local.",
+            "transportMode": "walking",
+            "travelTimeFromPrevious": "5 minute",
+            "timeRange": "20:00 - 23:00",
+            "estimatedCost": 0,
+            "distanceFromPreviousKm": 0.5,
+            "costNote": "Costul depinde de consumație și este opțional.",
+            "title": "Seară de Adio în Centrul Vechi (Opțional)"
+          }
+        ],
+        "title": "Istorie, Cultură și Relaxare"
+      },
+      {
+        "summary": "Ziua plecării, cu timp pentru micul dejun și ultimele cumpărături înainte de a vă îndrepta spre casă.",
+        "date": "2026-05-22",
+        "city": "Brașov",
+        "estimatedDistanceKm": 17,
+        "dayNumber": 5,
+        "estimatedTransitDuration": "40 minute",
+        "mealSuggestions": [
+          "Micul Dejun: La cazare sau la o patiserie locală."
+        ],
+        "activities": [
+          {
+            "location": "Cazare Brașov",
+            "transportMode": "other",
+            "description": "Bucurați-vă de un ultim mic dejun în Brașov și pregătiți-vă bagajele pentru plecare.",
+            "tags": [
+              "organizare"
+            ],
+            "travelTimeFromPrevious": "0 minute",
+            "timeRange": "09:00 - 10:00",
+            "costNote": "Costul mesei este inclus în estimarea totală pentru mâncare.",
+            "distanceFromPreviousKm": 0,
+            "estimatedCost": 0,
+            "title": "Micul Dejun și Pregătirea Bagajelor"
+          },
+          {
+            "location": "Brașov",
+            "tags": [
+              "cumparaturi",
+              "low_budget"
+            ],
+            "description": "Dacă timpul permite, puteți face ultimele cumpărături de suveniruri sau produse locale proaspete la Piața Dacia.",
+            "transportMode": "walking",
+            "travelTimeFromPrevious": "10 minute",
+            "timeRange": "10:00 - 11:00",
+            "costNote": "Costul depinde de cumpărături.",
+            "distanceFromPreviousKm": 1,
+            "estimatedCost": 0,
+            "title": "Ultimele Cumpărături / Vizită Rapidă la Piața Dacia"
+          },
+          {
+            "location": "Brașov",
+            "tags": [
+              "organizare"
+            ],
+            "description": "E timpul să faceți check-out de la cazare și să vă îndreptați spre gară/autocară/aeroport pentru călătoria de întoarcere.",
+            "transportMode": "public_transport",
+            "travelTimeFromPrevious": "30 minute",
+            "timeRange": "11:30 - 12:00",
+            "estimatedCost": 0,
+            "distanceFromPreviousKm": 16,
+            "costNote": "Costul transportului de plecare nu este inclus în acest itinerar.",
+            "title": "Check-out și Plecare"
+          }
+        ],
+        "estimatedCost": 0,
+        "title": "Plecare din Brașov"
+      }
+    ],
+    "destinationImageUrl": "https://encrypted-tbn0.gstatic.com/licensed-image?q=tbn:ANd9GcTAX0ubkmS8X12k9gDSapfeb9pItCNC0p09SQV5UIS9KqzjTp-4d9KnHWSmdl7huzuhw76YZJQP1NRD3Cgh79NnsBo&s=19",
+    "accommodations": [
+      {
+        "note": "Situată central, aproape de atracții, oferă camere de familie și are recenzii bune pentru raportul calitate-preț. Verificați disponibilitatea și prețurile pentru datele dorite. Cost estimat pentru o cameră dublă/triplă.",
+        "airbnbSearchUrl": "https://www.airbnb.com/s/Bra%C8%99ov--Romania/homes?query=Pensiunea%20Casa%20Wagner&checkin=2026-05-18&checkout=2026-05-22",
+        "area": "Centrul Vechi",
+        "bookingSearchUrl": "https://www.booking.com/searchresults.ro.html?ss=Pensiunea+Casa+Wagner+Brasov&checkin=2026-05-18&checkout=2026-05-22",
+        "estimatedNightlyCost": 45,
+        "city": "Brașov",
+        "type": "guesthouse",
+        "isSearchSuggestion": true,
+        "source": "Search suggestion",
+        "name": "Pensiunea Casa Wagner"
+      },
+      {
+        "note": "O opțiune mai economică, oferind și camere private. Ideală pentru familii tinere sau cu buget foarte redus. Verificați disponibilitatea și prețurile pentru datele dorite. Cost estimat pentru o cameră privată de familie.",
+        "area": "Centrul Vechi",
+        "airbnbSearchUrl": "https://www.airbnb.com/s/Bra%C8%99ov--Romania/homes?query=Hostel%20Boemia&checkin=2026-05-18&checkout=2026-05-22",
+        "bookingSearchUrl": "https://www.booking.com/searchresults.ro.html?ss=Hostel+Boemia+Brasov&checkin=2026-05-18&checkout=2026-05-22",
+        "estimatedNightlyCost": 35,
+        "city": "Brașov",
+        "type": "hostel",
+        "isSearchSuggestion": true,
+        "source": "Search suggestion",
+        "name": "Hostel Boemia"
+      },
+      {
+        "note": "Căutați apartamente sau studiouri cu bucătărie proprie pentru a economisi la mâncare. O varietate largă de opțiuni pe platforme precum Airbnb și Booking.com. Filtrați după 'familie' și 'buget'.",
+        "area": "Diverse zone, inclusiv Centrul Vechi și Astra",
+        "airbnbSearchUrl": "https://www.airbnb.com/s/Bra%C8%99ov--Romania/homes?checkin=2026-05-18&checkout=2026-05-22&adults=2&children=2",
+        "bookingSearchUrl": "https://www.booking.com/searchresults.ro.html?aid=304142&label=gen173nr-1FCAEoggI46AdIM1gEaOoBiAEBmAEJuAEHyAEM2AEB6AEB-AELiAIBqAIDuAK-27_DBSgB&sid=42a445032549e32a2455f69f886f671c&ss=Bra%C8%99ov&group_adults=2&age=10&group_children=2&no_rooms=1&checkin=2026-05-18&checkout=2026-05-22",
+        "estimatedNightlyCost": 50,
+        "city": "Brașov",
+        "type": "apartment",
+        "isSearchSuggestion": true,
+        "source": "Search suggestion",
+        "name": "Apartamente în regim hotelier"
+      }
+    ],
+    "cities": [
+      "Brașov"
+    ],
+    "restaurants": [
+      {
+        "note": "Preparate românești gătite în ceaun, porții generoase și prețuri rezonabile. Foarte popular, mai ales pentru familii.",
+        "area": "Piața Sfatului",
+        "recommendedFor": "lunch/dinner",
+        "cuisine": "Românească, Tradițională",
+        "estimatedMealCost": 15,
+        "name": "La Ceaun",
+        "city": "Brașov"
+      },
+      {
+        "note": "Unul dintre cele mai cunoscute restaurante din Brașov, cu specific tradițional. Prețurile sunt puțin mai ridicate, dar calitatea și atmosfera merită. Recomandat pentru o cină specială.",
+        "area": "Centrul Vechi",
+        "recommendedFor": "dinner",
+        "cuisine": "Românească, Tradițională",
+        "estimatedMealCost": 20,
+        "name": "Restaurant Sergiana",
+        "city": "Brașov"
+      },
+      {
+        "note": "Opțiune excelentă pentru familii cu copii, oferind pizza gustoasă și alte preparate italiene la prețuri accesibile.",
+        "area": "Centrul Vechi",
+        "recommendedFor": "lunch/dinner",
+        "cuisine": "Italiană, Pizza",
+        "name": "Pizzeria della Nonna",
+        "estimatedMealCost": 10,
+        "city": "Brașov"
+      },
+      {
+        "note": "Un restaurant cu specific românesc, cu o terasă frumoasă, ideal după o plimbare pe Tâmpa. Prețuri decente.",
+        "area": "Lângă Tâmpa",
+        "recommendedFor": "lunch/dinner",
+        "cuisine": "Românească, Internațională",
+        "estimatedMealCost": 15,
+        "name": "Sub Tâmpa",
+        "city": "Brașov"
+      },
+      {
+        "note": "Opțiuni foarte economice pentru micul dejun sau gustări rapide, cu produse de patiserie proaspete.",
+        "area": "Peste tot în oraș",
+        "recommendedFor": "breakfast/snack",
+        "cuisine": "Patiserie, Fast-food",
+        "estimatedMealCost": 5,
+        "name": "Fornetti / Patiserii locale",
+        "city": "Brașov"
+      }
+    ],
+    "endDate": "2026-05-22",
+    "startDate": "2026-05-18",
+    "distanceSummary": {
+      "note": "Distantele și duratele de tranzit sunt aproximative și includ deplasările majore între obiective, excluzând mersul pe jos în cadrul aceleiași zone.",
+      "estimatedTotalKm": 75,
+      "estimatedTotalTransitDuration": "5 ore 15 minute"
+    },
+    "costSummary": {
+      "note": "Costurile sunt estimative și pot varia în funcție de numărul exact de persoane (estimat pentru 2 adulți și 1-2 copii), preferințele individuale și promoțiile disponibile. S-a folosit un curs de schimb estimativ de 1 EUR = 4.95 RON.",
+      "estimatedAccommodationTotal": 185,
+      "estimatedTotal": 680,
+      "estimatedActivitiesTotal": 195,
+      "estimatedFoodTotal": 300
+    },
+    "assumptions": [
+      "Itinerarul este planificat pentru o familie (2 adulți și 1-2 copii) cu un buget redus.",
+      "Transportul în oraș se va face predominant pe jos sau cu transportul public (autobuze locale), iar pentru distanțe mai mari, ocazional cu taxiul/ridesharing (Uber/Bolt) pentru eficiență și confort cu copiii.",
+      "Costurile de intrare la obiective și mesele sunt estimative și se bazează pe prețurile curente, convertite aproximativ din RON în EUR (1 EUR = 4.95 RON). Pot exista oferte sau reduceri pentru familii/copii.",
+      "Vremea în luna mai este considerată potrivită pentru activități în aer liber.",
+      "Pentru viața de noapte, se presupune că adulții pot alege să iasă seara, lăsând copiii în grija unui părinte sau a unui însoțitor, sau că optează pentru o seară liniștită."
+    ],
+    "warnings": [
+      "Toate costurile, distanțele și duratele de tranzit sunt aproximative și pot fluctua. Verificați prețurile actualizate și orarele înainte de vizită.",
+      "Disponibilitatea cazărilor și a meselor la restaurantele sugerate nu este garantată și trebuie verificată în prealabil, mai ales în perioadele aglomerate.",
+      "Verificați programul de funcționare al obiectivelor turistice și al parcurilor de aventură, deoarece acesta poate varia în funcție de sezon sau zi.",
+      "Pentru transportul public, achiziționarea unui card de transport sau a unor bilete valabile pentru mai multe călătorii poate fi mai economică. Verificați rutele și orarele locale.",
+      "Asigurați-vă că aveți încălțăminte confortabilă pentru mers pe jos și haine adecvate pentru condițiile meteo variabile, mai ales pentru activitățile în natură."
+    ]
+  },
+  "startDate": "2026-05-18",
+  "cities": [
+    "Brașov"
+  ],
+  "type": "generated_itinerary",
+  "ownerUid": "gZiAu6jMDzc1kNGAiyrSlBKCP8D3",
+  "createdAt": "2026-05-11T11:09:36.959247Z",
+  "title": "Itinerar de 5 Zile în Brașov: Natură, Familie și Buget Redus"
+}

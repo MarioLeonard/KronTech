@@ -1,0 +1,21 @@
+The content inside the TripsScreen is structurally correct now, but the entire screen block is still floating in the middle of the page. This means the Dashboard shell/router that is hosting the TripsScreen is centering its children vertically.
+
+Please apply these two fixes immediately to force it to the top:
+
+1. Force Alignment in TripsScreen:
+
+In TripsScreen, wrap the SingleChildScrollView with an Align widget.
+
+Set alignment: Alignment.topLeft.
+
+(This tells the screen: "Even if my parent gives me full vertical space and tries to center me, pin me to the absolute top-left corner").
+
+2. Fix the Dashboard Shell (The Root Cause):
+
+Go to the widget that handles the main layout (the one containing the left Navigation Sidebar and the main content area, likely MainScreen, HomeScreen, or your shell router).
+
+If the main content area is inside a Row, ensure that Row has crossAxisAlignment: CrossAxisAlignment.start.
+
+If the main content area is inside a Center widget, completely remove the Center widget and replace it with an Align(alignment: Alignment.topLeft).
+
+Please output the updated TripsScreen with the Align wrapper, and apply the fix to the Dashboard shell if necessary.

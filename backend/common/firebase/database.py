@@ -4,9 +4,10 @@ import logging
 from typing import Any, Dict, List, Optional
 
 import firebase_admin
-from firebase_admin import firestore
+from firebase_admin import credentials, firestore
 from django.conf import settings
 from google.cloud import firestore as cloud_firestore
+from google.cloud.firestore_v1.base_query import FieldFilter
 from google.oauth2 import service_account
 
 logger = logging.getLogger(__name__)
@@ -34,19 +35,27 @@ class FirestoreService:
         """Initialize Firestore client."""
         try:
             if not firebase_admin._apps:
-                raise Exception("Firebase Admin SDK not initialized")
+                firebase_creds_path = getattr(
+                    settings,
+                    "FIREBASE_CREDENTIALS_PATH",
+                    None,
+                )
+                if not firebase_creds_path:
+                    raise Exception("FIREBASE_CREDENTIALS_PATH not configured")
+                cred = credentials.Certificate(firebase_creds_path)
+                firebase_admin.initialize_app(cred)
             database_id = getattr(settings, "FIRESTORE_DATABASE_ID", "(default)")
             if database_id == "(default)":
                 FirestoreService._db = firestore.client()
             else:
-                credentials = (
+                google_credentials = (
                     service_account.Credentials.from_service_account_file(
                         settings.FIREBASE_CREDENTIALS_PATH
                     )
                 )
                 FirestoreService._db = cloud_firestore.Client(
-                    project=credentials.project_id,
-                    credentials=credentials,
+                    project=google_credentials.project_id,
+                    credentials=google_credentials,
                     database=database_id,
                 )
             logger.info("Firestore client initialized successfully")
@@ -99,7 +108,7 @@ class FirestoreService:
 
             if filters:
                 for field, operator, value in filters:
-                    query = query.where(field, operator, value)
+                    query = query.where(filter=FieldFilter(field, operator, value))
 
             if limit:
                 query = query.limit(limit)

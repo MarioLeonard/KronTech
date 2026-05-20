@@ -1,52 +1,29 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:frontend/components/feature_card.dart';
+import 'package:frontend/components/feature_row.dart';
 import 'package:frontend/models/auth_user.dart';
-import 'package:frontend/providers/auth_provider.dart';
-import 'package:provider/provider.dart';
 
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({required this.user, super.key});
+part 'home/home_screen_pages.dart';
+part 'home/home_screen_feature_sections.dart';
+part 'home/home_screen_state.dart';
+part 'home/home_feature_page.dart';
+part 'home/animated_feature_section.dart';
+part 'home/animated_feature_section_state.dart';
+part 'home/app_story_page.dart';
+
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({
+    required this.user,
+    required this.onNavigateToTrips,
+    required this.onNavigateToChat,
+    super.key,
+  });
 
   final AuthUser user;
+  final VoidCallback onNavigateToTrips;
+  final VoidCallback onNavigateToChat;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('KronTech'),
-        actions: [
-          TextButton(
-            onPressed: () {
-              context.read<AuthProvider>().signOut();
-            },
-            child: const Text('Sign out'),
-          ),
-        ],
-      ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Text('Welcome!', style: theme.textTheme.headlineMedium),
-              const SizedBox(height: 12),
-              Text(
-                user.displayName ?? user.email ?? 'Authenticated user',
-                textAlign: TextAlign.center,
-                style: theme.textTheme.titleMedium,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Signed in with ${user.provider.name.toUpperCase()}',
-                style: theme.textTheme.bodyMedium,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  State<HomeScreen> createState() => _HomeScreenState();
 }

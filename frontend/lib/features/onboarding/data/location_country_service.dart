@@ -6,6 +6,8 @@ import 'package:http/http.dart' as http;
 import '../domain/country_location_constants.dart';
 import '../domain/location_place.dart';
 
+part 'location_country_exception.dart';
+
 class LocationCountryService {
   const LocationCountryService({http.Client? client}) : _client = client;
 
@@ -109,10 +111,4 @@ class LocationCountryService {
 
     return '$streetName $number';
   }
-}
-
-class LocationCountryException implements Exception {
-  const LocationCountryException(this.message);
-
-  final String message;
 }

@@ -8,6 +8,11 @@ from common.services.onboarding_service import (
     OnboardingValidationError,
 )
 from common.services.profile_service import ProfileService
+from common.services.gemini_trip_generation_service import (
+    GeminiTripGenerationError,
+    GeminiTripGenerationService,
+)
+from common.services.trip_service import TripService
 
 
 def health_check(request):
@@ -67,54 +72,12 @@ def signup(request):
 
 @csrf_exempt
 @firebase_required
-def profile(request):
-    """
-    Protected endpoint that returns authenticated user profile from Firestore.
-
-    Requires Firebase ID token in Authorization header.
-
-    Header format:
-        Authorization: Bearer <firebase-id-token>
-
-    Methods:
-        GET: Retrieve user profile
-
-    Returns:
-        JSON with user profile information from Firestore
-    """
-    auth_user = request.auth_user
-
-    if request.method == "GET":
-        try:
-            # Get or create profile from Firestore
-            user_profile = ProfileService.get_or_create_profile(auth_user)
-
-            return JsonResponse(
-                {
-                    "message": "Successfully retrieved profile!",
-                    "profile": user_profile.to_dict(),
-                }
-            )
-        except Exception as e:
-            return JsonResponse(
-                {"error": f"Failed to retrieve profile: {str(e)}"},
-                status=500,
-            )
-
-    return JsonResponse(
-        {"error": "Method not allowed. Use GET."},
-        status=405,
-    )
-
-
-@csrf_exempt
-@firebase_required
 def complete_onboarding(request):
     """
-    Complete onboarding for the authenticated Firebase user.
+    POST /api/onboarding/complete/ - Complete authenticated user onboarding.
 
-    Only the backend writes onboarding profile fields to Firestore. The client
-    must provide a valid Firebase ID token in the Authorization header.
+    Requires Firebase ID token in Authorization header. The authenticated UID is
+    always taken from the token, not from the client payload.
     """
     if request.method != "POST":
         return JsonResponse(
@@ -123,18 +86,19 @@ def complete_onboarding(request):
         )
 
     try:
-        body = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse(
-            {"error": "Invalid JSON in request body"},
-            status=400,
-        )
+        try:
+            body = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse(
+                {"error": "Invalid JSON in request body"},
+                status=400,
+            )
 
-    try:
         user_profile = OnboardingService.complete_onboarding(
             request.auth_user,
             body,
         )
+
         return JsonResponse(
             {
                 "message": "Onboarding completed successfully!",
@@ -142,13 +106,725 @@ def complete_onboarding(request):
             },
             status=200,
         )
-    except OnboardingValidationError as error:
+    except OnboardingValidationError as e:
+        return JsonResponse({"error": str(e)}, status=400)
+    except Exception as e:
         return JsonResponse(
-            {"error": "Validation failed", "message": str(error)},
+            {"error": f"Failed to complete onboarding: {str(e)}"},
+            status=500,
+        )
+
+
+@csrf_exempt
+@firebase_required
+def get_profile(request):
+    """
+    GET /api/profile/ - Retrieve authenticated user profile from Firestore.
+
+    Requires Firebase ID token in Authorization header.
+
+    Header format:
+        Authorization: Bearer <firebase-id-token>
+
+    Returns:
+        JSON with user profile information from Firestore
+        Status: 200 on success, 500 on error
+    """
+    if request.method != "GET":
+        return JsonResponse(
+            {"error": "Method not allowed. Use GET."},
+            status=405,
+        )
+
+    try:
+        auth_user = request.auth_user
+        uid = auth_user.get("uid")
+
+        # Get or create profile from Firestore
+        user_profile = ProfileService.get_or_create_profile(auth_user)
+
+        return JsonResponse(
+            {
+                "message": "Successfully retrieved profile!",
+                "profile": user_profile.to_dict(),
+            },
+            status=200,
+        )
+    except Exception as e:
+        return JsonResponse(
+            {"error": f"Failed to retrieve profile: {str(e)}"},
+            status=500,
+        )
+
+
+@csrf_exempt
+@firebase_required
+def get_public_profile(request, user_id):
+    """GET /api/profile/{uid}/ - Retrieve a lightweight user profile."""
+    if request.method != "GET":
+        return JsonResponse(
+            {"error": "Method not allowed. Use GET."},
+            status=405,
+        )
+
+    try:
+        user_profile = ProfileService.get_profile(user_id)
+        if not user_profile:
+            return JsonResponse({"error": "Profile not found"}, status=404)
+
+        data = user_profile.to_dict()
+        public_profile = {
+            "uid": user_profile.uid,
+            "email": data.get("email"),
+            "display_name": data.get("display_name"),
+            "photo_url": data.get("photo_url"),
+            "profilePhotoUrl": data.get("profilePhotoUrl"),
+            "firstName": data.get("firstName"),
+            "lastName": data.get("lastName"),
+            "dateOfBirth": data.get("dateOfBirth"),
+            "gender": data.get("gender"),
+            "country": data.get("country"),
+            "city": data.get("city"),
+            "street": data.get("street"),
+        }
+
+        return JsonResponse(
+            {
+                "message": "Successfully retrieved profile!",
+                "profile": public_profile,
+            },
+            status=200,
+        )
+    except Exception as e:
+        return JsonResponse(
+            {"error": f"Failed to retrieve profile: {str(e)}"},
+            status=500,
+        )
+
+
+@csrf_exempt
+def profile(request):
+    """Dispatch profile requests by HTTP method."""
+    if request.method == "GET":
+        return get_profile(request)
+    if request.method == "PATCH":
+        return update_profile(request)
+    return JsonResponse(
+        {"error": "Method not allowed. Use GET or PATCH."},
+        status=405,
+    )
+
+
+@firebase_required
+def update_profile(request):
+    """
+    PATCH /api/profile/ - Update authenticated user profile fields.
+
+    Requires Firebase ID token in Authorization header.
+    UID validation: UID is always extracted from the token, NOT from request body.
+
+    Allowed fields to update:
+    - firstName
+    - lastName
+    - dateOfBirth
+    - gender
+    - country
+    - city
+    - street
+
+    Non-whitelisted fields are silently ignored.
+
+    Header format:
+        Authorization: Bearer <firebase-id-token>
+
+    Request body:
+        {
+            "firstName": "John",
+            "lastName": "Doe",
+            "dateOfBirth": "1990-01-01",
+            "gender": "M",
+            "country": "Romania",
+            "city": "Bucharest",
+            "street": "Main St 123"
+        }
+
+    Returns:
+        JSON with updated user profile
+        Status: 200 on success, 400 on invalid JSON, 500 on error
+    """
+    if request.method != "PATCH":
+        return JsonResponse(
+            {"error": "Method not allowed. Use PATCH."},
+            status=405,
+        )
+
+    try:
+        # Extract UID from token (not from body) 
+        auth_user = request.auth_user
+        uid = auth_user.get("uid")
+
+        # Parse request body
+        try:
+            body = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse(
+                {"error": "Invalid JSON in request body"},
+                status=400,
+            )
+
+        # Update profile with field validation (only whitelisted fields)
+        user_profile = ProfileService.update_profile(uid, body)
+
+        return JsonResponse(
+            {
+                "message": "Profile updated successfully!",
+                "profile": user_profile.to_dict(),
+            },
+            status=200,
+        )
+    except Exception as e:
+        return JsonResponse(
+            {"error": f"Failed to update profile: {str(e)}"},
+            status=500,
+        )
+
+
+@csrf_exempt
+@firebase_required
+def upload_profile_photo(request):
+    """
+    POST /api/profile/photo/ - Upload profile photo to Firebase Storage.
+
+    Requires Firebase ID token in Authorization header.
+    UID validation: UID is always extracted from the token, NOT from request body.
+
+    Allowed file types: JPEG, PNG, WebP, GIF
+    Max file size: 5MB
+
+    Photo is stored at: gs://krontech-7fbdb.appspot.com/users/{uid}/profile/...
+    Only the URL is saved in Firestore.
+
+    Header format:
+        Authorization: Bearer <firebase-id-token>
+
+    Request:
+        Multipart form data with file in 'photo' field
+
+    Returns:
+        JSON with updated user profile including new photo URL
+        Status: 201 on success, 400 on validation error, 500 on error
+    """
+    if request.method != "POST":
+        return JsonResponse(
+            {"error": "Method not allowed. Use POST."},
+            status=405,
+        )
+
+    try:
+        # Extract UID from token (not from body)
+        auth_user = request.auth_user
+        uid = auth_user.get("uid")
+
+        # Get uploaded file
+        if "photo" not in request.FILES:
+            return JsonResponse(
+                {"error": "No file provided. Use 'photo' field in multipart form data."},
+                status=400,
+            )
+
+        uploaded_file = request.FILES["photo"]
+
+        # Validate file
+        if uploaded_file.size == 0:
+            return JsonResponse(
+                {"error": "File is empty"},
+                status=400,
+            )
+
+        # Read file content
+        file_content = uploaded_file.read()
+        content_type = uploaded_file.content_type or "application/octet-stream"
+
+        # Upload photo and update profile
+        user_profile = ProfileService.upload_profile_photo(
+            uid=uid,
+            file_content=file_content,
+            filename=uploaded_file.name,
+            content_type=content_type,
+        )
+
+        return JsonResponse(
+            {
+                "message": "Profile photo uploaded successfully!",
+                "profile": user_profile.to_dict(),
+            },
+            status=201,
+        )
+
+    except ValueError as e:
+        # Validation errors from ProfileService
+        return JsonResponse(
+            {"error": str(e)},
             status=400,
         )
-    except Exception as error:
+    except Exception as e:
         return JsonResponse(
-            {"error": f"Failed to complete onboarding: {str(error)}"},
+            {"error": f"Failed to upload profile photo: {str(e)}"},
+            status=500,
+        )
+
+
+# ============================================================================
+# TRIP ENDPOINTS
+# ============================================================================
+
+
+@csrf_exempt
+def trips(request):
+    """Dispatch /api/trips/ collection requests by HTTP method."""
+    if request.method == "GET":
+        return list_trips(request)
+    if request.method == "POST":
+        return create_trip(request)
+    return JsonResponse(
+        {"error": "Method not allowed. Use GET or POST."},
+        status=405,
+    )
+
+
+@firebase_required
+def create_trip(request):
+    """
+    POST /api/trips/ - Create a new trip.
+
+    Requires Firebase ID token in Authorization header.
+
+    Request body:
+        {
+            "startLocation": {
+                "latitude": 44.4268,
+                "longitude": 26.1025,
+                "address": "Bucharest, Romania"
+            },
+            "destination": {
+                "latitude": 45.9432,
+                "longitude": 24.9668,
+                "address": "Brașov, Romania"
+            },
+            "dateTime": "2026-05-15T10:30:00Z",
+            "waypoints": [
+                {
+                    "latitude": 45.0,
+                    "longitude": 25.5,
+                    "address": "Some waypoint"
+                }
+            ],
+            "distance": 166.5,
+            "duration": "2h 30m",
+            "status": "planned"
+        }
+
+    Returns:
+        JSON with created trip
+        Status: 201 on success, 400 on validation error, 500 on error
+    """
+    if request.method != "POST":
+        return JsonResponse(
+            {"error": "Method not allowed. Use POST."},
+            status=405,
+        )
+
+    try:
+        auth_user = request.auth_user
+        owner_uid = auth_user.get("uid")
+
+        # Parse request body
+        try:
+            body = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse(
+                {"error": "Invalid JSON in request body"},
+                status=400,
+            )
+
+        # Extract and validate required fields
+        start_location = body.get("startLocation")
+        destination = body.get("destination")
+        date_time = body.get("dateTime")
+
+        if not all([start_location, destination, date_time]):
+            return JsonResponse(
+                {
+                    "error": "Missing required fields: startLocation, destination, dateTime"
+                },
+                status=400,
+            )
+
+        # Create trip
+        trip = TripService.create_trip(
+            owner_uid=owner_uid,
+            start_location=start_location,
+            destination=destination,
+            date_time=date_time,
+            waypoints=body.get("waypoints"),
+            distance=body.get("distance"),
+            duration=body.get("duration"),
+            status=body.get("status", "planned"),
+        )
+
+        return JsonResponse(
+            {
+                "message": "Trip created successfully!",
+                "trip": trip.to_dict(),
+            },
+            status=201,
+        )
+
+    except ValueError as e:
+        return JsonResponse(
+            {"error": str(e)},
+            status=400,
+        )
+    except Exception as e:
+        return JsonResponse(
+            {"error": f"Failed to create trip: {str(e)}"},
+            status=500,
+        )
+
+
+@csrf_exempt
+@firebase_required
+def generate_trip(request):
+    """
+    POST /api/trips/generate/ - Generate a trip itinerary through Gemini.
+
+    Requires Firebase ID token in Authorization header. Gemini credentials are
+    read from backend environment variables, never from the Flutter client.
+    """
+    if request.method != "POST":
+        return JsonResponse(
+            {"error": "Method not allowed. Use POST."},
+            status=405,
+        )
+
+    try:
+        try:
+            body = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse(
+                {"error": "Invalid JSON in request body"},
+                status=400,
+            )
+
+        auth_user = request.auth_user
+        owner_uid = auth_user.get("uid")
+
+        generated_trip = GeminiTripGenerationService.generate_trip(body)
+        saved_trip = TripService.create_generated_trip(
+            owner_uid=owner_uid,
+            request_data=body,
+            itinerary=generated_trip,
+        )
+        return JsonResponse(
+            {
+                "message": "Trip itinerary generated successfully!",
+                "trip": generated_trip,
+                "savedTrip": saved_trip.to_dict(),
+            },
+            status=200,
+        )
+    except ValueError as e:
+        return JsonResponse({"error": str(e)}, status=400)
+    except GeminiTripGenerationError as e:
+        return JsonResponse({"error": str(e)}, status=502)
+    except Exception as e:
+        return JsonResponse(
+            {"error": f"Failed to generate trip itinerary: {str(e)}"},
+            status=500,
+        )
+
+
+@firebase_required
+def list_trips(request):
+    """
+    GET /api/trips/ - List all trips for authenticated user.
+
+    Requires Firebase ID token in Authorization header.
+
+    Returns:
+        JSON with list of user's trips
+        Status: 200 on success, 500 on error
+    """
+    if request.method != "GET":
+        return JsonResponse(
+            {"error": "Method not allowed. Use GET."},
+            status=405,
+        )
+
+    try:
+        auth_user = request.auth_user
+        owner_uid = auth_user.get("uid")
+
+        # Get all trips for user
+        trips = TripService.get_user_trips(owner_uid)
+
+        return JsonResponse(
+            {
+                "message": "Trips retrieved successfully!",
+                "trips": [trip.to_dict() for trip in trips],
+            },
+            status=200,
+        )
+
+    except Exception as e:
+        return JsonResponse(
+            {"error": f"Failed to retrieve trips: {str(e)}"},
+            status=500,
+        )
+
+
+@firebase_required
+def get_trip(request, trip_id):
+    """
+    GET /api/trips/{id}/ - Get details of a specific trip.
+
+    Requires Firebase ID token in Authorization header.
+    User must own the trip.
+
+    Returns:
+        JSON with trip details
+        Status: 200 on success, 403 on permission denied, 404 on not found, 500 on error
+    """
+    if request.method != "GET":
+        return JsonResponse(
+            {"error": "Method not allowed. Use GET."},
+            status=405,
+        )
+
+    try:
+        auth_user = request.auth_user
+        owner_uid = auth_user.get("uid")
+
+        # Get trip with permission check
+        trip = TripService.get_trip(trip_id, owner_uid)
+
+        if not trip:
+            return JsonResponse(
+                {"error": "Trip not found"},
+                status=404,
+            )
+
+        return JsonResponse(
+            {
+                "message": "Trip retrieved successfully!",
+                "trip": trip.to_dict(),
+            },
+            status=200,
+        )
+
+    except PermissionError as e:
+        return JsonResponse(
+            {"error": str(e)},
+            status=403,
+        )
+    except Exception as e:
+        return JsonResponse(
+            {"error": f"Failed to retrieve trip: {str(e)}"},
+            status=500,
+        )
+
+
+@firebase_required
+def update_trip(request, trip_id):
+    """
+    PATCH /api/trips/{id}/ - Update a trip.
+
+    Requires Firebase ID token in Authorization header.
+    User must own the trip.
+
+    Allowed fields:
+    - startLocation
+    - destination
+    - waypoints
+    - dateTime
+    - distance
+    - duration
+    - status
+    - itinerary
+
+    Returns:
+        JSON with updated trip
+        Status: 200 on success, 400 on validation error, 403 on permission denied, 404 on not found, 500 on error
+    """
+    if request.method != "PATCH":
+        return JsonResponse(
+            {"error": "Method not allowed. Use PATCH."},
+            status=405,
+        )
+
+    try:
+        auth_user = request.auth_user
+        owner_uid = auth_user.get("uid")
+
+        # Parse request body
+        try:
+            body = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse(
+                {"error": "Invalid JSON in request body"},
+                status=400,
+            )
+
+        # Update trip with permission check
+        trip = TripService.update_trip(trip_id, owner_uid, body)
+
+        return JsonResponse(
+            {
+                "message": "Trip updated successfully!",
+                "trip": trip.to_dict(),
+            },
+            status=200,
+        )
+
+    except PermissionError as e:
+        return JsonResponse(
+            {"error": str(e)},
+            status=403,
+        )
+    except ValueError as e:
+        return JsonResponse(
+            {"error": str(e)},
+            status=400,
+        )
+    except Exception as e:
+        return JsonResponse(
+            {"error": f"Failed to update trip: {str(e)}"},
+            status=500,
+        )
+
+
+@csrf_exempt
+@firebase_required
+def trip_friends(request, trip_id):
+    """List or add friends shared on a trip."""
+    if request.method not in {"GET", "POST"}:
+        return JsonResponse(
+            {"error": "Method not allowed. Use GET or POST."},
+            status=405,
+        )
+
+    try:
+        user_id = request.auth_user.get("uid")
+        if request.method == "GET":
+            friends = TripService.list_trip_friends(trip_id, user_id)
+            return JsonResponse(
+                {
+                    "message": "Trip friends retrieved successfully!",
+                    "friends": friends,
+                },
+                status=200,
+            )
+
+        try:
+            body = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Invalid JSON in request body"}, status=400)
+
+        friend_id = (body.get("friend_id") or "").strip()
+        trip = TripService.add_trip_friend(trip_id, user_id, friend_id)
+        return JsonResponse(
+            {
+                "message": "Friend added to trip successfully!",
+                "trip": trip.to_dict(),
+            },
+            status=200,
+        )
+    except PermissionError as e:
+        return JsonResponse({"error": str(e)}, status=403)
+    except ValueError as e:
+        return JsonResponse({"error": str(e)}, status=400)
+    except Exception as e:
+        return JsonResponse(
+            {"error": f"Failed to update trip friends: {str(e)}"},
+            status=500,
+        )
+
+
+@csrf_exempt
+@firebase_required
+def trip_friend_detail(request, trip_id, friend_id):
+    """Remove a friend from a trip."""
+    if request.method != "DELETE":
+        return JsonResponse(
+            {"error": "Method not allowed. Use DELETE."},
+            status=405,
+        )
+
+    try:
+        user_id = request.auth_user.get("uid")
+        trip = TripService.remove_trip_friend(trip_id, user_id, friend_id)
+        return JsonResponse(
+            {
+                "message": "Friend removed from trip successfully!",
+                "trip": trip.to_dict(),
+            },
+            status=200,
+        )
+    except PermissionError as e:
+        return JsonResponse({"error": str(e)}, status=403)
+    except ValueError as e:
+        return JsonResponse({"error": str(e)}, status=400)
+    except Exception as e:
+        return JsonResponse(
+            {"error": f"Failed to update trip friends: {str(e)}"},
+            status=500,
+        )
+
+
+@firebase_required
+def delete_trip(request, trip_id):
+    """
+    DELETE /api/trips/{id}/ - Delete a trip.
+
+    Requires Firebase ID token in Authorization header.
+    User must own the trip.
+
+    Returns:
+        JSON confirmation
+        Status: 200 on success, 403 on permission denied, 404 on not found, 500 on error
+    """
+    if request.method != "DELETE":
+        return JsonResponse(
+            {"error": "Method not allowed. Use DELETE."},
+            status=405,
+        )
+
+    try:
+        auth_user = request.auth_user
+        owner_uid = auth_user.get("uid")
+
+        # Delete trip with permission check
+        TripService.delete_trip(trip_id, owner_uid)
+
+        return JsonResponse(
+            {
+                "message": "Trip deleted successfully!",
+            },
+            status=200,
+        )
+
+    except PermissionError as e:
+        return JsonResponse(
+            {"error": str(e)},
+            status=403,
+        )
+    except ValueError as e:
+        return JsonResponse(
+            {"error": str(e)},
+            status=404,
+        )
+    except Exception as e:
+        return JsonResponse(
+            {"error": f"Failed to delete trip: {str(e)}"},
             status=500,
         )

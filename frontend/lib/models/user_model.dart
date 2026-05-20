@@ -1,7 +1,6 @@
 import 'onboarding_data.dart';
 import 'package:uuid/uuid.dart';
 
-/// Final User model constructed from onboarding data
 class UserModel {
   final String id;
   final String firstName;
@@ -40,7 +39,6 @@ class UserModel {
   }) : id = id ?? const Uuid().v4(),
        createdAt = createdAt ?? DateTime.now();
 
-  /// Create UserModel from OnboardingData
   factory UserModel.fromOnboardingData(OnboardingData data) {
     return UserModel(
       firstName: data.profileInfo.firstName,
@@ -60,10 +58,8 @@ class UserModel {
     );
   }
 
-  /// Get user's full name
   String get fullName => '$firstName $lastName';
 
-  /// Get user's age
   int get age {
     final now = DateTime.now();
     int age = now.year - dateOfBirth.year;
@@ -74,10 +70,8 @@ class UserModel {
     return age;
   }
 
-  /// Get user's complete address
   String get completeAddress => '$street, $city, $country';
 
-  /// Convert to Map for storage or API calls
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -99,7 +93,6 @@ class UserModel {
     };
   }
 
-  /// Create from Map
   factory UserModel.fromMap(Map<String, dynamic> map) {
     return UserModel(
       id: map['id'],
@@ -125,7 +118,6 @@ class UserModel {
     );
   }
 
-  /// Copy with changes
   UserModel copyWith({
     String? id,
     String? firstName,
