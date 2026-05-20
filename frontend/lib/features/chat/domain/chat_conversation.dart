@@ -1,7 +1,6 @@
 import 'chat_message.dart';
 import 'chat_user.dart';
 
-/// Represents a chat conversation between the current user and another user
 class ChatConversation {
   final String id;
   final ChatUser participant;
@@ -58,10 +57,8 @@ class ChatConversation {
     return DateTime.now();
   }
 
-  /// Get the last message in the conversation
   ChatMessage? get lastMessage => messages.isNotEmpty ? messages.last : null;
 
-  /// Get the preview text for the conversation (last message or empty)
   String get messagePreview {
     if (messages.isEmpty) return 'No messages yet';
     final last = lastMessage;
@@ -69,7 +66,6 @@ class ChatConversation {
     return '$prefix${last.content}';
   }
 
-  /// Create a copy with modified fields
   ChatConversation copyWith({
     String? id,
     ChatUser? participant,
@@ -86,7 +82,6 @@ class ChatConversation {
     );
   }
 
-  /// Hardcoded sample conversations for development
   static final List<ChatConversation> sampleConversations = [
     ChatConversation(
       id: 'conv-1',

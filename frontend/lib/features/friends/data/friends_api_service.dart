@@ -1,32 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:frontend/features/friends/domain/friend_request.dart';
 import 'package:frontend/features/friends/domain/friend_user.dart';
 import 'package:http/http.dart' as http;
-
-class FriendsApiException implements Exception {
-  const FriendsApiException(this.message);
-
-  final String message;
-
-  @override
-  String toString() => message;
-}
-
-class PaginatedFriends {
-  const PaginatedFriends({
-    required this.friends,
-    required this.page,
-    required this.hasNext,
-  });
-
-  final List<FriendUser> friends;
-  final int page;
-  final bool hasNext;
-}
+part 'paginated_friends.dart';
+part 'friends_api_exception.dart';
 
 class FriendsApiService {
   FriendsApiService({http.Client? client, String? baseUrl})

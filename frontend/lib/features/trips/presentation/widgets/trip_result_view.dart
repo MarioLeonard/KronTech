@@ -6,6 +6,9 @@ import 'package:frontend/features/trips/presentation/widgets/restaurant_card.dar
 import 'package:frontend/features/trips/presentation/widgets/trip_day_card.dart';
 import 'package:frontend/features/trips/presentation/widgets/trip_summary_card.dart';
 
+part 'section_title.dart';
+part 'trip_result_note_line.dart';
+
 class TripResultView extends StatelessWidget {
   const TripResultView({required this.trip, super.key});
 
@@ -97,48 +100,6 @@ class TripResultView extends StatelessWidget {
           ),
         ],
       ],
-    );
-  }
-}
-
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle({required this.icon, required this.title});
-
-  final IconData icon;
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Row(
-      children: [
-        Icon(icon, color: theme.colorScheme.primary),
-        const SizedBox(width: 10),
-        Text(
-          title,
-          style: theme.textTheme.titleLarge?.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _NoteLine extends StatelessWidget {
-  const _NoteLine({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Text(
-        '• $text',
-        style: TextStyle(color: Colors.white.withValues(alpha: 0.72)),
-      ),
     );
   }
 }

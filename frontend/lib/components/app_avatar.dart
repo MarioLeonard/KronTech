@@ -6,6 +6,8 @@ import 'app_avatar_html_stub.dart'
     if (dart.library.html) 'app_avatar_html_web.dart'
     as avatar_html;
 
+part 'fallback_icon.dart';
+
 class AppAvatar extends StatelessWidget {
   const AppAvatar({
     required this.imageUrl,
@@ -68,19 +70,5 @@ class AppAvatar extends StatelessWidget {
       onTap: onTap,
       child: avatar,
     );
-  }
-}
-
-class _FallbackIcon extends StatelessWidget {
-  const _FallbackIcon({required this.icon, required this.radius});
-
-  final IconData icon;
-  final double radius;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Icon(icon, color: theme.colorScheme.primary, size: radius);
   }
 }

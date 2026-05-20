@@ -4,7 +4,11 @@ import 'package:frontend/components/glass_container.dart';
 import 'package:frontend/models/user_profile.dart';
 import 'package:frontend/providers/auth_provider.dart';
 import 'package:frontend/services/backend_api_service.dart';
+import 'package:frontend/utils/profile_date_formatter.dart';
 import 'package:provider/provider.dart';
+
+part 'profile_detail.dart';
+part 'status_pill.dart';
 
 Future<void> showUserProfileSheet(
   BuildContext context, {
@@ -96,7 +100,7 @@ class _UserProfileSheetContent extends StatelessWidget {
     final details = [
       if (email != null && email!.trim().isNotEmpty)
         _ProfileDetail(icon: Icons.mail_outline_rounded, value: email!.trim()),
-      if (_formatBirthDate(dateOfBirth) case final birthDate?)
+      if (formatProfileBirthDate(dateOfBirth) case final birthDate?)
         _ProfileDetail(icon: Icons.cake_rounded, value: birthDate),
       if (country != null && country!.trim().isNotEmpty)
         _ProfileDetail(icon: Icons.public_rounded, value: country!.trim()),
@@ -193,82 +197,6 @@ class _UserProfileSheetContent extends StatelessWidget {
                 if (detail != details.last) const SizedBox(height: 10),
               ],
             ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  String? _formatBirthDate(String? value) {
-    if (value == null || value.trim().isEmpty) {
-      return null;
-    }
-    final date = DateTime.tryParse(value);
-    if (date == null) {
-      return null;
-    }
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    return '${date.day.toString().padLeft(2, '0')} ${months[date.month - 1]} ${date.year}';
-  }
-}
-
-class _ProfileDetail {
-  const _ProfileDetail({required this.icon, required this.value});
-
-  final IconData icon;
-  final String value;
-}
-
-class _StatusPill extends StatelessWidget {
-  const _StatusPill({required this.status});
-
-  final String status;
-
-  @override
-  Widget build(BuildContext context) {
-    final isOnline = status.toLowerCase() == 'connected';
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(
-                color: isOnline ? Colors.greenAccent : Colors.white38,
-                shape: BoxShape.circle,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              status,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.78),
-                fontWeight: FontWeight.w900,
-                fontSize: 12,
-              ),
-            ),
           ],
         ),
       ),

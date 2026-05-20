@@ -5,6 +5,8 @@ import 'package:frontend/features/chat/domain/chat_conversation.dart';
 import 'package:frontend/features/chat/domain/chat_message.dart';
 import 'package:http/http.dart' as http;
 
+part 'chat_api_exception.dart';
+
 class ChatApiService {
   ChatApiService({http.Client? client, String? baseUrl})
     : _client = client ?? http.Client(),
@@ -131,13 +133,4 @@ class ChatApiService {
     }
     return 'http://localhost:8000';
   }
-}
-
-class ChatApiException implements Exception {
-  const ChatApiException(this.message);
-
-  final String message;
-
-  @override
-  String toString() => message;
 }

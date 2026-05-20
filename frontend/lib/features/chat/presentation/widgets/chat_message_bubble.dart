@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:frontend/components/app_avatar.dart';
 import '../../domain/chat_message.dart';
 
-/// Reusable widget for displaying a single chat message
 class ChatMessageBubble extends StatelessWidget {
   final ChatMessage message;
   final String? senderAvatarUrl;

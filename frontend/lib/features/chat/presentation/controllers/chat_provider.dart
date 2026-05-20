@@ -194,9 +194,7 @@ class ChatProvider extends ChangeNotifier {
         conversationId: conversationId,
       );
       _webSocketService.markAsRead();
-    } catch (_) {
-      // Read receipts are best-effort in the UI; the next refresh resyncs them.
-    }
+    } catch (_) {}
     notifyListeners();
   }
 

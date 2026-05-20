@@ -17,7 +17,6 @@ class FeatureRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Lowered threshold to 700 to ensure zig-zag shows when sidebar is present
         final isWide = constraints.maxWidth >= 700;
 
         if (isWide) {

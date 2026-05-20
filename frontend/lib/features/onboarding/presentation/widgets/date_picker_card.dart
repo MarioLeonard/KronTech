@@ -3,6 +3,8 @@ import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
+part 'date_picker_scroll_behavior.dart';
+
 class DatePickerCard extends StatelessWidget {
   const DatePickerCard({
     super.key,
@@ -65,17 +67,4 @@ class DatePickerCard extends StatelessWidget {
       ],
     );
   }
-}
-
-class _DatePickerScrollBehavior extends MaterialScrollBehavior {
-  const _DatePickerScrollBehavior();
-
-  @override
-  Set<PointerDeviceKind> get dragDevices => const {
-    PointerDeviceKind.touch,
-    PointerDeviceKind.mouse,
-    PointerDeviceKind.trackpad,
-    PointerDeviceKind.stylus,
-    PointerDeviceKind.unknown,
-  };
 }

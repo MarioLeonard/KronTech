@@ -9,14 +9,8 @@ class PremiumBackground extends StatelessWidget {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        // 1. Base Rich Ocean Blue layer
-        Positioned.fill(
-          child: Container(
-            color: const Color(0xFF063970), // Richer, deeper ocean blue
-          ),
-        ),
+        Positioned.fill(child: Container(color: const Color(0xFF063970))),
 
-        // 2. Top-Right Glowing Orb (Tropical Water / Turquoise)
         Positioned(
           top: -100,
           right: -100,
@@ -27,7 +21,7 @@ class PremiumBackground extends StatelessWidget {
               shape: BoxShape.circle,
               gradient: RadialGradient(
                 colors: [
-                  const Color(0xFF00E5FF).withValues(alpha: 0.3), // Vibrant Turquoise
+                  const Color(0xFF00E5FF).withValues(alpha: 0.3),
                   const Color(0xFF00E5FF).withValues(alpha: 0),
                 ],
               ),
@@ -35,7 +29,6 @@ class PremiumBackground extends StatelessWidget {
           ),
         ),
 
-        // 3. Bottom-Left Glowing Orb (Sunset Coral / Golden Orange)
         Positioned(
           bottom: -150,
           left: -150,
@@ -46,7 +39,7 @@ class PremiumBackground extends StatelessWidget {
               shape: BoxShape.circle,
               gradient: RadialGradient(
                 colors: [
-                  const Color(0xFFFF7E5F).withValues(alpha: 0.2), // Warm Sunset Coral
+                  const Color(0xFFFF7E5F).withValues(alpha: 0.2),
                   const Color(0xFFFF7E5F).withValues(alpha: 0),
                 ],
               ),
@@ -54,7 +47,6 @@ class PremiumBackground extends StatelessWidget {
           ),
         ),
 
-        // 4. Subtle Center Glow (Tropical Teal)
         Positioned(
           top: 200,
           left: 100,
@@ -65,7 +57,7 @@ class PremiumBackground extends StatelessWidget {
               shape: BoxShape.circle,
               gradient: RadialGradient(
                 colors: [
-                  const Color(0xFF1CB5E0).withValues(alpha: 0.15), // Clear Water Blue
+                  const Color(0xFF1CB5E0).withValues(alpha: 0.15),
                   const Color(0xFF1CB5E0).withValues(alpha: 0),
                 ],
               ),
@@ -73,7 +65,6 @@ class PremiumBackground extends StatelessWidget {
           ),
         ),
 
-        // 5. The Content
         child,
       ],
     );

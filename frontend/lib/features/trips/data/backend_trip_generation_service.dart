@@ -1,20 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:frontend/features/trips/domain/generated_trip.dart';
 import 'package:frontend/features/trips/domain/trip_creation_request.dart';
 import 'package:http/http.dart' as http;
-
-class TripGenerationException implements Exception {
-  const TripGenerationException(this.message);
-
-  final String message;
-
-  @override
-  String toString() => message;
-}
+part 'trip_generation_exception.dart';
 
 class BackendTripGenerationService {
   BackendTripGenerationService({http.Client? client, String? baseUrl})

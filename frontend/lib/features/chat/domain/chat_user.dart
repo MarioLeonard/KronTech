@@ -1,4 +1,3 @@
-/// Represents a user in a chat conversation
 class ChatUser {
   final String id;
   final String name;
@@ -14,7 +13,6 @@ class ChatUser {
     this.lastSeen,
   });
 
-  /// Check if user is online
   bool get isOnline => status?.toLowerCase() == 'online';
 
   String get presenceLabel {
@@ -79,7 +77,6 @@ class ChatUser {
     return null;
   }
 
-  /// Hardcoded sample chat users for development
   static final List<ChatUser> sampleUsers = [
     const ChatUser(
       id: 'user-1',

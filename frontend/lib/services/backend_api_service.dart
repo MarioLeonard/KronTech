@@ -182,7 +182,6 @@ class BackendApiService {
       return baseUrl;
     }
 
-    // Provide a sensible default based on the environment
     return 'http://localhost:8000';
   }
 }

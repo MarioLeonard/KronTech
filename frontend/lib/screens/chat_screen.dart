@@ -6,7 +6,6 @@ import 'package:frontend/providers/auth_provider.dart' as app_auth;
 import 'package:provider/provider.dart';
 import 'package:frontend/features/chat/presentation/controllers/chat_provider.dart';
 
-/// Legacy chat screen that wraps the new feature-based chat
 class ChatScreen extends StatelessWidget {
   const ChatScreen({this.initialConversationId, super.key});
 

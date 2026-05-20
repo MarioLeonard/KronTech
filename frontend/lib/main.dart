@@ -12,9 +12,12 @@ import 'package:frontend/utils/hive_service.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
 
+part 'app/auth_entry_point.dart';
+part 'app/auth_entry_point_state.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Load .env file before any service initialization.
+
   try {
     await dotenv.load(fileName: '.env');
   } catch (e) {
@@ -45,67 +48,6 @@ class MyApp extends StatelessWidget {
         themeMode: ThemeMode.dark,
         home: const AuthEntryPoint(),
       ),
-    );
-  }
-}
-
-class AuthEntryPoint extends StatefulWidget {
-  const AuthEntryPoint({super.key});
-
-  @override
-  State<AuthEntryPoint> createState() => _AuthEntryPointState();
-}
-
-class _AuthEntryPointState extends State<AuthEntryPoint> {
-  String? _lastShownError;
-
-  void _showAuthErrorIfNeeded(String? errorMessage) {
-    if (errorMessage == null) {
-      _lastShownError = null;
-      return;
-    }
-
-    if (errorMessage == _lastShownError) {
-      return;
-    }
-
-    _lastShownError = errorMessage;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) {
-        return;
-      }
-
-      final messenger = ScaffoldMessenger.of(context);
-      final colorScheme = Theme.of(context).colorScheme;
-      messenger.hideCurrentSnackBar();
-      messenger.showSnackBar(
-        SnackBar(
-          backgroundColor: colorScheme.error,
-          content: Text(errorMessage),
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 5),
-        ),
-      );
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Consumer<AuthProvider>(
-      builder: (context, authProvider, child) {
-        _showAuthErrorIfNeeded(authProvider.errorMessage);
-
-        final user = authProvider.user;
-        if (authProvider.isAuthenticated && user != null) {
-          if (user.hasCompletedOnboarding) {
-            return MainShell(user: user);
-          }
-
-          return const MainOnboardingScreen();
-        }
-
-        return const LoginScreen();
-      },
     );
   }
 }

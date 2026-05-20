@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// Simple loading screen shown while app initializes
 class LoadingScreen extends StatelessWidget {
   final String? message;
 

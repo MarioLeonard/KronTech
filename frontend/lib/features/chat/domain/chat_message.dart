@@ -1,4 +1,3 @@
-/// Represents a single message in a chat conversation
 class ChatMessage {
   final String id;
   final String senderId;
@@ -43,7 +42,6 @@ class ChatMessage {
     );
   }
 
-  /// Create a copy with modified fields
   ChatMessage copyWith({
     String? id,
     String? senderId,
@@ -64,7 +62,6 @@ class ChatMessage {
     );
   }
 
-  /// Format timestamp as time string (e.g., "14:30" or "Yesterday")
   String get formattedTime {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -99,7 +96,6 @@ class ChatMessage {
   }
 }
 
-/// Message delivery status
 enum MessageStatus {
   sending('Sending...'),
   delivered('Delivered'),

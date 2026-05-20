@@ -5,9 +5,9 @@ class AppTheme {
   AppTheme._();
 
   static const _lightBackground = Color(0xFFF8F9FA);
-  static const _primaryBlue = Color(0xFF00E5FF); // Tropical Cyan/Turquoise
+  static const _primaryBlue = Color(0xFF00E5FF);
   static const _chip = Color(0xFFCAF0F8);
-  static const _accentOrange = Color(0xFFFF8C00); // Bright, warm summery orange
+  static const _accentOrange = Color(0xFFFF8C00);
   static const _lightText = Color(0xFF0B1324);
   static const _darkText = Color(0xFFCAF0F8);
 
@@ -41,7 +41,9 @@ class AppTheme {
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF0077B6),
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           textStyle: GoogleFonts.poppins(fontWeight: FontWeight.w700),
         ),
       ),
@@ -51,7 +53,9 @@ class AppTheme {
           foregroundColor: Colors.white,
           disabledBackgroundColor: const Color(0xFFE4E7EB),
           disabledForegroundColor: const Color(0xFF667085),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           textStyle: GoogleFonts.poppins(fontWeight: FontWeight.w800),
         ),
       ),
@@ -77,7 +81,7 @@ class AppTheme {
     final colorScheme = ColorScheme.fromSeed(
       seedColor: _primaryBlue,
       brightness: Brightness.dark,
-      surface: const Color(0xFF00E5FF).withValues(alpha: 0.05), // Brighter translucent cyan tint
+      surface: const Color(0xFF00E5FF).withValues(alpha: 0.05),
       primary: _primaryBlue,
       secondary: const Color(0xFF00B4D8),
       tertiary: _accentOrange,
@@ -113,7 +117,9 @@ class AppTheme {
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF00B4D8),
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           textStyle: GoogleFonts.poppins(fontWeight: FontWeight.w700),
         ),
       ),
@@ -123,7 +129,9 @@ class AppTheme {
           foregroundColor: Colors.white,
           disabledBackgroundColor: const Color(0xFF335C93),
           disabledForegroundColor: const Color(0xFFB8D8E0),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           textStyle: GoogleFonts.poppins(fontWeight: FontWeight.w800),
         ),
       ),

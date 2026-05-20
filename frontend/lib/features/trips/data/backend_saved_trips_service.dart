@@ -1,20 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:frontend/features/trips/domain/saved_trip.dart';
 import 'package:frontend/utils/hive_service.dart';
 import 'package:http/http.dart' as http;
-
-class SavedTripsException implements Exception {
-  const SavedTripsException(this.message);
-
-  final String message;
-
-  @override
-  String toString() => message;
-}
+part 'saved_trips_exception.dart';
 
 class BackendSavedTripsService {
   BackendSavedTripsService({http.Client? client, String? baseUrl})
